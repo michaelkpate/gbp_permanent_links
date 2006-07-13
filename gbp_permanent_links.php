@@ -777,7 +777,7 @@ EOF;
 
 		// --- Destination --- //
 
-		$out[] = hed('Usage', 2);
+		$out[] = hed('Destination', 2);
 		$out[] = graf(small('Redirect this permanent link and forward to:'));
 		$out[] = graf(
 			tag('Section: '.selectInput('des_section', array(), '', 0, ''), 'label').n.
