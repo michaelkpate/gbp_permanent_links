@@ -754,11 +754,23 @@ EOF;
 
 		// --- Conditions --- //
 
+		$sections = array();
+		$rs = safe_rows('name, title', 'txp_section', "name != 'default' order by name");
+		foreach ($rs as $sec) {
+			$sections[$sec['name']] = $sec['title'];
+		}
+
+		$categories = array();
+		$rs = safe_rows('name, title', 'txp_category', "type = 'article' and name != 'root' order by name");
+		foreach ($rs as $sec) {
+			$categories[$sec['name']] = $sec['title'];
+		}
+
 		$out[] = hed('Conditions', 2);
 		$out[] = graf(small('Only use this permanent link if the following conditions apply:'));
 		$out[] = graf(
-			tag('Within section: '.selectInput('con_section', array(), '', 0, ''), 'label').n.
-			tag('Within category: '.selectInput('con_category', array(), '', 0, ''), 'label')
+			tag('Within section: '.selectInput('con_section', $sections, $settings['con_section'], 1, ''), 'label').n.
+			tag('Within category: '.selectInput('con_category', $categories, $settings['con_category'], 1, ''), 'label')
 		);
 		$out[] = graf(
 			gbpFBoxes('con_search', 1, $settings['con_search'], NULL, 'Contains search query').n.
@@ -780,8 +792,8 @@ EOF;
 		$out[] = hed('Destination', 2);
 		$out[] = graf(small('Redirect this permanent link and forward to:'));
 		$out[] = graf(
-			tag('Section: '.selectInput('des_section', array(), '', 0, ''), 'label').n.
-			tag('Category: '.selectInput('des_category', array(), '', 0, ''), 'label')
+			tag('Section: '.selectInput('des_section', $sections, $settings['des_section'], 1, ''), 'label').n.
+			tag('Category: '.selectInput('des_category', $categories, $settings['des_category'], 1, ''), 'label')
 		);
 		$out[] = graf(
 			gbpFBoxes('des_feed', array('', 'rss', 'atom'), $settings['des_feed'], NULL, array('None', 'RSS feed', 'Atom feed'))
