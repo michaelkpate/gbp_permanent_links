@@ -305,9 +305,10 @@ class PermanentLinks extends GBPPlugin
 
 				// Merge pretext_replacement with pretext
 				$pretext = array_merge($pretext, $pretext_replacement);
+
+				// We're done - no point check the other permalinks
+				break;
 			}
-			// We're done - no point check the other permalinks
-			break;
 
 		} // foreach permalinks end
 		$this->debug('Pretext Replacement '.print_r($pretext, 1));
