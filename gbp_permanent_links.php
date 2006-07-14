@@ -98,15 +98,21 @@ class PermanentLinks extends GBPPlugin
 		$this->debug('Plugin: '.$this->plugin_name);
 		$this->debug('Function: '.__FUNCTION__.'()');
 
-		// URI components
-		$uri_components = explode('/', trim($pretext['req'], '/'));
-
 		// Permanent links
 		$permalinks = $this->get_all_permalinks();
+
+		// Sort the permalinks via their precedence value.
+		foreach ($permalinks as $key => $pl) {
+		    $precedence[$key]  = $pl['settings']['pl_precedence'];
+		}
+		array_multisort($precedence, SORT_DESC, $permalinks);
 
 		foreach($permalinks as $pl)
 		{
 			$pl_components = $pl['components'];
+
+			// URI components
+			$uri_components = explode('/', trim($pretext['req'], '/'));
 
 			// Are we expecting a date component? If so the number of pl and uri components won't match
 			foreach($pl_components as $pl_c)
@@ -295,9 +301,13 @@ class PermanentLinks extends GBPPlugin
 				// Set the page template, otherwise we get an unknown section error
 				$page = safe_field('page', 'txp_section', "name = '{$pretext_replacement['s']}' limit 1");
 				$pretext_replacement['page'] = $page;
+				$pretext_replacement['permalink'] = $pl_name;
 
+				// Merge pretext_replacement with pretext
 				$pretext = array_merge($pretext, $pretext_replacement);
 			}
+			// We're done - no point check the other permalinks
+			break;
 
 		} // foreach permalinks end
 		$this->debug('Pretext Replacement '.print_r($pretext, 1));
