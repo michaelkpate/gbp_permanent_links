@@ -621,6 +621,7 @@ var {$components}// components array for all the data
 			c = c + jsArrayToPhpArray(components[i]) + separator;
 
 		form.components.value = c;
+		form.pl_preview.value = permalink_format().textContent;
 
 		return true;
 	}
@@ -818,6 +819,7 @@ EOF;
 		$out[] = sInput(gbp_save);
 		$out[] = hInput(gbp_id, $id);
 		$out[] = hInput('components', '');
+		$out[] = hInput('pl_preview', '');
 
 		$out[] = '</form>';
 
@@ -829,11 +831,13 @@ EOF;
 		global $prefs;
 
 		$settings = gpsa(array(
-			'pl_name', 'pl_precedence',
+			'pl_name', 'pl_precedence', 'pl_preview',
 			'con_section', 'con_category', 'con_search', 'con_page',
 			'use_article',
 			'des_section', 'des_category', 'des_feed', 'des_location',
 		));
+
+		$settings['pl_preview'] = str_replace(' ', '', $settings['pl_preview']);
 
 		$serialize_components = explode(gbp_separator, rtrim(gps('components'), gbp_separator));
 		$components = array();
@@ -891,22 +895,33 @@ class PermanentLinksListTabView extends GBPAdminTabView
 			$out[] = '<table align="center">'.n;
 
 			$out[] = '<tr>';
-			$out[] = '<td>Permalink link name</td>';
-			$out[] = '<td></td>';
+			$out[] = '<th>Name</th>';
+			$out[] = '<th>Preview</th>';
+			$out[] = '<th>Precedence</th>';
+			$out[] = '<th></th>';
 			$out[] = '</tr>'.n;
+
+			// Sort the permalinks via their precedence and then names.
+			foreach ($permalinks as $key => $pl) {
+		    	$name[$key]  = $pl['settings']['pl_name'];
+			    $precedence[$key]  = $pl['settings']['pl_precedence'];
+			}
+			array_multisort($precedence, SORT_DESC, $name, SORT_ASC, $permalinks);
 
 			foreach ($permalinks as $id => $permalink) {
 				$out[] = '<tr>';
 				$out[] = '<td>
 					<a href="'.$this->parent->url(array(gbp_tab => 'build')).'&#38;'.gbp_id.'='.$id.'">'.$permalink['settings']['pl_name'].'</a>
 					</td>';
+				$out[] = '<td>'.$permalink['settings']['pl_preview'].'</td>';
+				$out[] = '<td>'.$permalink['settings']['pl_precedence'].'</td>';
 				$out[] = '<td>'.
 					fInput('checkbox', 'selected[]', $id).'
 					</td>';
 				$out[] = '</tr>'.n;
 			}
 
-			$out[] = '<tr><td colspan="2" style="border:0px;text-align:right">'.event_multiedit_form($this->parent->event, NULL, '', '', '', '', '').'</td></tr>'.n;
+			$out[] = '<tr><td colspan="4" style="border:0px;text-align:right">'.event_multiedit_form($this->parent->event, NULL, '', '', '', '', '').'</td></tr>'.n;
 
 			$out[] = '</table>';
 
@@ -919,7 +934,7 @@ class PermanentLinksListTabView extends GBPAdminTabView
 			echo '<p>You haven\'t created any custom permanent links formats yet.</p>'.
 				'<p><a href="'.$this->parent->url(array(gbp_tab => 'build')).'">Click here</a> to add one.</p>';
 		}
-  }
+	}
 
 	function multi_edit()
 	{
