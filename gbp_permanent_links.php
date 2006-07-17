@@ -101,11 +101,14 @@ class PermanentLinks extends GBPPlugin
 		// Permanent links
 		$permalinks = $this->get_all_permalinks();
 
-		// Sort the permalinks via their precedence value.
-		foreach ($permalinks as $key => $pl) {
-		    $precedence[$key]  = $pl['settings']['pl_precedence'];
-		}
-		array_multisort($precedence, SORT_DESC, $permalinks);
+		if (count($permalinks) > 1)
+			{
+			// Sort the permalinks via their precedence value.
+			foreach ($permalinks as $key => $pl) {
+			    $precedence[$key]  = $pl['settings']['pl_precedence'];
+			}
+			array_multisort($precedence, SORT_DESC, $permalinks);
+			}
 
 		foreach($permalinks as $pl)
 		{
