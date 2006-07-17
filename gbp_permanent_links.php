@@ -914,7 +914,7 @@ class PermanentLinksListTabView extends GBPAdminTabView
 			foreach ($permalinks as $id => $permalink) {
 				$out[] = '<tr>';
 				$out[] = '<td>
-					<a href="'.$this->parent->url(array(gbp_tab => 'build')).'&#38;'.gbp_id.'='.$id.'">'.$permalink['settings']['pl_name'].'</a>
+					<a href="'.$this->parent->url(array(gbp_tab => 'build'), true).'&'.gbp_id.'='.$id.'">'.$permalink['settings']['pl_name'].'</a>
 					</td>';
 				$out[] = '<td>'.$permalink['settings']['pl_preview'].'</td>';
 				$out[] = '<td>'.$permalink['settings']['pl_precedence'].'</td>';
