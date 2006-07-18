@@ -92,7 +92,7 @@ class PermanentLinks extends GBPPlugin
 		return $permalink['settings']['pl_name'];
 	}
 
-	function _gbp_permalinks_txp()
+	function _textpattern()
 	{
 		global $pretext, $s, $c, $prefs;
 
@@ -357,7 +357,7 @@ class PermanentLinks extends GBPPlugin
 		    die();
 			}
 
-	} // function _gbp_permalinks_txp end
+	} // function _textpattern end
 
 	function _textpattern_end( $html )
 		{
@@ -1027,7 +1027,7 @@ class PermanentLinksListTabView extends GBPAdminTabView
 
 $gbp_pl = new PermanentLinks('permanent links', 'permalinks', 'admin');
 if (@txpinterface == 'public')
-	register_callback(array(&$gbp_pl, '_gbp_permalinks_txp'), 'textpattern');
+	register_callback(array(&$gbp_pl, '_textpattern'), 'textpattern');
 
 # --- END PLUGIN CODE ---
 
