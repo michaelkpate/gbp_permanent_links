@@ -47,6 +47,7 @@ class PermanentLinks extends GBPPlugin
 		'show_suffix' => array('value' => 0, 'type' => 'yesnoradio'),
 		'debug' => array('value' => 0, 'type' => 'yesnoradio'),
 	);
+	var $matched_permalink_id;
 
 	function preload()
 	{
@@ -93,7 +94,7 @@ class PermanentLinks extends GBPPlugin
 
 	function _gbp_permalinks_txp()
 	{
-		global $pretext, $s, $c;
+		global $pretext, $s, $c, $prefs;
 
 		$this->debug('Plugin: '.$this->plugin_name);
 		$this->debug('Function: '.__FUNCTION__.'()');
@@ -110,7 +111,7 @@ class PermanentLinks extends GBPPlugin
 			array_multisort($precedence, SORT_DESC, $permalinks);
 			}
 
-		foreach($permalinks as $pl)
+		foreach($permalinks as $id => $pl)
 		{
 			$pl_components = $pl['components'];
 
@@ -309,13 +310,78 @@ class PermanentLinks extends GBPPlugin
 				// Merge pretext_replacement with pretext
 				$pretext = array_merge($pretext, $pretext_replacement);
 
+				// We have a match but this is no use if we don't register an override for permlinkurl()
+				$prefs['custom_url_func'] = array(&$this, '_permlinkurl');
+
+				$this->matched_permalink_id = $id;
+
 				// We're done - no point check the other permalinks
 				break;
 			}
 
 		} // foreach permalinks end
-		$this->debug('Pretext Replacement '.print_r($pretext, 1));
+
+		if (isset($pretext_replacement))
+			{
+			global $plugin_callback, $permlink_mode;
+
+			// Force Textpattern and tags to use messy URLs - these are to find in regex
+			$pretext['permlink_mode'] =
+			$pref['permlink_mode'] =
+			$permlink_mode = 'messy';
+
+			$this->debug('Pretext Replacement '.print_r($pretext, 1));
+
+			ob_start(array(&$this, '_textpattern_end'));
+
+			$new_callbacks = array();
+			$found_this = false;
+			foreach ($plugin_callback as $callback)
+				{
+				if ($found_this)
+					$new_callbacks = $callback;
+				if ( $callback['event'] == 'textpattern' 
+					&& is_array( $callback['function'] )
+					&& count( $callback['function'] )
+					&& $callback['function'][0] === $this )
+					{
+					$found_this = true;
+					}
+				}
+			$plugin_callback = $new_callbacks;
+
+			textpattern();
+
+			ob_end_flush();
+
+		    die();
+			}
+
 	} // function _gbp_permalinks_txp end
+
+	function _textpattern_end( $html )
+		{
+
+		$html = preg_replace_callback(
+			'%(href="'.hu.')([^"]*)(")%',
+			array(&$this, '_pagelinkurl'),
+			$html);
+
+		return $html;
+		}
+
+	function _permlinkurl( $article_array )
+		{
+		global $prefs;
+		$prefs['custom_url_func'] = '';
+		// $pl = $this->get_permalink( $this->matched_permalink_id );
+		return permlinkurl( $article_array );
+		}
+
+	function _pagelinkurl( $parts, $inherit=array() )
+		{
+		return $parts[0];
+		}
 
 	function debug()
 	{
@@ -961,7 +1027,7 @@ class PermanentLinksListTabView extends GBPAdminTabView
 
 $gbp_pl = new PermanentLinks('permanent links', 'permalinks', 'admin');
 if (@txpinterface == 'public')
-	register_callback(array($gbp_pl, '_gbp_permalinks_txp'), 'textpattern');
+	register_callback(array(&$gbp_pl, '_gbp_permalinks_txp'), 'textpattern');
 
 # --- END PLUGIN CODE ---
 
