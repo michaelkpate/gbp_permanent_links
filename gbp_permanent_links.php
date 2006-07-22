@@ -23,6 +23,8 @@ if (0) {
 // Constants
 if (!defined('gbp_save'))
 	define('gbp_save', 'save');
+if (!defined('gbp_post'))
+	define('gbp_post', 'post');
 if (!defined('gbp_separator'))
 	define('gbp_separator', '&~&~&');
 
@@ -35,7 +37,6 @@ $txp_current_plugin = $gbp_current_plugin;
 class PermanentLinks extends GBPPlugin
 {
 	var $preferences = array(
-		'show_advance' => array('value' => 0, 'type' => 'yesnoradio'),
 		'show_prefix' => array('value' => 0, 'type' => 'yesnoradio'),
 		'show_suffix' => array('value' => 0, 'type' => 'yesnoradio'),
 		'debug' => array('value' => 0, 'type' => 'yesnoradio'),
@@ -390,18 +391,34 @@ class PermanentLinks extends GBPPlugin
 class PermanentLinksBuildTabView extends GBPAdminTabView
 {
 	function preload()
-	{
-		register_callback(array($this, 'save_permalink'), $this->parent->event, gbp_save, 1);
-	}
+		{
+		register_callback(array($this, 'post_save_permalink'), $this->parent->event, gbp_save, 1);
+		register_callback(array($this, 'post_save_permalink'), $this->parent->event, gbp_post, 1);
+		}
 
 	function main()
-	{
-		if ($id = gps(gbp_id)) {
+		{
+		global $prefs;
+		extract(gpsa(array('step', gbp_id)));
+
+		// With have an ID, either the permalink has just been saved or the user wants to edit it
+		if ($id)
+			{
+			// Newly saved or beening edited, either way we're editing a permalink
+			$step = gbp_save;
+
+			// Use the ID to grab the permalink data (components & settings) 
 			$permalink = $this->parent->get_permalink($id);
 			$components = $this->phpArrayToJsArray('components', $permalink['components']);
 			$settings = $permalink['settings'];
-		}
-		else {
+			}
+		else
+			{
+			// Creating a new ID and permalink.
+			$step = gbp_post;
+			$id = uniqid('');
+
+			// Set the default set of components depending on whether there is parent permalink 
 			$components = $this->phpArrayToJsArray('components', array(
 				array('type' => 'section', 'prefix' => '', 'suffix' => '', 'regex' => '', 'text' => ''),
 				array('type' => 'category', 'prefix' => '', 'suffix' => '', 'regex' => '', 'text' => ''),
@@ -409,34 +426,34 @@ class PermanentLinksBuildTabView extends GBPAdminTabView
 			));
 
 			$settings = array(
-				'pl_name' => '', 'pl_precedence' => '',
-				'con_section' => '', 'con_category' => '', 'con_search' => '', 'con_page' => '',
-				'use_article' => '',
+				'pl_name' => 'Untitled', 'pl_precedence' => '0',
+				'con_section' => '', 'con_category' => '',
 				'des_section' => '', 'des_category' => '', 'des_feed' => '', 'des_location' => '',
 			);
-		}
+			}
 
-		// Javascript constants;
+		// Extract settings - this will be useful when creating the user interface
+		extract($settings);
+
+		// PHP & Javascript constants;
 		$separator = gbp_separator;
-		$permalinkId = 'gbp_permalink_format';
+		$components_div = 'permalink_components_ui';
+		$components_form = 'permalink_components';
+		$settings_form = 'permalink_settings';
 
+		// A little credit here and there doesn't hurt
 		$out[] = "<!-- {$this->parent->plugin_name} by Graeme Porteous -->";
 
+		// The Javascript
 		$out[] = <<<EOF
 	<script type="text/javascript" language="javascript" charset="utf-8">
 	// <![CDATA[
-
-	// Constants
-	var permalinkId = '{$permalinkId}';
-	var separator = '{$separator}';
 
 	// Global variables
 var {$components}// components array for all the data
 
 	var _current = 0; // Index of the components array, of the currently selected component
 	var c_vals = new Array('type', 'custom', 'name', 'prefix', 'suffix', 'regex', 'text');
-	var show_prefix = {$this->parent->preferences['show_prefix']['value']};
-	var show_suffix = {$this->parent->preferences['show_suffix']['value']};
 
 	window.onload = function()
 	{
@@ -455,8 +472,8 @@ var {$components}// components array for all the data
 		// Add data
 		components.push(data);
 
-		// Reset type list
-		theform().type.value = '';
+		// Reset component type list
+		form('{$components_form}').type.value = '';
 
 		// Switch to the new component
 		_current = components.length - 1;
@@ -519,8 +536,8 @@ var {$components}// components array for all the data
 	function component_refresh_all()
 	{
 		// Remove all child nodes
-		while (permalink_format().hasChildNodes())
-			{ permalink_format().removeChild(permalink_format().firstChild); }
+		while (permalink_div().hasChildNodes())
+			{ permalink_div().removeChild(permalink_div().firstChild); }
 
 		for (var i = 0; i < components.length; i++)
 		{
@@ -539,7 +556,7 @@ var {$components}// components array for all the data
 			new_component = component_refresh(new_component);
 
 			// And add the new component to the ui
-			permalink_format().appendChild(new_component);
+			permalink_div().appendChild(new_component);
 		}
 	}
 
@@ -568,7 +585,7 @@ var {$components}// components array for all the data
 		var c = components[_current];
 		for (key in c_vals) {
 			var k = c_vals[key];
-			var e = theform().elements.namedItem(k);
+			var e = form('{$components_form}').elements.namedItem(k);
 
 			if (c[k]) e.value = c[k];
 			else e.value = '';
@@ -584,7 +601,7 @@ var {$components}// components array for all the data
 		var c = new Array()
 		for (key in c_vals) {
 			var k = c_vals[key];
-			var e = theform().elements.namedItem(k);
+			var e = form('{$components_form}').elements.namedItem(k);
 
 			c[k] = e.value;
 
@@ -592,27 +609,27 @@ var {$components}// components array for all the data
 		}
 
 		// Reshow type option list
-		theform().type.parentNode.style['display'] = '';
+		form('{$components_form}').type.parentNode.style['display'] = '';
 
 		// Set other form inputs to the correct visibility state, dependent on type
 		switch (c['type']) {
 			case '' :
 			case 'date' : break;
 			case 'regex' :
-				theform().name.parentNode.style['display'] = '';
-				theform().regex.parentNode.style['display'] = '';
+				form('{$components_form}').name.parentNode.style['display'] = '';
+				form('{$components_form}').regex.parentNode.style['display'] = '';
 			break;
 			case 'text' :
-				theform().name.parentNode.style['display'] = '';
-				theform().text.parentNode.style['display'] = '';
+				form('{$components_form}').name.parentNode.style['display'] = '';
+				form('{$components_form}').text.parentNode.style['display'] = '';
 			break;
 			case 'custom' :
-				theform().custom.parentNode.style['display'] = '';
+				form('{$components_form}').custom.parentNode.style['display'] = '';
 			default :
-				if (show_prefix)
-					theform().prefix.parentNode.style['display'] = '';
-				if (show_suffix)
-					theform().suffix.parentNode.style['display'] = '';
+				if ({$this->parent->preferences['show_prefix']['value']})
+					form('{$components_form}').prefix.parentNode.style['display'] = '';
+				if ({$this->parent->preferences['show_suffix']['value']})
+					form('{$components_form}').suffix.parentNode.style['display'] = '';
 			break;
 		}
 
@@ -665,94 +682,110 @@ var {$components}// components array for all the data
 		}
 	}
 
-	function pl_save(form)
+	function save(form)
 	{
-		if (form.pl_name.value == '')
-		{
-			alert('Please enter a name for this permanent link format.');
-			return false;
+		var c = ''; var is_permalink = false; var has_page_or_search = false;
+		for (var i = 0; i < components.length; i++) {
+			if (components[i]['type'] == 'title')
+				is_permalink = true;
+			if (components[i]['type'] == 'page' || components[i]['type'] == 'search')
+				has_page_or_search = true;
+			c = c + jsArrayToPhpArray(components[i]) + '{$separator}';
 		}
-		var c = '';
-		for (var i = 0; i < components.length; i++)
-			c = c + jsArrayToPhpArray(components[i]) + separator;
 
-		form.components.value = c;
-		form.pl_preview.value = permalink_format().textContent;
+		if (is_permalink && has_page_or_search)
+			alert("Your permanent link can't contain either a 'page' or a 'search' component with a 'title' component.");
 
-		return true;
+		else if (is_permalink && (form.pl_name.value == '' || form.pl_name.value == 'Untitled'))
+			alert('Please enter a name for this permanent link format.');
+
+		else
+		{
+			form.components.value = c;
+			form.pl_preview.value = permalink_div().textContent;
+			return true;
+		}
+
+		return false;
 	}
 
-	function jsArrayToPhpArray(a)
+	function jsArrayToPhpArray(array)
 	{
 		// http://farm.tucows.com/blog/_archives/2005/5/30/895901.html
-		var a_php = "";
+		var array_php = "";
 		var total = 0;
-		for (var key in a) {
+		for (var key in array) {
 			++ total;
-			a_php = a_php + "s:" +
+			array_php = array_php + "s:" +
 				String(key).length + ":\"" + String(key) + "\";s:" +
-				String(a[key]).length + ":\"" + String(a[key]) + "\";";
+				String(array[key]).length + ":\"" + String(array[key]) + "\";";
 		}
-		a_php = "a:" + total + ":{" + a_php + "}";
-		return a_php;
+		array_php = "a:" + total + ":{" + array_php + "}";
+		return array_php;
 	}
 
-	function permalink_format()
+	function permalink_div()
 	{
 		// Return the permalink format element
-		return document.getElementById(permalinkId);
+		return document.getElementById('{$components_div}');
 	}
 
-	function theform()
+	function form(name)
 	{
-		// Return the form element
-		return document.forms.namedItem(permalinkId);
+		if (!name)
+			name = '{$components_form}'
+		// Return the form element with name
+		return document.forms.namedItem(name);
 	}
 
 	function component(index)
 	{
 		// Return component with index
-		return permalink_format().childNodes[index];
+		return permalink_div().childNodes[index];
 	}
 
 	// ]]>
 	</script>
 EOF;
 
-		function gbpFLabel($label, $contents = '')
-		{
+		function gbpFLabel( $label, $contents='' )
+			{
+			// <label> the contents with the name $lable
 			$contents = ($contents ? ': '.$contents : '');
-			return tag($label.$contents, 'label');
-		}
+			return tag( $label.$contents, 'label' );
+			}
 
-		function gbpFBoxes($name = '', $value = '', $checked_value = '', $on = array(), $label = '')
-		{
+		function gbpFBoxes( $name='', $value='', $checked_value='', $on=array(), $label='' )
+			{
 			$out = array();
-			if (is_array($value)) {
+			if (is_array($value))
+				{
 				$i = 0;
-				foreach ($value as $val) {
-					$o = ''; $o = '<input type="radio" name="'.$name.'" value="'.$val.'"';
+				foreach ($value as $val)
+					{
+					$o = '<input type="radio" name="'.$name.'" value="'.$val.'"';
 					$o .= ($checked_value == $val) ? ' checked="checked"' : '';
 					if (is_array($on)) foreach($on as $k => $v)
 						$o .= ($on) ? ' on'.$k.'="'.$v.'"' : '';
 					$o .= ' />';
 					$out[] = $o.gbpFLabel($label[$i++]);
+					}
 				}
-			}
-			else {
+			else
+				{
 				$o = '<input type="checkbox" name="'.$name.'" value="'.$value.'"';
 				$o .= ($checked_value == $value) ? ' checked="checked"' : '';
 				if (is_array($on)) foreach($on as $k => $v)
 					$o .= ($on) ? ' on'.$k.'="'.$v.'"' : '';
 				$o .= ' />';
 				$out[] = $o.gbpFLabel($label);
-			}
+				}
 
 			return join(br, $out);
-		}
+			}
 
-		function gbpFInput($type, $name = '', $value = '', $on = array(), $label = '')
-		{
+		function gbpFInput( $type, $name='', $value='', $on=array(), $label='' )
+			{
 			if ($type == 'radio' || $type == 'checkbox')
 				return gbpFBoxes($name, $value, $on, $label);
 
@@ -761,46 +794,55 @@ EOF;
 					$o .= ($on) ? ' on'.$k.'="'.$v.'"' : '';
 			$o .= ' />';
 			return ($label) ? gbpFLabel($label, $o) : $o;
-		}
+			}
+
+		function gbpFSelect( $name='', $array='', $value='', $blank_first='', $label='', $on_submit='' )
+			{
+			$o = selectInput($name, $array, $value, $blank_first, $on_submit);
+			return ($label ? gbpFLabel($label, $o) : $o);
+			}
 
 		// --- Format --- //
 
-		$out[] = hed('Format', 2);
-		$out[] = '<div id="'.$permalinkId.'" style="background-color: rgb(230, 230, 230); width: auto; height: 1.5em; margin: 10px 0; padding: 5px;"></div>';
-		$out[] = graf(
+		$out[] = hed('Permanent link format', 2);
+		$out[] = '<div id="'.$components_div.'" style="background-color: rgb(230, 230, 230); width: auto; height: 1.5em; margin: 10px 0; padding: 5px;"></div>';
+		$out[] = graf
+			(
 			gbpFInput('button', 'component_add', 'Add component', array('click' => 'component_add();')).n.
 			gbpFInput('button', 'component_remove', 'Remove component', array('click' => 'component_remove();')).n.
 			gbpFInput('button', 'component_left', 'Move left', array('click' => 'component_left();')).n.
 			gbpFInput('button', 'component_right', 'Move right', array('click' => 'component_right();'))
-		);
+			);
 
-		$out[] = '<form action="index.php" name="'.$permalinkId.'" onsubmit="return false;">';
+		// --- Component form --- //
+
+		$out[] = '<form action="index.php" name="'.$components_form.'" onsubmit="return false;">';
 
 		// --- Component type --- //
 
-		$component_types = 	array(
+		$component_types = array
+			(
 			'section' => 'Section', 'category' => 'Category',
 			'title' => 'Title', 'date' => 'Date (yyyy/mm/dd)',
 			'year' => 'Year', 'month' => 'Month', 'day' => 'Day',
 			'author' => 'Author', 'custom' => 'Custom Field',
 			'page' => 'Page Number', 'search' => 'Search request',
 			'text' => 'Plain Text', 'regex' => 'Regular Expression'
-		);
-		$out[] = graf(tag('Type: '.selectInput('type', $component_types, '', 1, ' onchange="component_update();"'), 'label'));
+			);
+		$out[] = graf(gbpFSelect('type', $component_types, '', 1, 'Component type', ' onchange="component_update();"'));
 
 		// --- Component data --- //
 
 		// Grab the custom field titles
 		$custom_fields = array();
-		global $prefs;
 		for ($i = 1; $i <= 10; $i++)
-		{ 
+			{ 
 			if ($v = $prefs["custom_{$i}_set"])
 				$custom_fields[$i] = $v;
-		}
+			}
 
 		$out[] = graf(
-			tag('Custom: '.selectInput('custom', $custom_fields, '', 0, ' onchange="component_update();"'), 'label').n.
+			gbpFSelect('custom', $custom_fields, '', 0, 'Custom', ' onchange="component_update();"').n.
 			gbpFInput('text', 'name', '', array('keyup' => 'component_update();'), 'Name').n.
 			gbpFInput('text', 'prefix', '', array('keyup' => 'component_update();'), 'Prefix').n.
 			gbpFInput('text', 'regex', '', array('keyup' => 'component_update();'), 'Regular Expression').n.
@@ -810,90 +852,94 @@ EOF;
 		$out[] = '<hr />';
 
 		$out[] = '</form>';
-		$out[] = '<form action="index.php" method="post" name="gbp_permalink_settings" onsubmit="return pl_save(this);">';
+
+		// --- Settings form --- //
+
+		$out[] = '<form action="index.php" method="post" name="'.$settings_form.'" onsubmit="return save(this);">';
 
 		// --- Settings --- //
 
-		$out[] = graf(gbpFInput('text', 'pl_name', $settings['pl_name'], NULL, 'Name'));
-		$out[] = graf(gbpFInput('text', 'pl_precedence', $settings['pl_precedence'], NULL, 'Precedence'));
-		$out[] = '<hr />';
-
-		$out[] = '<div' . (($this->parent->preferences['show_advance']['value']) ? '>' : ' style="display: none">');
-
-		// --- Conditions --- //
-
-		$sections = array();
-		$rs = safe_rows('name, title', 'txp_section', "name != 'default' order by name");
-		foreach ($rs as $sec) {
-			$sections[$sec['name']] = $sec['title'];
-		}
-
-		$categories = array();
-		$rs = safe_rows('name, title', 'txp_category', "type = 'article' and name != 'root' order by name");
-		foreach ($rs as $sec) {
-			$categories[$sec['name']] = $sec['title'];
-		}
-
-		$out[] = hed('Conditions', 2);
-		$out[] = graf(small('Only use this permanent link if the following conditions apply:'));
-		$out[] = graf(
-			tag('Within section: '.selectInput('con_section', $sections, $settings['con_section'], 1, ''), 'label').n.
-			tag('Within category: '.selectInput('con_category', $categories, $settings['con_category'], 1, ''), 'label')
-		);
-		$out[] = graf(
-			gbpFBoxes('con_search', 1, $settings['con_search'], NULL, 'Contains search query').n.
-			gbpFBoxes('con_page',   1, $settings['con_page'],   NULL, 'Contains page number')
-		);
-		$out[] = '<hr />';
-
-		// --- Usage --- //
-
-		$out[] = hed('Usage', 2);
-		$out[] = graf(small('Only use this permanent link when linking to:'));
-		$out[] = graf(
-			gbpFBoxes('use_article', array('', 'list', 'individual'), $settings['use_article'], NULL, array('Everywhere', 'An article list', 'An individual article'))
-		);
-		$out[] = '<hr />';
-
-		// --- Destination --- //
-
-		$out[] = hed('Destination', 2);
-		$out[] = graf(small('Redirect this permanent link and forward to:'));
-		$out[] = graf(
-			tag('Section: '.selectInput('des_section', $sections, $settings['des_section'], 1, ''), 'label').n.
-			tag('Category: '.selectInput('des_category', $categories, $settings['des_category'], 1, ''), 'label')
-		);
-		$out[] = graf(
-			gbpFBoxes('des_feed', array('', 'rss', 'atom'), $settings['des_feed'], NULL, array('None', 'RSS feed', 'Atom feed'))
-		);
-		$out[] = graf(gbpFInput('text', 'des_location', $settings['des_location'], NULL, 'HTTP location'));
+		$out[] = hed('<a href="#" onclick="toggleDisplay(\'settings\'); return false;">Settings</a>', 2);
+		$out[] = '<div id="settings">';
+		$out[] = graf(gbpFInput('text', 'pl_name', $pl_name, NULL, 'Name'));
+		$out[] = graf(gbpFInput('text', 'pl_precedence', $pl_precedence, NULL, 'Precedence'));
 		$out[] = '<hr />';
 		$out[] = '</div>';
 
+		// --- Conditions --- //
+
+		$out[] = hed('<a href="#" onclick="toggleDisplay(\'conditions\'); return false;">Conditions</a>', 2);
+		$out[] = '<div id="conditions" style="display:none">';
+		$out[] = graf(small('Only use this permanent link if the following conditions apply:'));
+
+		// Generate a sections array (name=>title) 
+		$sections = array();
+		$rs = safe_rows('name, title', 'txp_section', "name != 'default' order by name");
+		foreach ($rs as $sec)
+			{
+			$sections[$sec['name']] = $sec['title'];
+			}
+
+		// Generate a categories array (name=>title) 
+		$categories = array();
+		$rs = safe_rows('name, title', 'txp_category', "type = 'article' and name != 'root' order by name");
+		foreach ($rs as $sec)
+			{
+			$categories[$sec['name']] = $sec['title'];
+			}
+
+		$out[] = graf
+			(
+			gbpFSelect('con_section', $sections, $con_section, 1, 'Within section').n.
+			gbpFSelect('con_category', $categories, $con_category, 1, 'Within category')
+			);
+		$out[] = '<hr />';
+		$out[] = '</div>';
+
+		// --- Destination --- //
+
+		$out[] = hed('<a href="#" onclick="toggleDisplay(\'destination\'); return false;">Destination</a>', 2);
+		$out[] = '<div id="destination" style="display:none">';
+		$out[] = graf(small('Redirect this permanent link and forward to:'));
+		$out[] = graf
+			(
+			gbpFSelect('des_section', $sections, $des_section, 1, 'Section').n.
+			gbpFSelect('des_category', $categories, $des_category, 1, 'Category')
+			);
+		$out[] = graf(gbpFBoxes('des_feed', array('', 'rss', 'atom'), $des_feed, NULL, array('None', 'RSS feed', 'Atom feed')));
+		$out[] = graf(gbpFInput('text', 'des_location', $des_location, NULL, 'HTTP location'));
+		$out[] = '<hr />';
+		$out[] = '</div>';
+
+		// Save button
 		$out[] = fInput('submit', '', 'Save permanent link');
-		$out[] = $this->parent->form_inputs();
-		$out[] = sInput(gbp_save);
-		$out[] = hInput(gbp_id, $id);
+
+		// Extra form inputs which get filled on submit
 		$out[] = hInput('components', '');
 		$out[] = hInput('pl_preview', '');
+		// Event and tab form inputs 
+		$out[] = $this->parent->form_inputs();
+		// Step and ID form inputs
+		$out[] = sInput($step);
+		$out[] = hInput(gbp_id, $id);
 
 		$out[] = '</form>';
 
+		// Lets echo everything out. Yah!
 		echo join(n, $out);
-	}
+		}
 
-	function save_permalink()
+	function post_save_permalink()
 		{
-		// The function saves a permanent link to txp_prefs
+		// The function posts or saves a permanent link to txp_prefs
 
 		global $prefs;
-		extract(gpsa(array('id')));
+		extract(gpsa(array('step', gbp_id)));
 
 		// Grab the user defined settings from the form POST data
 		$settings = gpsa(array(
 			'pl_name', 'pl_precedence', 'pl_preview',
-			'con_section', 'con_category', 'con_search', 'con_page',
-			'use_article',
+			'con_section', 'con_category',
 			'des_section', 'des_category', 'des_feed', 'des_location',
 		));
 
@@ -910,13 +956,6 @@ EOF;
 		
 		// Complete the permanent link array - this is exactly what needs to be stored in the db
 		$permalink = array('settings' => $settings, 'components' => $components);
-
-		// Generate a new ID if needed
-		if (!$id)
-			$id = uniqid('');
-
-		// Make sure the ID is available for the upcoming page load
-		$_POST[gbp_id] = $id;
 
 		// Save it
 		$this->parent->set_preference($id, $permalink, 'gbp_serialized');
