@@ -445,7 +445,7 @@ class PermanentLinksBuildTabView extends GBPAdminTabView
 		$out[] = "<!-- {$this->parent->plugin_name} by Graeme Porteous -->";
 
 		// The Javascript
-		$out[] = <<<EOF
+		$out[] = <<<HTML
 	<script type="text/javascript" language="javascript" charset="utf-8">
 	// <![CDATA[
 
@@ -746,7 +746,7 @@ var {$components}// components array for all the data
 
 	// ]]>
 	</script>
-EOF;
+HTML;
 
 		function gbpFLabel( $label, $contents='' )
 			{
