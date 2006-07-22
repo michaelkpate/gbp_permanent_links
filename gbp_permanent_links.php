@@ -697,8 +697,11 @@ var {$components}// components array for all the data
 			alert("Your permanent link can't contain either a 'page' or a 'search' component with a 'title' component.");
 
 		else if (is_permalink && (form.pl_name.value == '' || form.pl_name.value == 'Untitled'))
+		{
+			document.getElementById('settings').style['display'] = '';
+			form.pl_name.style['border'] = '3px solid rgb(221, 0, 0)';
 			alert('Please enter a name for this permanent link format.');
-
+		}
 		else
 		{
 			form.components.value = c;
