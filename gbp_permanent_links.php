@@ -52,11 +52,10 @@ class PermanentLinks extends GBPPlugin
 	}
 
 	function get_all_permalinks()
-	{
+		{
 		$rs = safe_column(
-			"REPLACE(REPLACE(name, '".$this->plugin_name."_', ''), '_0', '') AS id",
-			'txp_prefs',
-			"`event` = '".$this->event."' AND `name` REGEXP '^".$this->plugin_name."_.{13}_0$'"
+			"REPLACE(name, '{$this->plugin_name}_', '') AS id", 'txp_prefs',
+			"`event` = '{$this->event}' AND `name` REGEXP '^{$this->plugin_name}_.{13}$'"
 		);
 
 		$permalinks = array();
@@ -64,19 +63,14 @@ class PermanentLinks extends GBPPlugin
 			$permalinks[$id] = $this->get_permalink($id);
 
 		return $permalinks;
-	}
+		}
 
 	function get_permalink($id)
-	{
+		{
 		global $prefs;
-
-		$i = 0; $permalink = '';
 		$name = $this->plugin_name.'_'.$id;
-		while (array_key_exists($name.'_'.$i, $prefs))
-			$permalink .= $prefs[$name.'_'.$i++];
-
-		return ($permalink) ? unserialize($permalink) : array();
-	}
+		return array_key_exists($name, $prefs) ? $prefs[$name] : array();
+		}
 
 	function remove_permalink($id)
 	{
@@ -889,9 +883,13 @@ EOF;
 	}
 
 	function save_permalink()
-	{
-		global $prefs;
+		{
+		// The function saves a permanent link to txp_prefs
 
+		global $prefs;
+		extract(gpsa(array('id')));
+
+		// Grab the user defined settings from the form POST data
 		$settings = gpsa(array(
 			'pl_name', 'pl_precedence', 'pl_preview',
 			'con_section', 'con_category', 'con_search', 'con_page',
@@ -899,32 +897,32 @@ EOF;
 			'des_section', 'des_category', 'des_feed', 'des_location',
 		));
 
-		$settings['pl_preview'] = str_replace(' ', '', $settings['pl_preview']);
+		// Remove spaces from the permanent link preview
+		$settings['pl_preview'] = str_replace(' /', '/', $settings['pl_preview']);
 
+		// Explode the separated string of serialize components - this was made by JavaScript. 
 		$serialize_components = explode(gbp_separator, rtrim(gps('components'), gbp_separator));
+
+		// Unserialize the components
 		$components = array();
 		foreach ($serialize_components as $c)
 			$components[] = unserialize(urldecode(stripslashes($c)));
+		
+		// Complete the permanent link array - this is exactly what needs to be stored in the db
+		$permalink = array('settings' => $settings, 'components' => $components);
 
-		$pl = array('settings' => $settings, 'components' => $components);
+		// Generate a new ID if needed
+		if (!$id)
+			$id = uniqid('');
 
-		$_POST[gbp_id] = $id = (gps(gbp_id) ? gps(gbp_id) : uniqid(''));
-		$name = $this->parent->plugin_name.'_'.$id;
-		safe_delete('txp_prefs', "`event` = '".$this->parent->event."' AND `name` LIKE '$name%'");
+		// Make sure the ID is available for the upcoming page load
+		$_POST[gbp_id] = $id;
 
-		$i = 0;
-		$serialize_pl = doSlash(serialize($pl));
-		while ($serialize_pl)
-		{
-			$key = $name.'_'.$i++;
-			$pl_segment = rtrim(substr($serialize_pl, 0, 255), '\\');
-			set_pref($key, $pl_segment, $this->parent->event, 2);
-			$prefs[$key] = doStrip($pl_segment);
-			$serialize_pl = substr_replace($serialize_pl, '', 0, strlen($pl_segment));
-		}
+		// Save it
+		$this->parent->set_preference($id, $permalink, 'gbp_serialized');
 
 		$this->parent->message = messenger('', $settings['pl_name'], 'saved');
-	}
+		}
 
 	function phpArrayToJsArray($name, $array)
 	{
