@@ -45,11 +45,14 @@ class PermanentLinks extends GBPPlugin
 
 	function preload()
 	{
-		require_privs('publisher');
-
 		new PermanentLinksListTabView('list', 'list', $this);
 		new PermanentLinksBuildTabView('build', 'build', $this);
 		new GBPPreferenceTabView('preferences', 'preference', $this);
+	}
+
+	function main()
+	{
+	require_privs('publisher');
 	}
 
 	function get_all_permalinks()
@@ -426,7 +429,7 @@ class PermanentLinksBuildTabView extends GBPAdminTabView
 			));
 
 			$settings = array(
-				'pl_name' => 'Untitled', 'pl_precedence' => '0',
+				'pl_name' => 'Untitled', 'pl_precedence' => '',
 				'con_section' => '', 'con_category' => '',
 				'des_section' => '', 'des_category' => '', 'des_feed' => '', 'des_location' => '',
 			);
@@ -626,9 +629,9 @@ var {$components}// components array for all the data
 			case 'custom' :
 				form('{$components_form}').custom.parentNode.style['display'] = '';
 			default :
-				if ({$this->parent->preferences['show_prefix']['value']})
+				if ('{$this->pref('show_prefix')}')
 					form('{$components_form}').prefix.parentNode.style['display'] = '';
-				if ({$this->parent->preferences['show_suffix']['value']})
+				if ('{$this->pref('show_suffix')}')
 					form('{$components_form}').suffix.parentNode.style['display'] = '';
 			break;
 		}
@@ -921,7 +924,7 @@ HTML;
 		$out[] = hInput('components', '');
 		$out[] = hInput('pl_preview', '');
 		// Event and tab form inputs 
-		$out[] = $this->parent->form_inputs();
+		$out[] = $this->form_inputs();
 		// Step and ID form inputs
 		$out[] = sInput($step);
 		$out[] = hInput(gbp_id, $id);
@@ -961,7 +964,7 @@ HTML;
 		$permalink = array('settings' => $settings, 'components' => $components);
 
 		// Save it
-		$this->parent->set_preference($id, $permalink, 'gbp_serialized');
+		$this->set_preference($id, $permalink, 'gbp_serialized');
 
 		$this->parent->message = messenger('', $settings['pl_name'], 'saved');
 		}
@@ -985,60 +988,123 @@ class PermanentLinksListTabView extends GBPAdminTabView
 {
 	function preload()
 	{
-		register_callback(array($this, 'multi_edit'), $this->parent->event, $this->parent->event.'_multi_edit', 1);
+		register_callback(array($this, $this->parent->event.'_multi_edit'), $this->parent->event, $this->parent->event.'_multi_edit', 1);
+		register_callback(array($this, $this->parent->event.'_change_pageby'), $this->parent->event, $this->parent->event.'_change_pageby', 1);
 	}
 
 	function main()
-	{
+		{
+		global $prefs;
+
+		extract(gpsa(array('page', 'sort', 'dir', 'crit', 'search_method')));
+		
+		$event = $this->parent->event;
+
 		$permalinks = $this->parent->get_all_permalinks();
+		$total = count($permalinks);
+
+		if ($total < 1)
+			{
+			echo graf('You haven\'t created any custom permanent links formats yet.', ' style="text-align: center;"').
+				 graf('<a href="'.$this->url(array(gbp_tab => 'build')).'">Click here</a> to add one.', ' style="text-align: center;"');
+			return;
+			}
+
+		$limit = max($this->pref('list_pageby'), 15);
+
+		list($page, $offset, $numPages) = pager($total, $limit, $page);
+
+		if (empty($sort))
+			$sort = 'pl_precedence';
+
+		if (empty($dir))
+			$dir = 'desc';
+
+		$dir = ($dir == 'desc') ? 'desc' : 'asc';
+
+		// Sort the permalinks via the selected column and then their names.
+		foreach ($permalinks as $id => $permalink)
+			{
+			$sort_keys[$id] = $permalink['settings'][$sort];
+			$name[$id] = $permalink['settings']['pl_name'];
+			}
+		array_multisort($sort_keys, (($dir == 'desc') ? SORT_DESC : SORT_ASC), $name, SORT_ASC, $permalinks);
+
+		$switch_dir = ($dir == 'desc') ? 'asc' : 'desc';
+		
+		$permalinks = array_slice($permalinks, $offset, $limit);
 
 		if (count($permalinks))
-		{
-			$out[] = '<table align="center">'.n;
+			{
+			echo n.n.'<form name="longform" method="post" action="index.php" onsubmit="return verify(\''.gTxt('are_you_sure').'\')">'.
 
-			$out[] = '<tr>';
-			$out[] = '<th>Name</th>';
-			$out[] = '<th>Preview</th>';
-			$out[] = '<th>Precedence</th>';
-			$out[] = '<th></th>';
-			$out[] = '</tr>'.n;
+				n.startTable('list').
+				n.tr(
+					n.column_head('name', 'pl_name', $event, true, $switch_dir, $crit, $search_method).
+					hCell().
+					column_head('preview', 'pl_preview', $event, true, $switch_dir, $crit, $search_method).
+					column_head('precedence', 'pl_precedence', $event, true, $switch_dir, $crit, $search_method).
+					hCell()
+				);
 
-			// Sort the permalinks via their precedence and then names.
-			foreach ($permalinks as $key => $pl) {
-		    	$name[$key]  = $pl['settings']['pl_name'];
-			    $precedence[$key]  = $pl['settings']['pl_precedence'];
+			include_once txpath.'/publish/taghandlers.php';
+
+			foreach ($permalinks as $id => $permalink)
+				{
+				extract($permalink['settings']);
+
+				$manage = n.'<ul>'.
+						n.t.'<li>'.href(gTxt('edit'), $this->url(array(gbp_tab => 'build', gbp_id => $id), true)).'</li>'.
+						n.'</ul>';
+
+				echo n.n.tr(
+
+					td(
+						href($pl_name, $this->url(array(gbp_tab => 'build', gbp_id => $id), true))
+					, 75).
+
+					td($manage, 35).
+
+					td($pl_preview, 175).
+					td($pl_precedence, 50).
+
+					td(
+						fInput('checkbox', 'selected[]', $id)
+					)
+				);
+				}
+
+			echo n.n.tr(
+				tda(
+					select_buttons().
+					$this->permalinks_multiedit_form($page, $sort, $dir, $crit, $search_method)
+				,' colspan="4" style="text-align: right; border: none;"')
+			).
+
+			n.endTable().
+			n.'</form>'.
+
+			n.nav_form($event, $page, $numPages, $sort, $dir, $crit, $search_method).
+
+			n.pageby_form($event, $this->pref('list_pageby'));
 			}
-			array_multisort($precedence, SORT_DESC, $name, SORT_ASC, $permalinks);
-
-			foreach ($permalinks as $id => $permalink) {
-				$out[] = '<tr>';
-				$out[] = '<td>
-					<a href="'.$this->parent->url(array(gbp_tab => 'build'), true).'&'.gbp_id.'='.$id.'">'.$permalink['settings']['pl_name'].'</a>
-					</td>';
-				$out[] = '<td>'.$permalink['settings']['pl_preview'].'</td>';
-				$out[] = '<td>'.$permalink['settings']['pl_precedence'].'</td>';
-				$out[] = '<td>'.
-					fInput('checkbox', 'selected[]', $id).'
-					</td>';
-				$out[] = '</tr>'.n;
-			}
-
-			$out[] = '<tr><td colspan="4" style="border:0px;text-align:right">'.event_multiedit_form($this->parent->event, NULL, '', '', '', '', '').'</td></tr>'.n;
-
-			$out[] = '</table>';
-
-			$out[] = eInput($this->parent->event);
-			$out[] = $this->parent->form_inputs();
-
-			echo form(join('', $out), '', "verify('".gTxt('are_you_sure')."')");
 		}
-		else {
-			echo '<p>You haven\'t created any custom permanent links formats yet.</p>'.
-				'<p><a href="'.$this->parent->url(array(gbp_tab => 'build')).'">Click here</a> to add one.</p>';
-		}
+
+	function permalinks_multiedit_form($page, $sort, $dir, $crit, $search_method)
+	{
+		$methods = array(
+			'delete' => gTxt('delete'),
+		);
+
+		return event_multiedit_form($this->parent->event, $methods, $page, $sort, $dir, $crit, $search_method);
 	}
 
-	function multi_edit()
+	function permalinks_change_pageby() 
+	{
+		$this->set_preference('list_pageby', gps('qty'));
+	}
+
+	function permalinks_multi_edit()
 	{
 		$method = gps('edit_method')
 			? gps('edit_method') // From Txp 4.0.4 and greater
