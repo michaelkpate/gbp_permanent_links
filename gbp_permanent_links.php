@@ -149,7 +149,7 @@ class PermanentLinks extends GBPPlugin
 				$check_type = true;
 
 				// Check prefix
-				if ($prefix && $this->preferences['show_prefix']['value']) {
+				if ($prefix && $this->pref('show_prefix')) {
 					if (($pos = strpos($uri_c, $prefix)) === false || $pos != 0) {
 						$check_type = false;
 						$this->debug('Can\'t find prefix: '.$prefix);
@@ -160,7 +160,7 @@ class PermanentLinks extends GBPPlugin
 				}
 
 				// Check suffix
-				if ($check_type && $suffix && $this->preferences['show_suffix']['value']) {
+				if ($check_type && $suffix && $this->pref('show_suffix')) {
 					if (($pos = strrpos($uri_c, $suffix)) === false) {
 						$check_type = false;
 						$this->debug('Can\'t find suffix: '.$suffix);
@@ -443,6 +443,8 @@ class PermanentLinksBuildTabView extends GBPAdminTabView
 		$components_div = 'permalink_components_ui';
 		$components_form = 'permalink_components';
 		$settings_form = 'permalink_settings';
+		$show_prefix = $this->pref('show_prefix');
+		$show_suffix = $this->pref('show_suffix');
 
 		// A little credit here and there doesn't hurt
 		$out[] = "<!-- {$this->parent->plugin_name} by Graeme Porteous -->";
@@ -629,9 +631,9 @@ var {$components}// components array for all the data
 			case 'custom' :
 				form('{$components_form}').custom.parentNode.style['display'] = '';
 			default :
-				if ('{$this->pref('show_prefix')}')
+				if ('{$show_prefix}')
 					form('{$components_form}').prefix.parentNode.style['display'] = '';
-				if ('{$this->pref('show_suffix')}')
+				if ('{$show_suffix}')
 					form('{$components_form}').suffix.parentNode.style['display'] = '';
 			break;
 		}
