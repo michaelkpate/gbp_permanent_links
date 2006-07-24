@@ -42,6 +42,7 @@ class PermanentLinks extends GBPPlugin
 		'debug' => array('value' => 0, 'type' => 'yesnoradio'),
 	);
 	var $matched_permalink_id;
+	var $partial_matches_ids = array();
 
 	function preload()
 	{
@@ -93,9 +94,9 @@ class PermanentLinks extends GBPPlugin
 		// Permanent links
 		$permalinks = $this->get_all_permalinks();
 
+		// If more than one permanent link, sort by their precedence value.
 		if (count($permalinks) > 1)
 			{
-			// Sort the permalinks via their precedence value.
 			foreach ($permalinks as $key => $pl) {
 			    $precedence[$key]  = $pl['settings']['pl_precedence'];
 			}
@@ -114,8 +115,9 @@ class PermanentLinks extends GBPPlugin
 				if ($pl_c['type'] == 'date')
 				 	$date = true;
 
-			// Exit early if the number of components doesn't match, taking into account whether there is a data component
-			if (count($uri_components) != count($pl_components) + (isset($date) ? 2 : 0))
+			// Exit early if there are more URL components than PL components,
+			// taking into account whether there is a data component
+			if (count($uri_components) > count($pl_components) + (isset($date) ? 2 : 0))
 				continue;
 
 			// Extract the permalink settings
@@ -123,24 +125,40 @@ class PermanentLinks extends GBPPlugin
 			extract($pl_settings);
 
 			$this->debug('Permalink name: '.$pl_name);
+			$this->debug('Preview: '.$pl_preview);
 
 			// Reset pretext_replacement as we are about to start another comparison
 			$pretext_replacement = array();
 
-			$i = 0;
-			// Lopp through the URI components
-			while (list($j, $uri_c) = each($uri_components))
+			// Loop through the permalink components
+			foreach ( $pl_components as $pl_c_index=>$pl_c )
 			{
-				// Extract the permalink components which corresponds to this URI component
-				$pl_c = $pl_components[$i++];
+				// Check to see if there are still URI components to be checked.
+				if (count( $uri_components ))
+					{
+					// Get the next component.
+					$uri_c = array_shift( $uri_components );
+					}
+				else
+					{
+					$this->debug( 'No more URI components - URI is a partial match' );
+
+					// Store the partial match.
+					$this->partial_matches_ids[] = $id;
+
+					// Unset pretext_replacement as changes could of been made in a preceding component
+					unset( $pretext_replacement );
+
+					// Break early form the foreach permalink components loop.
+					break;
+					}
+
+				// Extract the permalink components.
 				extract($pl_c);
 
-				// If it's a data, grab and combine the next two uri components
+				// If it's a date, grab and combine the next two URI components.
 				if ($type == 'date')
-				{
-					$uri_c .= '/'.current($uri_components).'/'.next($uri_components);
-					next($uri_components);
-				}
+					$uri_c .= '/'.array_shift( $uri_components ).'/'.array_shift( $uri_components );
 
 				// Assume there is no match
 				$match = false;
@@ -258,7 +276,10 @@ class PermanentLinks extends GBPPlugin
 					unset($pretext_replacement);
 					break;
 				}
-			} // foreach uri end
+			} // foreach permalink component end
+
+			// We have a match but this is no use if we don't register an override for permalinkurl()
+			$prefs['custom_url_func'] = array(&$this, '_permlinkurl');
 
 			// If pretext_replacement is still set here then we have a match
 			if (isset($pretext_replacement)) {
@@ -301,9 +322,6 @@ class PermanentLinks extends GBPPlugin
 				// Merge pretext_replacement with pretext
 				$pretext = array_merge($pretext, $pretext_replacement);
 
-				// We have a match but this is no use if we don't register an override for permlinkurl()
-				$prefs['custom_url_func'] = array(&$this, '_permlinkurl');
-
 				$this->matched_permalink_id = $id;
 
 				// We're done - no point check the other permalinks
@@ -316,15 +334,18 @@ class PermanentLinks extends GBPPlugin
 			{
 			global $plugin_callback, $permlink_mode;
 
-			// Force Textpattern and tags to use messy URLs - these are to find in regex
+			// Force Textpattern and tags to use messy URLs - these are easier to
+			// find in regex
 			$pretext['permlink_mode'] =
 			$pref['permlink_mode'] =
 			$permlink_mode = 'messy';
 
 			$this->debug('Pretext Replacement '.print_r($pretext, 1));
 
+			// Start output buffering and pseudo callback to textpattern_end
 			ob_start(array(&$this, '_textpattern_end'));
 
+			// Remove the plugin callbacks which have already been called
 			$new_callbacks = array();
 			$found_this = false;
 			foreach ($plugin_callback as $callback)
@@ -341,11 +362,20 @@ class PermanentLinks extends GBPPlugin
 				}
 			$plugin_callback = $new_callbacks;
 
+			// Re-call textpattern
 			textpattern();
 
+			// Stop output buffering, this sends the buffer to _textpattern_end()
 			ob_end_flush();
 
+			// textpattern() has run, kill the connection
 		    die();
+			}
+			else if (!@$this->partial_matches_ids[0] && $prefs['path_from_root'] != '/')
+			{
+			// Return an 404 error if we aren't of the front page and if there aren't any
+			// complete or partial matches.
+			$pretext['status'] = '404';
 			}
 
 	} // function _textpattern end
