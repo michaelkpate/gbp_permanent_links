@@ -371,13 +371,12 @@ class PermanentLinks extends GBPPlugin
 			// textpattern() has run, kill the connection
 		    die();
 			}
-			else if (!@$this->partial_matches_ids[0] && $prefs['path_from_root'] != '/')
+			else if (!@$this->partial_matches_ids[0] && trim($pretext['req'], '/'))
 			{
 			// Return an 404 error if we aren't of the front page and if there aren't any
 			// complete or partial matches.
 			$pretext['status'] = '404';
 			}
-
 	} // function _textpattern end
 
 	function _textpattern_end( $html )
