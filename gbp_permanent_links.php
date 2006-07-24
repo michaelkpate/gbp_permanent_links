@@ -72,9 +72,8 @@ class PermanentLinks extends GBPPlugin
 
 	function get_permalink($id)
 		{
-		global $prefs;
-		$name = $this->plugin_name.'_'.$id;
-		return array_key_exists($name, $prefs) ? $prefs[$name] : array();
+		$permalink = $this->pref($id);
+		return is_array($permalink) ? $permalink : array();
 		}
 
 	function remove_permalink($id)
@@ -970,7 +969,6 @@ HTML;
 		{
 		// The function posts or saves a permanent link to txp_prefs
 
-		global $prefs;
 		extract(gpsa(array('step', gbp_id)));
 
 		// Grab the user defined settings from the form POST data
@@ -1025,8 +1023,6 @@ class PermanentLinksListTabView extends GBPAdminTabView
 
 	function main()
 		{
-		global $prefs;
-
 		extract(gpsa(array('page', 'sort', 'dir', 'crit', 'search_method')));
 		
 		$event = $this->parent->event;
@@ -1037,7 +1033,7 @@ class PermanentLinksListTabView extends GBPAdminTabView
 		if ($total < 1)
 			{
 			echo graf('You haven\'t created any custom permanent links formats yet.', ' style="text-align: center;"').
-				 graf('<a href="'.$this->url(array(gbp_tab => 'build')).'">Click here</a> to add one.', ' style="text-align: center;"');
+				 graf('<a href="'.$this->url(array(gbp_tab => 'build'), true).'">Click here</a> to add one.', ' style="text-align: center;"');
 			return;
 			}
 
