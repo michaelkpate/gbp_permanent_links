@@ -7,6 +7,10 @@ $plugin['author_uri'] = 'http://porteo.us/projects/textpattern/gbp_permanent_lin
 $plugin['description'] = 'Custom permanent links formats';
 $plugin['type'] = '1';
 
+$plugin['url'] = '$HeadURL$';
+$plugin['date'] = '$LastChangedDate$';
+$plugin['revision'] = '$LastChangedRevision$';
+
 @include_once('../zem_tpl.php');
 
 if (0) {
