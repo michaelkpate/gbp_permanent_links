@@ -46,7 +46,7 @@ class PermanentLinks extends GBPPlugin
 		'debug' => array('value' => 0, 'type' => 'yesnoradio'),
 	);
 	var $matched_permalink_id;
-	var $partial_matches_ids = array();
+	var $partial_matches = array();
 
 	function preload()
 	{
@@ -89,7 +89,7 @@ class PermanentLinks extends GBPPlugin
 
 	function _textpattern()
 	{
-		global $pretext, $s, $c, $prefs;
+		global $pretext, $prefs;
 
 		$this->debug('Plugin: '.$this->plugin_name);
 		$this->debug('Function: '.__FUNCTION__.'()');
@@ -112,6 +112,9 @@ class PermanentLinks extends GBPPlugin
 
 			// URI components
 			$uri_components = explode('/', trim($pretext['req'], '/'));
+
+			// The number of components comes in useful when determining the best partial match.
+			$uri_component_count = count($uri_components);
 
 			// Are we expecting a date component? If so the number of pl and uri components won't match
 			foreach($pl_components as $pl_c)
@@ -136,6 +139,9 @@ class PermanentLinks extends GBPPlugin
 			// Loop through the permalink components
 			foreach ( $pl_components as $pl_c_index=>$pl_c )
 			{
+				// Assume there is no match
+				$match = false;
+
 				// Check to see if there are still URI components to be checked.
 				if (count( $uri_components ))
 					{
@@ -144,10 +150,13 @@ class PermanentLinks extends GBPPlugin
 					}
 				else
 					{
+					// If there are no more URI components then we have a partial match.
 					$this->debug( 'No more URI components - URI is a partial match' );
 
-					// Store the partial match.
-					$this->partial_matches_ids[] = $id;
+					// Store the partial match data unless there has been a preceding permalink with the
+					// same number of components, as permalink have already been sorted by precedence.
+					if (!array_key_exists($uri_component_count, $this->partial_matches))
+						$this->partial_matches[$uri_component_count] = $pretext_replacement;
 
 					// Unset pretext_replacement as changes could of been made in a preceding component
 					unset( $pretext_replacement );
@@ -162,9 +171,6 @@ class PermanentLinks extends GBPPlugin
 				// If it's a date, grab and combine the next two URI components.
 				if ($type == 'date')
 					$uri_c .= '/'.array_shift( $uri_components ).'/'.array_shift( $uri_components );
-
-				// Assume there is no match
-				$match = false;
 
 				// Always check the type unless the prefix or suffix aren't there
 				$check_type = true;
@@ -200,20 +206,20 @@ class PermanentLinks extends GBPPlugin
 						case 'section':
 							if (safe_field('name', 'txp_section', "`name` like '$uri_c' limit 1")) {
 								$pretext_replacement['s'] = $uri_c;
-								$s = $uri_c;
 								$match = true;
 							}
 						break;
 						case 'category':
 							if (safe_field('name', 'txp_category', "`name` like '$uri_c' and `type` = 'article' limit 1")) {
 								$pretext_replacement['c'] = $uri_c;
-								$c = $uri_c;
 								$match = true;
 							}
 						break;
 						case 'title':
 							if ($id = safe_field('ID', 'textpattern', "`url_title` like '$uri_c' and `Status` >= 4 limit 1")) {
 								$pretext_replacement['id'] = $id;
+								$pretext['numPages'] = 1;
+								$pretext['is_article_list'] = true;
 								$match = true;
 							}
 						break;
@@ -284,9 +290,15 @@ class PermanentLinks extends GBPPlugin
 			// We have a match but this is no use if we don't register an override for permalinkurl()
 			$prefs['custom_url_func'] = array(&$this, '_permlinkurl');
 
-			// If pretext_replacement is still set here then we have a match
-			if (isset($pretext_replacement)) {
-				$this->debug('We have a match!');
+			// If pretext_replacement is still set here then we have a match or a partial match
+			if (isset($pretext_replacement) || count($this->partial_matches)) {
+				if (isset($pretext_replacement))
+					$this->debug('We have a match!');
+				else {
+					$this->debug('We have a partial match');
+					// Restore the partial match. Sorted by number of components and then precedence
+					$pretext_replacement = array_shift(array_slice($this->partial_matches, -1));
+				}
 
 				// If there is a match then we most set the http status correctly as txp's pretext might set it to 404
 				$pretext_replacement['status'] = '200';
@@ -322,20 +334,31 @@ class PermanentLinks extends GBPPlugin
 				$pretext_replacement['page'] = $page;
 				$pretext_replacement['permalink'] = $pl_name;
 
-				// Merge pretext_replacement with pretext
-				$pretext = array_merge($pretext, $pretext_replacement);
-
 				$this->matched_permalink_id = $id;
 
-				// We're done - no point check the other permalinks
-				break;
+				if ($match)
+					// We're done - no point checking the other permalinks
+					break;
 			}
 
 		} // foreach permalinks end
 
-		if (isset($pretext_replacement))
+		if (isset($pretext_replacement) || count($this->partial_matches))
 			{
 			global $plugin_callback, $permlink_mode;
+
+			if (!isset($pretext_replacement))
+				$pretext_replacement = array_shift(array_slice($this->partial_matches, -1));
+			
+			// Merge pretext_replacement with pretext
+			$pretext = array_merge($pretext, $pretext_replacement);
+
+			// Export required values to the global namespace
+			foreach (array('s', 'c', 'is_article_list') as $key)
+				{
+				if (array_key_exists($key, $pretext_replacement))
+					$GLOBALS[$key] = $pretext_replacement[$key];
+				}
 
 			// Force Textpattern and tags to use messy URLs - these are easier to
 			// find in regex
@@ -374,10 +397,9 @@ class PermanentLinks extends GBPPlugin
 			// textpattern() has run, kill the connection
 		    die();
 			}
-			else if (!@$this->partial_matches_ids[0] && trim($pretext['req'], '/'))
+			else if (trim($pretext['req'], '/'))
 			{
-			// Return an 404 error if we aren't of the front page and if there aren't any
-			// complete or partial matches.
+			// Return an 404 error if we aren't of the front page
 			$pretext['status'] = '404';
 			}
 	} // function _textpattern end
