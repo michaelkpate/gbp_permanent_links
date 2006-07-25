@@ -482,7 +482,7 @@ class PermanentLinksBuildTabView extends GBPAdminTabView
 		$out[] = "<!-- {$this->parent->plugin_name} by Graeme Porteous -->";
 
 		// The Javascript
-		$out[] = <<<HTML
+$out[] = <<<HTML
 	<script type="text/javascript" language="javascript" charset="utf-8">
 	// <![CDATA[
 
@@ -1043,6 +1043,19 @@ class PermanentLinksListTabView extends GBPAdminTabView
 
 		$limit = max($this->pref('list_pageby'), 15);
 
+		if (!function_exists('pager'))
+			{
+			// This is taken from txplib_misc.php r1588 it is required for 4.0.3 compatibitly
+			function pager($total, $limit, $page)
+				{
+				$num_pages = ceil($total / $limit);
+				$page = $page ? (int) $page : 1;
+				$page = min(max($page, 1), $num_pages);
+				$offset = max(($page - 1) * $limit, 0);
+				return array($page, $offset, $num_pages);
+				}
+			}
+
 		list($page, $offset, $numPages) = pager($total, $limit, $page);
 
 		if (empty($sort))
@@ -1084,7 +1097,7 @@ class PermanentLinksListTabView extends GBPAdminTabView
 				{
 				extract($permalink['settings']);
 
-				$manage = n.'<ul>'.
+				$manage = n.'<ul'.(version_compare($GLOBALS['thisversion'], '4.0.3', '<=') ? ' style="margin:0;padding:0;list-style-type:none;">' : '>').
 						n.t.'<li>'.href(gTxt('edit'), $this->url(array(gbp_tab => 'build', gbp_id => $id), true)).'</li>'.
 						n.'</ul>';
 
@@ -1103,6 +1116,25 @@ class PermanentLinksListTabView extends GBPAdminTabView
 						fInput('checkbox', 'selected[]', $id)
 					)
 				);
+				}
+
+			if (!function_exists('nav_form'))
+				{
+				// This is basically stolen from the 4.0.3 version of includes/txp_list.php 
+				// - list_nav_form() for 4.0.3 compatibitly
+				function nav_form($event, $page, $numPages, $sort, $dir, $crit, $method)
+					{
+						$nav[] = ($page > 1) 
+						? PrevNextLink($event, $page-1, gTxt('prev'), 'prev', $sort, $dir)
+						: '';
+						$nav[] = sp.small($page. '/'.$numPages).sp;
+						$nav[] = ($page != $numPages) 
+						? PrevNextLink($event, $page+1, gTxt('next'), 'next', $sort, $dir)
+						: '';
+						return ($nav)
+						? graf(join('', $nav), ' align="center"')
+						: '';
+					}
 				}
 
 			echo n.n.tr(
