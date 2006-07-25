@@ -427,8 +427,8 @@ class PermanentLinksBuildTabView extends GBPAdminTabView
 {
 	function preload()
 		{
-		register_callback(array($this, 'post_save_permalink'), $this->parent->event, gbp_save, 1);
-		register_callback(array($this, 'post_save_permalink'), $this->parent->event, gbp_post, 1);
+		register_callback(array(&$this, 'post_save_permalink'), $this->parent->event, gbp_save, 1);
+		register_callback(array(&$this, 'post_save_permalink'), $this->parent->event, gbp_post, 1);
 		}
 
 	function main()
@@ -1021,8 +1021,8 @@ class PermanentLinksListTabView extends GBPAdminTabView
 {
 	function preload()
 	{
-		register_callback(array($this, $this->parent->event.'_multi_edit'), $this->parent->event, $this->parent->event.'_multi_edit', 1);
-		register_callback(array($this, $this->parent->event.'_change_pageby'), $this->parent->event, $this->parent->event.'_change_pageby', 1);
+		register_callback(array(&$this, $this->parent->event.'_multi_edit'), $this->parent->event, $this->parent->event.'_multi_edit', 1);
+		register_callback(array(&$this, $this->parent->event.'_change_pageby'), $this->parent->event, $this->parent->event.'_change_pageby', 1);
 	}
 
 	function main()
