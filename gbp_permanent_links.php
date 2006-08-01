@@ -185,7 +185,7 @@ class PermanentLinks extends GBPPlugin
 				else
 					{
 					// If there are no more URI components then we have a partial match.
-					$this->debug( 'No more URI components - URI is a partial match' );
+					$this->debug( 'We have a partial match (No more URI components)' );
 
 					// Store the partial match data unless there has been a preceding permalink with the
 					// same number of components, as permalink have already been sorted by precedence.
@@ -196,6 +196,7 @@ class PermanentLinks extends GBPPlugin
 					unset( $pretext_replacement );
 
 					// Break early form the foreach permalink components loop.
+					$match = true;
 					break;
 					}
 
@@ -325,14 +326,15 @@ class PermanentLinks extends GBPPlugin
 			$prefs['custom_url_func'] = array(&$this, '_permlinkurl');
 
 			// If pretext_replacement is still set here then we have a match or a partial match
-			if (isset($pretext_replacement) || count($this->partial_matches)) {
+			if ($match) {
 				if (isset($pretext_replacement))
+					{
 					$this->debug('We have a match!');
-				else {
-					$this->debug('We have a partial match');
+					$this->matched_permalink_id = $id;
+					}
+				else
 					// Restore the partial match. Sorted by number of components and then precedence
 					$pretext_replacement = array_shift(array_slice($this->partial_matches, -1));
-				}
 
 				// If there is a match then we most set the http status correctly as txp's pretext might set it to 404
 				$pretext_replacement['status'] = '200';
@@ -368,9 +370,7 @@ class PermanentLinks extends GBPPlugin
 				$pretext_replacement['page'] = $page;
 				$pretext_replacement['permalink'] = $pl_name;
 
-				$this->matched_permalink_id = $id;
-
-				if ($match)
+				if (!empty($this->matched_permalink_id))
 					// We're done - no point checking the other permalinks
 					break;
 			}
