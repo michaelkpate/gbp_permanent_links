@@ -137,13 +137,20 @@ class PermanentLinks extends GBPPlugin
 			$uri_component_count = count($uri_components);
 
 			// Are we expecting a date component? If so the number of pl and uri components won't match
+			$date = false; $title = false;
 			foreach($pl_components as $pl_c)
 				if ($pl_c['type'] == 'date')
 				 	$date = true;
+				else if ($pl_c['type'] == 'title')
+					$title = true;
 
+			if (!$title)
+				// If there isn't a title component then append on to the end.
+				$pl_components[] = array('type' => 'title', 'prefix' => '', 'suffix' => '', 'regex' => '', 'text' => '');
+			
 			// Exit early if there are more URL components than PL components,
 			// taking into account whether there is a data component
-			if (!$uri_components[0] || count($uri_components) > count($pl_components) + (isset($date) ? 2 : 0))
+			if (!$uri_components[0] || count($uri_components) > count($pl_components) + ($date ? 2 : 0))
 				continue;
 
 			// Extract the permalink settings
@@ -164,10 +171,17 @@ class PermanentLinks extends GBPPlugin
 
 				// Check to see if there are still URI components to be checked.
 				if (count( $uri_components ))
-					{
 					// Get the next component.
 					$uri_c = array_shift( $uri_components );
+
+				else if (!$title && count($pl_components) - 1 == $uri_component_count)	
+					{
+					// If we appended a title component earlier and permalink and URI components counts 
+					// are equal, we must of finished checking this permalink, and it matches so break.
+					$match = true;
+					break;
 					}
+
 				else
 					{
 					// If there are no more URI components then we have a partial match.
