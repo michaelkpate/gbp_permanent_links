@@ -143,7 +143,7 @@ class PermanentLinks extends GBPPlugin
 
 			// Exit early if there are more URL components than PL components,
 			// taking into account whether there is a data component
-			if (count($uri_components) > count($pl_components) + (isset($date) ? 2 : 0))
+			if (!$uri_components[0] || count($uri_components) > count($pl_components) + (isset($date) ? 2 : 0))
 				continue;
 
 			// Extract the permalink settings
