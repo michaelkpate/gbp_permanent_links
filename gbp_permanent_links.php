@@ -250,8 +250,8 @@ class PermanentLinks extends GBPPlugin
 							}
 						break;
 						case 'title':
-							if ($id = safe_field('ID', 'textpattern', "`url_title` like '$uri_c' and `Status` >= 4 limit 1")) {
-								$pretext_replacement['id'] = $id;
+							if ($ID = safe_field('ID', 'textpattern', "`url_title` like '$uri_c' and `Status` >= 4 limit 1")) {
+								$pretext_replacement['id'] = $ID;
 								$pretext['numPages'] = 1;
 								$pretext['is_article_list'] = true;
 								$match = true;
