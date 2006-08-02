@@ -118,7 +118,7 @@ class PermanentLinks extends GBPPlugin
 		$uri = explode('/', trim($pretext['req'], '/'));
 
 		// The number of components comes in useful when determining the best partial match.
-		$uri_component_count = count($uri_components);
+		$uri_component_count = count($uri);
 
 		// Permanent links
 		$permalinks = $this->get_all_permalinks();
