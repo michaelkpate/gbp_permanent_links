@@ -798,7 +798,7 @@ var {$components}// components array for all the data
 		else
 		{
 			form.components.value = c;
-			form.pl_preview.value = permalink_div().textContent;
+			form.pl_preview.value = permalink_div().innerText;
 			return true;
 		}
 
@@ -1039,7 +1039,7 @@ HTML;
 		));
 
 		// Remove spaces from the permanent link preview
-		$settings['pl_preview'] = str_replace(' /', '/', $settings['pl_preview']);
+		$settings['pl_preview'] = preg_replace('%\s*/\s*%', '/', $settings['pl_preview']);
 
 		// Explode the separated string of serialize components - this was made by JavaScript. 
 		$serialize_components = explode(gbp_separator, rtrim(gps('components'), gbp_separator));
