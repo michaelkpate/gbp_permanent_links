@@ -434,7 +434,7 @@ class PermanentLinks extends GBPPlugin
 			// textpattern() has run, kill the connection
 		    die();
 			}
-		else if (@$uri[0] && substr($uri[0], 0, 1) != '?')
+		else if (@$uri[0] && !(substr($uri[0], 0, 1) == '?' || substr($uri[0], 0, 10) == 'index.php?'))
 			{
 			// Return an 404 error if we aren't of the front page
 			$pretext['status'] = '404';
