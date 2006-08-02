@@ -114,6 +114,12 @@ class PermanentLinks extends GBPPlugin
 		$this->debug('Plugin: '.$this->plugin_name);
 		$this->debug('Function: '.__FUNCTION__.'()');
 
+		// URI
+		$uri = explode('/', trim($pretext['req'], '/'));
+
+		// The number of components comes in useful when determining the best partial match.
+		$uri_component_count = count($uri_components);
+
 		// Permanent links
 		$permalinks = $this->get_all_permalinks();
 
@@ -131,10 +137,7 @@ class PermanentLinks extends GBPPlugin
 			$pl_components = $pl['components'];
 
 			// URI components
-			$uri_components = explode('/', trim($pretext['req'], '/'));
-
-			// The number of components comes in useful when determining the best partial match.
-			$uri_component_count = count($uri_components);
+			$uri_components = $uri;
 
 			// Are we expecting a date component? If so the number of pl and uri components won't match
 			$date = false; $title = false;
@@ -431,7 +434,7 @@ class PermanentLinks extends GBPPlugin
 			// textpattern() has run, kill the connection
 		    die();
 			}
-			else if (trim($pretext['req'], '/'))
+		else if (@$uri[0] && substr($uri[0], 0, 1) != '?')
 			{
 			// Return an 404 error if we aren't of the front page
 			$pretext['status'] = '404';
