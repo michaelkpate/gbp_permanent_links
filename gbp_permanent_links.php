@@ -326,7 +326,7 @@ class PermanentLinks extends GBPPlugin
 			} // foreach permalink component end
 
 			// We have a match but this is no use if we don't register an override for permalinkurl()
-			$prefs['custom_url_func'] = array(&$this, '_permlinkurl');
+			$this->set_permlink_mode(1);
 
 			// If pretext_replacement is still set here then we have a match or a partial match
 			if ($match) {
@@ -399,9 +399,7 @@ class PermanentLinks extends GBPPlugin
 
 			// Force Textpattern and tags to use messy URLs - these are easier to
 			// find in regex
-			$pretext['permlink_mode'] =
-			$pref['permlink_mode'] =
-			$permlink_mode = 'messy';
+			$this->set_permlink_mode();
 
 			$this->debug('Pretext Replacement '.print_r($pretext, 1));
 
@@ -463,6 +461,21 @@ class PermanentLinks extends GBPPlugin
 	function _pagelinkurl( $parts, $inherit=array() )
 		{
 		return $parts[0];
+		}
+
+	function set_permlink_mode( $function_only=NULL )
+		{
+		global $prefs, $pretext, $permlink_mode;
+		$prefs['custom_url_func'] = array(&$this, '_permlinkurl');
+		if (!$function_only)
+			$pretext['permlink_mode'] = $permlink_mode = 'messy';
+		}
+
+	function reset_permlink_mode()
+		{
+		global $prefs, $pretext, $permlink_mode;
+		$prefs['custom_url_func'] = '';
+		$pretext['permlink_mode'] = $permlink_mode = $prefs['permlink_mode'];
 		}
 
 	function debug()
