@@ -65,7 +65,7 @@ class PermanentLinks extends GBPPlugin
 		'show_suffix' => array('value' => 0, 'type' => 'yesnoradio'),
 		'debug' => array('value' => 0, 'type' => 'yesnoradio'),
 	);
-	var $matched_permalink_id;
+	var $matched_permalink = array();
 	var $partial_matches = array();
 
 	function preload()
@@ -164,7 +164,7 @@ class PermanentLinks extends GBPPlugin
 			$this->debug('Preview: '.$pl_preview);
 
 			// Reset pretext_replacement as we are about to start another comparison
-			$pretext_replacement = array();
+			$pretext_replacement = array('permlink_id' => $id);
 
 			// Loop through the permalink components
 			foreach ( $pl_components as $pl_c_index=>$pl_c )
@@ -333,7 +333,7 @@ class PermanentLinks extends GBPPlugin
 				if (isset($pretext_replacement))
 					{
 					$this->debug('We have a match!');
-					$this->matched_permalink_id = $id;
+					$this->matched_permalink = $pretext_replacement;
 					}
 				else
 					// Restore the partial match. Sorted by number of components and then precedence
@@ -373,7 +373,7 @@ class PermanentLinks extends GBPPlugin
 				$pretext_replacement['page'] = $page;
 				$pretext_replacement['permalink'] = $pl_name;
 
-				if (!empty($this->matched_permalink_id))
+				if (!empty($this->matched_permalink))
 					// We're done - no point checking the other permalinks
 					break;
 			}
