@@ -81,7 +81,7 @@ class PermanentLinks extends GBPPlugin
 	require_privs('publisher');
 	}
 
-	function get_all_permalinks()
+	function get_all_permalinks( $sort=0 )
 		{
 		$rs = safe_column(
 			"REPLACE(name, '{$this->plugin_name}_', '') AS id", 'txp_prefs',
@@ -90,7 +90,15 @@ class PermanentLinks extends GBPPlugin
 
 		$permalinks = array();
 		foreach ($rs as $id)
+			{
 			$permalinks[$id] = $this->get_permalink($id);
+			if ($sort)
+				$precedence[$key] = $permalinks[$id]['settings']['pl_precedence'];
+			}
+
+		// If more than one permanent link, sort by their precedence value.
+		if ($sort && count($permalinks) > 1)
+			array_multisort($precedence, SORT_DESC, $permalinks);
 
 		return $permalinks;
 		}
@@ -122,16 +130,7 @@ class PermanentLinks extends GBPPlugin
 		$uri_component_count = count($uri);
 
 		// Permanent links
-		$permalinks = $this->get_all_permalinks();
-
-		// If more than one permanent link, sort by their precedence value.
-		if (count($permalinks) > 1)
-			{
-			foreach ($permalinks as $key => $pl) {
-			    $precedence[$key]  = $pl['settings']['pl_precedence'];
-			}
-			array_multisort($precedence, SORT_DESC, $permalinks);
-			}
+		$permalinks = $this->get_all_permalinks(1);
 
 		foreach($permalinks as $id => $pl)
 		{
