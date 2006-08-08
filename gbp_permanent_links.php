@@ -63,6 +63,7 @@ class PermanentLinks extends GBPPlugin
 	var $preferences = array(
 		'show_prefix' => array('value' => 0, 'type' => 'yesnoradio'),
 		'show_suffix' => array('value' => 0, 'type' => 'yesnoradio'),
+		'strict_matching' => array('value' => 0, 'type' => 'yesnoradio'),
 		'debug' => array('value' => 0, 'type' => 'yesnoradio'),
 	);
 	var $matched_permalink = array();
@@ -325,9 +326,6 @@ class PermanentLinks extends GBPPlugin
 				}
 			} // foreach permalink component end
 
-			// We have a match but this is no use if we don't register an override for permalinkurl()
-			$this->set_permlink_mode(1);
-
 			// If pretext_replacement is still set here then we have a match or a partial match
 			if ($match) {
 				if (isset($pretext_replacement))
@@ -371,7 +369,6 @@ class PermanentLinks extends GBPPlugin
 				// Set the page template, otherwise we get an unknown section error
 				$page = safe_field('page', 'txp_section', "name = '{$pretext_replacement['s']}' limit 1");
 				$pretext_replacement['page'] = $page;
-				$pretext_replacement['permalink'] = $pl_name;
 
 				if (!empty($this->matched_permalink))
 					// We're done - no point checking the other permalinks
@@ -379,6 +376,9 @@ class PermanentLinks extends GBPPlugin
 			}
 
 		} // foreach permalinks end
+
+		// Even if there is no match we need an override for permalinkurl()
+		$this->set_permlink_mode(1);
 
 		if (isset($pretext_replacement) || count($this->partial_matches))
 			{
@@ -432,7 +432,7 @@ class PermanentLinks extends GBPPlugin
 			// textpattern() has run, kill the connection
 		    die();
 			}
-		else if (@$uri[0] && !(substr($uri[0], 0, 1) == '?' || substr($uri[0], 0, 10) == 'index.php?'))
+		else if ($this->pref('strict_matching') && @$uri[0] && !(substr($uri[0], 0, 1) == '?' || substr($uri[0], 0, 10) == 'index.php?'))
 			{
 			// Return an 404 error if we aren't of the front page
 			$pretext['status'] = '404';
