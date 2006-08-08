@@ -391,7 +391,7 @@ class PermanentLinks extends GBPPlugin
 			$pretext = array_merge($pretext, $pretext_replacement);
 
 			// Export required values to the global namespace
-			foreach (array('s', 'c', 'is_article_list') as $key)
+			foreach (array('id', 's', 'c', 'is_article_list') as $key)
 				{
 				if (array_key_exists($key, $pretext_replacement))
 					$GLOBALS[$key] = $pretext_replacement[$key];
