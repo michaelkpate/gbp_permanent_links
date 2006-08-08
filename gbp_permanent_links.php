@@ -610,6 +610,7 @@ var {$components}// components array for all the data
 		element.style['padding'] = '0 5px';
 		element.style['marginRight'] = '5px';
 		element.style['cssFloat'] = 'left';
+		element.style['display'] = 'inline';
 
 		// Remove all child nodes
 		while (element.hasChildNodes())
@@ -659,6 +660,7 @@ var {$components}// components array for all the data
 
 			// Javascript, onmouseup setting
 			new_component.setAttribute('onmousedown', 'component_switch(this);');
+			new_component.onmousedown = function() { component_switch(this); };
 
 			// Refresh the look of the component
 			new_component = component_refresh(new_component);
@@ -703,7 +705,7 @@ var {$components}// components array for all the data
 		component_update();
 	}
 
-	function component_update()
+	function component_update(element)
 	{
 		// Store the data in form inputs, and hide all form inputs
 		var c = new Array()
@@ -746,6 +748,10 @@ var {$components}// components array for all the data
 
 		// Refresh component to reflect new data
 		component_refresh(component(_current));
+
+		// Re-focus the active form input
+		if (element)
+			element.focus();
 	}
 
 	function component_left()
@@ -813,7 +819,10 @@ var {$components}// components array for all the data
 		else
 		{
 			form.components.value = c;
-			form.pl_preview.value = permalink_div().innerText;
+			if (permalink_div().textContent)
+				form.pl_preview.value = permalink_div().textContent;
+			else if (permalink_div().innerText)
+				form.pl_preview.value = permalink_div().innerText;
 			return true;
 		}
 
@@ -953,12 +962,12 @@ HTML;
 			}
 
 		$out[] = graf(
-			gbpFSelect('custom', $custom_fields, '', 0, 'Custom', ' onchange="component_update();"').n.
-			gbpFInput('text', 'name', '', array('keyup' => 'component_update();'), 'Name').n.
-			gbpFInput('text', 'prefix', '', array('keyup' => 'component_update();'), 'Prefix').n.
-			gbpFInput('text', 'regex', '', array('keyup' => 'component_update();'), 'Regular Expression').n.
-			gbpFInput('text', 'suffix', '', array('keyup' => 'component_update();'), 'Suffix').n.
-			gbpFInput('text', 'text', '', array('keyup' => 'component_update();'), 'Text')
+			gbpFSelect('custom', $custom_fields, '', 0, 'Custom', ' onchange="component_update(this);"').n.
+			gbpFInput('text', 'name', '', array('keyup' => 'component_update(this);'), 'Name').n.
+			gbpFInput('text', 'prefix', '', array('keyup' => 'component_update(this);'), 'Prefix').n.
+			gbpFInput('text', 'regex', '', array('keyup' => 'component_update(this);'), 'Regular Expression').n.
+			gbpFInput('text', 'suffix', '', array('keyup' => 'component_update(this);'), 'Suffix').n.
+			gbpFInput('text', 'text', '', array('keyup' => 'component_update(this);'), 'Text')
 		);
 		$out[] = '<hr />';
 
