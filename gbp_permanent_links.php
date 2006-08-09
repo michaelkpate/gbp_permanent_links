@@ -209,6 +209,8 @@ class PermanentLinks extends GBPPlugin
 				if ($type == 'date')
 					$uri_c .= '/'.array_shift( $uri_components ).'/'.array_shift( $uri_components );
 
+				$uri_c = urldecode($uri_c);
+
 				// Always check the type unless the prefix or suffix aren't there
 				$check_type = true;
 
@@ -261,8 +263,13 @@ class PermanentLinks extends GBPPlugin
 							}
 						break;
 						case 'author':
-							$uri_c = urldecode($uri_c);
 							if ($author = safe_field('name', 'txp_users', "RealName like '$uri_c' limit 1")) {
+								$pretext_replacement['author'] = $author;
+								$match = true;
+							}
+						break;
+						case 'login':
+							if ($author = safe_field('name', 'txp_users', "name like '$uri_c' limit 1")) {
 								$pretext_replacement['author'] = $author;
 								$match = true;
 							}
@@ -494,7 +501,8 @@ class PermanentLinks extends GBPPlugin
 							$uri_c = '--INVALID_CATEGORY--';
 					break;
 					case 'title': $type = 'url_title'; break;
-					case 'author': $type = 'authorid'; break;
+					case 'author': $uri_c = safe_field('RealName', 'txp_users', "name like '{$article_array['authorid']}'"); break;
+					case 'login': $type = 'authorid'; break;
 					case 'date': $uri_c = date('Y/m/d', $article_array['posted']); break;
 					case 'year': $uri_c = date('Y', $article_array['posted']); break;
 					case 'month': $uri_c = date('m', $article_array['posted']); break;
@@ -517,10 +525,10 @@ class PermanentLinks extends GBPPlugin
 					}
 
 				if (array_key_exists($type, $article_array))
-					$uri .= $article_array[$type];
+					$uri .= urlencode($article_array[$type]);
 				else if (isset($uri_c))
 					{
-					$uri .= $uri_c;
+					$uri .= urlencode($uri_c);
 					unset($uri_c);
 					}
 				else
@@ -1030,7 +1038,8 @@ HTML;
 			'section' => 'Section', 'category' => 'Category',
 			'title' => 'Title', 'date' => 'Date (yyyy/mm/dd)',
 			'year' => 'Year', 'month' => 'Month', 'day' => 'Day',
-			'author' => 'Author', 'custom' => 'Custom Field',
+			'author' => 'Author (Real name)', 'login' => 'Author (Login)',
+			'custom' => 'Custom Field',
 			'page' => 'Page Number', 'search' => 'Search request',
 			'text' => 'Plain Text', 'regex' => 'Regular Expression'
 			);
