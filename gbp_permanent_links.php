@@ -262,13 +262,13 @@ class PermanentLinks extends GBPPlugin
 						break;
 						case 'author':
 							$uri_c = urldecode($uri_c);
-							if ($author = safe_field('name', 'txp_users', "RealName like '$uri_c'")) {
+							if ($author = safe_field('name', 'txp_users', "RealName like '$uri_c' limit 1")) {
 								$pretext_replacement['author'] = $author;
 								$match = true;
 							}
 						break;
 						case 'custom':
-							if (safe_field("custom_$custom", 'textpattern', "custom_$custom like '$uri_c'")) {
+							if (safe_field("custom_$custom", 'textpattern', "custom_$custom like '$uri_c' limit 1") !== false) {
 								$match = true;
 							}
 						break;
@@ -307,8 +307,13 @@ class PermanentLinks extends GBPPlugin
 							}
 						break;
 						case 'regex':
-							if (preg_match($regex, $uri_c)) {
+							// Check to see if regex is valid without outputting error messages.
+							ob_start();
+							preg_match($regex, $uri_c, $regex_matches);
+							$is_valid_regex = !(ob_get_clean());
+							if ($is_valid_regex && @$regex_matches[0]) {
 								$match = true;
+								$pretext_replacement["permlink_regex_{$name}"] = $regex_matches[0];
 							}
 						break;
 					} // switch type end
@@ -442,10 +447,99 @@ class PermanentLinks extends GBPPlugin
 
 	function _permlinkurl( $article_array )
 		{
-		global $prefs;
-		$prefs['custom_url_func'] = '';
-		// $pl = $this->get_permalink( $this->matched_permalink_id );
-		return permlinkurl( $article_array );
+		global $pretext, $prefs;
+
+		// Get the matched pretext replacement array.
+		$matched = ( count($this->matched_permalink) )
+		? $this->matched_permalink
+		: array_shift(array_slice($this->partial_matches, -1));
+
+		$uri = '';
+
+		if ($matched)	
+			// The permalink id is stored in the pretext replacement array, so we can find the permalink. 
+			$pl = $this->get_permalink( $matched['permlink_id'] );
+		else
+			// We have no permalink id so grab the permalink with the highest precedence.
+			$pl = array_shift( $this->get_all_permalinks(1) );
+
+		if (array_key_exists('components', $pl))
+			{
+			$pl_components = $pl['components'];
+
+			// Check to see if there is a title component.
+			$title = false;
+			foreach($pl_components as $pl_c)
+				if ($pl_c['type'] == 'title')
+					$title = true;
+
+			// If there isn't a title component then we need to append one to the end of the URI
+			if (!$title)
+				$pl_components[] = array('type' => 'title', 'prefix' => '', 'suffix' => '', 'regex' => '', 'text' => '');
+
+			$uri = rtrim(doStrip($pretext['subpath']), '/');
+			foreach ( $pl_components as $pl_c )
+				{
+				$uri .= '/';
+
+				$type = $pl_c['type'];
+				switch ($type)
+					{
+					case 'category':
+						if ($article_array['category1'])
+							$type = 'category1';
+						else if ($article_array['category2'])
+							$type = 'category2';
+						else
+							$uri_c = '--INVALID_CATEGORY--';
+					break;
+					case 'title': $type = 'url_title'; break;
+					case 'author': $type = 'authorid'; break;
+					case 'date': $uri_c = date('Y/m/d', $article_array['posted']); break;
+					case 'year': $uri_c = date('Y', $article_array['posted']); break;
+					case 'month': $uri_c = date('m', $article_array['posted']); break;
+					case 'day': $uri_c = date('d', $article_array['posted']); break;
+					case 'custom': $type = $pref["custom_{$custom}_set"]; break;
+					case 'text': $uri_c = $pl_c['text']; break;
+					case 'regex':
+						// Check to see if regex is valid without outputting error messages.
+						ob_start();
+						preg_match($pl_c['regex'], $pl_c['regex'], $regex_matches);
+						$is_valid_regex = !(ob_get_clean());
+						if ($is_valid_regex)
+							{
+							$key = "permlink_regex_{$pl_c['name']}";
+							$uri_c = (array_key_exists($key, $pretext)) ? $pretext[$key] : $regex_matches[0];
+							}
+						else
+							$uri_c = '--INVALID_REGEX--';	
+					break;
+					}
+
+				if (array_key_exists($type, $article_array))
+					$uri .= $article_array[$type];
+				else if (isset($uri_c))
+					{
+					$uri .= $uri_c;
+					unset($uri_c);
+					}
+				else
+					$uri .= '--PERMLINK_FORMAT_ERROR--';
+				}
+
+				$uri .= '/';
+			}
+
+		if (empty($uri))
+			{
+			// It is possible the uri is still empty if there is no match or if we're using
+			// strict matching if so try the default permlink mode. 
+			$this->reset_permlink_mode();
+			$uri = permlinkurl( $article_array );
+			$this->set_permlink_mode();
+			}
+
+		return $uri;
 		}
 
 	function _pagelinkurl( $parts, $inherit=array() )
