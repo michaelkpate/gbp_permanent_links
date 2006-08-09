@@ -92,7 +92,7 @@ class PermanentLinks extends GBPPlugin
 			{
 			$permalinks[$id] = $this->get_permalink($id);
 			if ($sort)
-				$precedence[$key] = $permalinks[$id]['settings']['pl_precedence'];
+				$precedence[$id] = $permalinks[$id]['settings']['pl_precedence'];
 			}
 
 		// If more than one permanent link, sort by their precedence value.
