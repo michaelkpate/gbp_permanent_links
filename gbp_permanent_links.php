@@ -63,7 +63,6 @@ class PermanentLinks extends GBPPlugin
 	var $preferences = array(
 		'show_prefix' => array('value' => 0, 'type' => 'yesnoradio'),
 		'show_suffix' => array('value' => 0, 'type' => 'yesnoradio'),
-		'strict_matching' => array('value' => 0, 'type' => 'yesnoradio'),
 		'debug' => array('value' => 0, 'type' => 'yesnoradio'),
 	);
 	var $matched_permalink = array();
@@ -376,8 +375,9 @@ class PermanentLinks extends GBPPlugin
 
 		} // foreach permalinks end
 
-		// Even if there is no match we need an override for permalinkurl()
-		$this->set_permlink_mode(1);
+		// Force Textpattern and tags to use messy URLs - these are easier to
+		// find in regex
+		$this->set_permlink_mode();
 
 		if (isset($pretext_replacement) || count($this->partial_matches))
 			{
@@ -395,10 +395,6 @@ class PermanentLinks extends GBPPlugin
 				if (array_key_exists($key, $pretext_replacement))
 					$GLOBALS[$key] = $pretext_replacement[$key];
 				}
-
-			// Force Textpattern and tags to use messy URLs - these are easier to
-			// find in regex
-			$this->set_permlink_mode();
 
 			$this->debug('Pretext Replacement '.print_r($pretext, 1));
 
@@ -430,11 +426,6 @@ class PermanentLinks extends GBPPlugin
 
 			// textpattern() has run, kill the connection
 		    die();
-			}
-		else if ($this->pref('strict_matching') && @$uri[0] && !(substr($uri[0], 0, 1) == '?' || substr($uri[0], 0, 10) == 'index.php?'))
-			{
-			// Return an 404 error if we aren't of the front page
-			$pretext['status'] = '404';
 			}
 	} // function _textpattern end
 
