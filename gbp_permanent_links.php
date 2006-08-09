@@ -470,7 +470,7 @@ class PermanentLinks extends GBPPlugin
 			// We have no permalink id so grab the permalink with the highest precedence.
 			$pl = array_shift( $this->get_all_permalinks(1) );
 
-		if (array_key_exists('components', $pl))
+		if (is_array($pl) && array_key_exists('components', $pl))
 			{
 			$pl_components = $pl['components'];
 
