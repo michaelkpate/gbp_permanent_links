@@ -456,6 +456,8 @@ class PermanentLinks extends GBPPlugin
 		{
 		global $pretext, $prefs;
 
+		if (empty($article_array)) return;
+
 		// Get the matched pretext replacement array.
 		$matched = ( count($this->matched_permalink) )
 		? $this->matched_permalink
@@ -472,6 +474,19 @@ class PermanentLinks extends GBPPlugin
 
 		if (is_array($pl) && array_key_exists('components', $pl))
 			{
+			// dmp($article_array);
+
+			extract($article_array);
+
+			if (!isset($title)) $title = $Title;
+			if (empty($url_title)) $url_title = stripSpace($title);
+			if (empty($section)) $section = $Section;
+			if (empty($posted)) $posted = $Posted;
+			if (empty($authorid)) $authorid = $AuthorID;
+			if (empty($category1)) $category1 = @$Category1;
+			if (empty($category2)) $category2 = @$Category2;
+			// if (empty($thisid)) $thisid = $ID;
+
 			$pl_components = $pl['components'];
 
 			// Check to see if there is a title component.
@@ -493,21 +508,23 @@ class PermanentLinks extends GBPPlugin
 				switch ($type)
 					{
 					case 'category':
-						if ($article_array['category1'])
-							$type = 'category1';
-						else if ($article_array['category2'])
-							$type = 'category2';
-						else
-							$uri_c = '--INVALID_CATEGORY--';
+						if ($uri_c = $category1);
+						else if ($uri_c = $category2);
+						else $uri_c = '--INVALID_CATEGORY--';
 					break;
-					case 'title': $type = 'url_title'; break;
-					case 'author': $uri_c = safe_field('RealName', 'txp_users', "name like '{$article_array['authorid']}'"); break;
-					case 'login': $type = 'authorid'; break;
-					case 'date': $uri_c = date('Y/m/d', $article_array['posted']); break;
-					case 'year': $uri_c = date('Y', $article_array['posted']); break;
-					case 'month': $uri_c = date('m', $article_array['posted']); break;
-					case 'day': $uri_c = date('d', $article_array['posted']); break;
-					case 'custom': $type = $pref["custom_{$custom}_set"]; break;
+					case 'section': $uri_c = $section; break;
+					case 'title': $uri_c = $url_title; break;
+					case 'author': $uri_c = safe_field('RealName', 'txp_users', "name like '{$authorid}'"); break;
+					case 'login': $uri_c = $authorid; break;
+					case 'date': $uri_c = date('Y/m/d', $posted); break;
+					case 'year': $uri_c = date('Y', $posted); break;
+					case 'month': $uri_c = date('m', $posted); break;
+					case 'day': $uri_c = date('d', $posted); break;
+					case 'custom':
+						if ($uri_c = @$article_array[$prefs["custom_{$pl_c['custom']}_set"]]);
+						else if ($uri_c = @$article_array["custom_{$pl_c['custom']}"]);
+						else $uri_c = '--UNSET_CUSTOM_FIELD--';
+					break;
 					case 'text': $uri_c = $pl_c['text']; break;
 					case 'regex':
 						// Check to see if regex is valid without outputting error messages.
@@ -524,15 +541,11 @@ class PermanentLinks extends GBPPlugin
 					break;
 					}
 
-				if (array_key_exists($type, $article_array))
-					$uri .= urlencode($article_array[$type]);
-				else if (isset($uri_c))
-					{
-					$uri .= urlencode($uri_c);
-					unset($uri_c);
-					}
-				else
-					$uri .= '--PERMLINK_FORMAT_ERROR--';
+				if (empty($uri_c))
+					$uri_c = '--PERMLINK_FORMAT_ERROR--';
+
+				$uri .= urlencode($uri_c);
+				unset($uri_c);
 				}
 
 				$uri .= '/';
