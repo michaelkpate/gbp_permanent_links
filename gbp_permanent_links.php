@@ -72,7 +72,7 @@ class PermanentLinks extends GBPPlugin
 	{
 		new PermanentLinksListTabView('list', 'list', $this);
 		new PermanentLinksBuildTabView('build', 'build', $this);
-		new GBPPreferenceTabView('preferences', 'preference', $this);
+		new GBPPreferenceTabView($this);
 	}
 
 	function main()
