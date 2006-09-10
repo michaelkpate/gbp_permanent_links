@@ -449,68 +449,71 @@ class PermanentLinks extends GBPPlugin
 
 		} // foreach permlinks end
 
-		// Force Textpattern and tags to use messy URLs - these are easier to
-		// find in regex
-		$this->set_permlink_mode();
+		if (count($permlinks) > 1)
+		{
+			// Force Textpattern and tags to use messy URLs - these are easier to
+			// find in regex
+			$this->set_permlink_mode();
 
-		if (isset($pretext_replacement) || count($this->partial_matches))
-			{
-			global $permlink_mode;
+			if (isset($pretext_replacement) || count($this->partial_matches))
+				{
+				global $permlink_mode;
 
-			if (!isset($pretext_replacement))
-				$pretext_replacement = array_shift(array_slice($this->partial_matches, -1));
+				if (!isset($pretext_replacement))
+					$pretext_replacement = array_shift(array_slice($this->partial_matches, -1));
 			
-			// Merge pretext_replacement with pretext
-			$pretext = array_merge($pretext, $pretext_replacement);
+				// Merge pretext_replacement with pretext
+				$pretext = array_merge($pretext, $pretext_replacement);
 
-			if (@$pretext['rss']) {
-				include txpath.'/publish/rss.php';
-				exit(rss());
-			}
-
-			if (@$pretext['atom']) {
-				include txpath.'/publish/atom.php';
-				exit(atom());
-			}
-
-			// Export required values to the global namespace
-			foreach (array('id', 's', 'c', 'is_article_list') as $key)
-				{
-				if (array_key_exists($key, $pretext_replacement))
-					$GLOBALS[$key] = $pretext_replacement[$key];
+				if (@$pretext['rss']) {
+					include txpath.'/publish/rss.php';
+					exit(rss());
 				}
 
-			$this->debug('Pretext Replacement '.print_r($pretext, 1));
-			}
-
-		// Start output buffering and pseudo callback to textpattern_end
-		ob_start(array(&$this, '_textpattern_end'));
-
-		// Remove the plugin callbacks which have already been called
-		$new_callbacks = array();
-		$found_this = false;
-		foreach ($plugin_callback as $callback)
-			{
-			if ($found_this)
-				$new_callbacks = $callback;
-			if ( $callback['event'] == 'textpattern' 
-				&& is_array( $callback['function'] )
-				&& count( $callback['function'] )
-				&& $callback['function'][0] === $this )
-				{
-				$found_this = true;
+				if (@$pretext['atom']) {
+					include txpath.'/publish/atom.php';
+					exit(atom());
 				}
-			}
-		$plugin_callback = $new_callbacks;
 
-		// Re-call textpattern
-		textpattern();
+				// Export required values to the global namespace
+				foreach (array('id', 's', 'c', 'is_article_list') as $key)
+					{
+					if (array_key_exists($key, $pretext_replacement))
+						$GLOBALS[$key] = $pretext_replacement[$key];
+					}
 
-		// Stop output buffering, this sends the buffer to _textpattern_end()
-		ob_end_flush();
+				$this->debug('Pretext Replacement '.print_r($pretext, 1));
+				}
 
-		// textpattern() has run, kill the connection
-	    die();
+			// Start output buffering and pseudo callback to textpattern_end
+			ob_start(array(&$this, '_textpattern_end'));
+
+			// Remove the plugin callbacks which have already been called
+			$new_callbacks = array();
+			$found_this = false;
+			foreach ($plugin_callback as $callback)
+				{
+				if ($found_this)
+					$new_callbacks = $callback;
+				if ( $callback['event'] == 'textpattern' 
+					&& is_array( $callback['function'] )
+					&& count( $callback['function'] )
+					&& $callback['function'][0] === $this )
+					{
+					$found_this = true;
+					}
+				}
+			$plugin_callback = $new_callbacks;
+
+			// Re-call textpattern
+			textpattern();
+
+			// Stop output buffering, this sends the buffer to _textpattern_end()
+			ob_end_flush();
+
+			// textpattern() has run, kill the connection
+		    die();
+		}
 
 	} // function _textpattern end
 
@@ -658,14 +661,14 @@ class PermanentLinks extends GBPPlugin
 			return 'href="' .hu. '"';
 
 		// Fix matches like href="?s=foo"
-		elseif ($path && empty($query))
+		elseif ($path && empty($query) && $parts[1] == '?')
 			{
 			$query = $path;
 			$path = 'index.php';
 			}
-
+		
 		// Check to see if there is query to work with.
-		elseif (empty($query) || $path != 'index.php')
+		elseif (empty($query) || $path != 'index.php' || strpos($query, '/') === true)
 			return $parts[0];
 
 		// '&amp;' will break parse_str() if they are found in a query string
@@ -696,7 +699,7 @@ class PermanentLinks extends GBPPlugin
 		if (isset($category) && !$c)
 			$c = $category;
 
-		$out = $parts[1];
+		$out = hu;
 		$out .= ($s ? $s.'/' : '');
 		$out .= ($c ? $c.'/' : '');
 
@@ -709,7 +712,7 @@ class PermanentLinks extends GBPPlugin
 		if ($pg)
 			return 'href="'. $out . $pg .'"';
 
-		if ($path == 'index.php')
+		if ($path == 'index.php' && $out != hu)
 			return 'href="'. $out .'"';
 
 		/*
