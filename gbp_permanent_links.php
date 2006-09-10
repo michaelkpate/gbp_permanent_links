@@ -65,7 +65,7 @@ class PermanentLinks extends GBPPlugin
 		'show_suffix' => array('value' => 0, 'type' => 'yesnoradio'),
 		'debug' => array('value' => 0, 'type' => 'yesnoradio'),
 	);
-	var $matched_permalink = array();
+	var $matched_permlink = array();
 	var $partial_matches = array();
 
 	function preload()
@@ -80,17 +80,17 @@ class PermanentLinks extends GBPPlugin
 	require_privs('publisher');
 	}
 
-	function get_all_permalinks( $sort=0, $exclude=array() )
+	function get_all_permlinks( $sort=0, $exclude=array() )
 		{
 		$rs = safe_column(
 			"REPLACE(name, '{$this->plugin_name}_', '') AS id", 'txp_prefs',
 			"`event` = '{$this->event}' AND `name` REGEXP '^{$this->plugin_name}_.{13}$'"
 		);
 
-		$permalinks = array();
+		$permlinks = array();
 		foreach ($rs as $id)
 			{
-			$pl = $this->get_permalink($id);
+			$pl = $this->get_permlink($id);
 
 			if (count($exclude) > 0)
 				foreach ($pl['components'] as $pl_c)
@@ -101,29 +101,29 @@ class PermanentLinks extends GBPPlugin
 						continue 2;
 				}
 
-			$permalinks[$id] = $pl;
+			$permlinks[$id] = $pl;
 			if ($sort)
-				$precedence[$id] = $permalinks[$id]['settings']['pl_precedence'];
+				$precedence[$id] = $permlinks[$id]['settings']['pl_precedence'];
 			}
 
 		// If more than one permanent link, sort by their precedence value.
-		if ($sort && count($permalinks) > 1)
-			array_multisort($precedence, SORT_DESC, $permalinks);
+		if ($sort && count($permlinks) > 1)
+			array_multisort($precedence, SORT_DESC, $permlinks);
 
-		return $permalinks;
+		return $permlinks;
 		}
 
-	function get_permalink($id)
+	function get_permlink($id)
 		{
-		$permalink = $this->pref($id);
-		return is_array($permalink) ? $permalink : array();
+		$permlink = $this->pref($id);
+		return is_array($permlink) ? $permlink : array();
 		}
 
-	function remove_permalink($id)
+	function remove_permlink($id)
 	{
-		$permalink = $this->get_permalink($id);
+		$permlink = $this->get_permlink($id);
 		safe_delete('txp_prefs', "`event` = '{$this->event}' AND `name` LIKE '{$this->plugin_name}_{$id}%'");
-		return $permalink['settings']['pl_name'];
+		return $permlink['settings']['pl_name'];
 	}
 
 	function _textpattern()
@@ -140,9 +140,9 @@ class PermanentLinks extends GBPPlugin
 		$uri_component_count = count($uri);
 
 		// Permanent links
-		$permalinks = $this->get_all_permalinks(1);
+		$permlinks = $this->get_all_permlinks(1);
 
-		foreach($permalinks as $id => $pl)
+		foreach($permlinks as $id => $pl)
 		{
 			$pl_components = $pl['components'];
 
@@ -166,17 +166,17 @@ class PermanentLinks extends GBPPlugin
 			if (!$uri_components[0] || count($uri_components) > count($pl_components) + ($date ? 2 : 0))
 				continue;
 
-			// Extract the permalink settings
+			// Extract the permlink settings
 			$pl_settings = $pl['settings'];
 			extract($pl_settings);
 
-			$this->debug('Permalink name: '.$pl_name);
+			$this->debug('Permlink name: '.$pl_name);
 			$this->debug('Preview: '.$pl_preview);
 
 			// Reset pretext_replacement as we are about to start another comparison
 			$pretext_replacement = array('permlink_id' => $id);
 
-			// Loop through the permalink components
+			// Loop through the permlink components
 			foreach ( $pl_components as $pl_c_index=>$pl_c )
 			{
 				// Assume there is no match
@@ -189,8 +189,8 @@ class PermanentLinks extends GBPPlugin
 
 				else if (!$title && count($pl_components) - 1 == $uri_component_count)	
 					{
-					// If we appended a title component earlier and permalink and URI components counts 
-					// are equal, we must of finished checking this permalink, and it matches so break.
+					// If we appended a title component earlier and permlink and URI components counts 
+					// are equal, we must of finished checking this permlink, and it matches so break.
 					$match = true;
 					break;
 					}
@@ -200,20 +200,20 @@ class PermanentLinks extends GBPPlugin
 					// If there are no more URI components then we have a partial match.
 					$this->debug( 'We have a partial match (No more URI components)' );
 
-					// Store the partial match data unless there has been a preceding permalink with the
-					// same number of components, as permalink have already been sorted by precedence.
+					// Store the partial match data unless there has been a preceding permlink with the
+					// same number of components, as permlink have already been sorted by precedence.
 					if (!array_key_exists($uri_component_count, $this->partial_matches))
 						$this->partial_matches[$uri_component_count] = $pretext_replacement;
 
 					// Unset pretext_replacement as changes could of been made in a preceding component
 					unset( $pretext_replacement );
 
-					// Break early form the foreach permalink components loop.
+					// Break early form the foreach permlink components loop.
 					$match = true;
 					break;
 					}
 
-				// Extract the permalink components.
+				// Extract the permlink components.
 				extract($pl_c);
 
 				// If it's a date, grab and combine the next two URI components.
@@ -345,14 +345,14 @@ class PermanentLinks extends GBPPlugin
 					unset($pretext_replacement);
 					break;
 				}
-			} // foreach permalink component end
+			} // foreach permlink component end
 
 			// If pretext_replacement is still set here then we have a match or a partial match
 			if ($match) {
 				if (isset($pretext_replacement))
 					{
 					$this->debug('We have a match!');
-					$this->matched_permalink = $pretext_replacement;
+					$this->matched_permlink = $pretext_replacement;
 					}
 				else
 					// Restore the partial match. Sorted by number of components and then precedence
@@ -391,12 +391,12 @@ class PermanentLinks extends GBPPlugin
 				$page = safe_field('page', 'txp_section', "name = '{$pretext_replacement['s']}' limit 1");
 				$pretext_replacement['page'] = $page;
 
-				if (!empty($this->matched_permalink))
-					// We're done - no point checking the other permalinks
+				if (!empty($this->matched_permlink))
+					// We're done - no point checking the other permlinks
 					break;
 			}
 
-		} // foreach permalinks end
+		} // foreach permlinks end
 
 		// Force Textpattern and tags to use messy URLs - these are easier to
 		// find in regex
@@ -470,18 +470,18 @@ class PermanentLinks extends GBPPlugin
 		if (empty($article_array)) return;
 
 		// Get the matched pretext replacement array.
-		$matched = ( count($this->matched_permalink) )
-		? $this->matched_permalink
+		$matched = ( count($this->matched_permlink) )
+		? $this->matched_permlink
 		: array_shift(array_slice($this->partial_matches, -1));
 
 		$uri = '';
 
 		if ($matched)	
-			// The permalink id is stored in the pretext replacement array, so we can find the permalink. 
-			$pl = $this->get_permalink( $matched['permlink_id'] );
+			// The permlink id is stored in the pretext replacement array, so we can find the permlink. 
+			$pl = $this->get_permlink( $matched['permlink_id'] );
 		else
-			// We have no permalink id so grab the permalink with the highest precedence.
-			$pl = array_shift( $this->get_all_permalinks(1, array('page')) );
+			// We have no permlink id so grab the permlink with the highest precedence.
+			$pl = array_shift( $this->get_all_permlinks(1, array('page')) );
 
 		if (is_array($pl) && array_key_exists('components', $pl))
 			{
@@ -615,8 +615,8 @@ class PermanentLinksBuildTabView extends GBPAdminTabView
 {
 	function preload()
 		{
-		register_callback(array(&$this, 'post_save_permalink'), $this->parent->event, gbp_save, 1);
-		register_callback(array(&$this, 'post_save_permalink'), $this->parent->event, gbp_post, 1);
+		register_callback(array(&$this, 'post_save_permlink'), $this->parent->event, gbp_save, 1);
+		register_callback(array(&$this, 'post_save_permlink'), $this->parent->event, gbp_post, 1);
 		}
 
 	function main()
@@ -624,24 +624,24 @@ class PermanentLinksBuildTabView extends GBPAdminTabView
 		global $prefs;
 		extract(gpsa(array('step', gbp_id)));
 
-		// With have an ID, either the permalink has just been saved or the user wants to edit it
+		// With have an ID, either the permlink has just been saved or the user wants to edit it
 		if ($id)
 			{
-			// Newly saved or beening edited, either way we're editing a permalink
+			// Newly saved or beening edited, either way we're editing a permlink
 			$step = gbp_save;
 
-			// Use the ID to grab the permalink data (components & settings) 
-			$permalink = $this->parent->get_permalink($id);
-			$components = $this->phpArrayToJsArray('components', $permalink['components']);
-			$settings = $permalink['settings'];
+			// Use the ID to grab the permlink data (components & settings) 
+			$permlink = $this->parent->get_permlink($id);
+			$components = $this->phpArrayToJsArray('components', $permlink['components']);
+			$settings = $permlink['settings'];
 			}
 		else
 			{
-			// Creating a new ID and permalink.
+			// Creating a new ID and permlink.
 			$step = gbp_post;
 			$id = uniqid('');
 
-			// Set the default set of components depending on whether there is parent permalink 
+			// Set the default set of components depending on whether there is parent permlink 
 			$components = $this->phpArrayToJsArray('components', array(
 				array('type' => 'section', 'prefix' => '', 'suffix' => '', 'regex' => '', 'text' => ''),
 				array('type' => 'category', 'prefix' => '', 'suffix' => '', 'regex' => '', 'text' => ''),
@@ -660,9 +660,9 @@ class PermanentLinksBuildTabView extends GBPAdminTabView
 
 		// PHP & Javascript constants;
 		$separator = gbp_separator;
-		$components_div = 'permalink_components_ui';
-		$components_form = 'permalink_components';
-		$settings_form = 'permalink_settings';
+		$components_div = 'permlink_components_ui';
+		$components_form = 'permlink_components';
+		$settings_form = 'permlink_settings';
 		$show_prefix = $this->pref('show_prefix');
 		$show_suffix = $this->pref('show_suffix');
 
@@ -762,8 +762,8 @@ var {$components}// components array for all the data
 	function component_refresh_all()
 	{
 		// Remove all child nodes
-		while (permalink_div().hasChildNodes())
-			{ permalink_div().removeChild(permalink_div().firstChild); }
+		while (permlink_div().hasChildNodes())
+			{ permlink_div().removeChild(permlink_div().firstChild); }
 
 		for (var i = 0; i < components.length; i++)
 		{
@@ -783,7 +783,7 @@ var {$components}// components array for all the data
 			new_component = component_refresh(new_component);
 
 			// And add the new component to the ui
-			permalink_div().appendChild(new_component);
+			permlink_div().appendChild(new_component);
 		}
 	}
 
@@ -915,19 +915,19 @@ var {$components}// components array for all the data
 
 	function save(form)
 	{
-		var c = ''; var is_permalink = false; var has_page_or_search = false;
+		var c = ''; var is_permlink = false; var has_page_or_search = false;
 		for (var i = 0; i < components.length; i++) {
 			if (components[i]['type'] == 'title')
-				is_permalink = true;
+				is_permlink = true;
 			if (components[i]['type'] == 'page' || components[i]['type'] == 'search')
 				has_page_or_search = true;
 			c = c + jsArrayToPhpArray(components[i]) + '{$separator}';
 		}
 
-		if (is_permalink && has_page_or_search)
+		if (is_permlink && has_page_or_search)
 			alert("Your permanent link can't contain either a 'page' or a 'search' component with a 'title' component.");
 
-		else if (is_permalink && (form.pl_name.value == '' || form.pl_name.value == 'Untitled'))
+		else if (is_permlink && (form.pl_name.value == '' || form.pl_name.value == 'Untitled'))
 		{
 			document.getElementById('settings').style['display'] = '';
 			form.pl_name.style['border'] = '3px solid rgb(221, 0, 0)';
@@ -936,10 +936,10 @@ var {$components}// components array for all the data
 		else
 		{
 			form.components.value = c;
-			if (permalink_div().textContent)
-				form.pl_preview.value = permalink_div().textContent;
-			else if (permalink_div().innerText)
-				form.pl_preview.value = permalink_div().innerText;
+			if (permlink_div().textContent)
+				form.pl_preview.value = permlink_div().textContent;
+			else if (permlink_div().innerText)
+				form.pl_preview.value = permlink_div().innerText;
 			return true;
 		}
 
@@ -961,9 +961,9 @@ var {$components}// components array for all the data
 		return array_php;
 	}
 
-	function permalink_div()
+	function permlink_div()
 	{
-		// Return the permalink format element
+		// Return the permlink format element
 		return document.getElementById('{$components_div}');
 	}
 
@@ -978,7 +978,7 @@ var {$components}// components array for all the data
 	function component(index)
 	{
 		// Return component with index
-		return permalink_div().childNodes[index];
+		return permlink_div().childNodes[index];
 	}
 
 	// ]]>
@@ -1167,7 +1167,7 @@ HTML;
 		echo join(n, $out);
 		}
 
-	function post_save_permalink()
+	function post_save_permlink()
 		{
 		// The function posts or saves a permanent link to txp_prefs
 
@@ -1192,10 +1192,10 @@ HTML;
 			$components[] = unserialize(urldecode(stripslashes($c)));
 		
 		// Complete the permanent link array - this is exactly what needs to be stored in the db
-		$permalink = array('settings' => $settings, 'components' => $components);
+		$permlink = array('settings' => $settings, 'components' => $components);
 
 		// Save it
-		$this->set_preference($id, $permalink, 'gbp_serialized');
+		$this->set_preference($id, $permlink, 'gbp_serialized');
 
 		$this->parent->message = messenger('', $settings['pl_name'], 'saved');
 		}
@@ -1229,8 +1229,8 @@ class PermanentLinksListTabView extends GBPAdminTabView
 		
 		$event = $this->parent->event;
 
-		$permalinks = $this->parent->get_all_permalinks();
-		$total = count($permalinks);
+		$permlinks = $this->parent->get_all_permlinks();
+		$total = count($permlinks);
 
 		if ($total < 1)
 			{
@@ -1264,19 +1264,19 @@ class PermanentLinksListTabView extends GBPAdminTabView
 
 		$dir = ($dir == 'desc') ? 'desc' : 'asc';
 
-		// Sort the permalinks via the selected column and then their names.
-		foreach ($permalinks as $id => $permalink)
+		// Sort the permlinks via the selected column and then their names.
+		foreach ($permlinks as $id => $permlink)
 			{
-			$sort_keys[$id] = $permalink['settings'][$sort];
-			$name[$id] = $permalink['settings']['pl_name'];
+			$sort_keys[$id] = $permlink['settings'][$sort];
+			$name[$id] = $permlink['settings']['pl_name'];
 			}
-		array_multisort($sort_keys, (($dir == 'desc') ? SORT_DESC : SORT_ASC), $name, SORT_ASC, $permalinks);
+		array_multisort($sort_keys, (($dir == 'desc') ? SORT_DESC : SORT_ASC), $name, SORT_ASC, $permlinks);
 
 		$switch_dir = ($dir == 'desc') ? 'asc' : 'desc';
 		
-		$permalinks = array_slice($permalinks, $offset, $limit);
+		$permlinks = array_slice($permlinks, $offset, $limit);
 
-		if (count($permalinks))
+		if (count($permlinks))
 			{
 			echo n.n.'<form name="longform" method="post" action="index.php" onsubmit="return verify(\''.gTxt('are_you_sure').'\')">'.
 
@@ -1291,9 +1291,9 @@ class PermanentLinksListTabView extends GBPAdminTabView
 
 			include_once txpath.'/publish/taghandlers.php';
 
-			foreach ($permalinks as $id => $permalink)
+			foreach ($permlinks as $id => $permlink)
 				{
-				extract($permalink['settings']);
+				extract($permlink['settings']);
 
 				$manage = n.'<ul'.(version_compare($GLOBALS['thisversion'], '4.0.3', '<=') ? ' style="margin:0;padding:0;list-style-type:none;">' : '>').
 						n.t.'<li>'.href(gTxt('edit'), $this->url(array(gbp_tab => 'build', gbp_id => $id), true)).'</li>'.
@@ -1338,7 +1338,7 @@ class PermanentLinksListTabView extends GBPAdminTabView
 			echo n.n.tr(
 				tda(
 					select_buttons().
-					$this->permalinks_multiedit_form($page, $sort, $dir, $crit, $search_method)
+					$this->permlinks_multiedit_form($page, $sort, $dir, $crit, $search_method)
 				,' colspan="4" style="text-align: right; border: none;"')
 			).
 
@@ -1351,7 +1351,7 @@ class PermanentLinksListTabView extends GBPAdminTabView
 			}
 		}
 
-	function permalinks_multiedit_form($page, $sort, $dir, $crit, $search_method)
+	function permlinks_multiedit_form($page, $sort, $dir, $crit, $search_method)
 	{
 		$methods = array(
 			'delete' => gTxt('delete'),
@@ -1360,12 +1360,12 @@ class PermanentLinksListTabView extends GBPAdminTabView
 		return event_multiedit_form($this->parent->event, $methods, $page, $sort, $dir, $crit, $search_method);
 	}
 
-	function permalinks_change_pageby() 
+	function permlinks_change_pageby() 
 	{
 		$this->set_preference('list_pageby', gps('qty'));
 	}
 
-	function permalinks_multi_edit()
+	function permlinks_multi_edit()
 	{
 		$method = gps('edit_method')
 			? gps('edit_method') // From Txp 4.0.4 and greater
@@ -1374,7 +1374,7 @@ class PermanentLinksListTabView extends GBPAdminTabView
 		switch ($method) {
 			case 'delete':
 				foreach (gps('selected') as $id) {
-							$deleted[] = $this->parent->remove_permalink($id);
+							$deleted[] = $this->parent->remove_permlink($id);
 				}
 			break;
 		}
@@ -1385,7 +1385,7 @@ class PermanentLinksListTabView extends GBPAdminTabView
 	}
 }
 
-$gbp_pl = new PermanentLinks('permanent links', 'permalinks', 'admin');
+$gbp_pl = new PermanentLinks('permanent links', 'permlinks', 'admin');
 if (@txpinterface == 'public')
 	register_callback(array(&$gbp_pl, '_textpattern'), 'textpattern');
 
