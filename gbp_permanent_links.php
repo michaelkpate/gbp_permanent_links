@@ -80,7 +80,7 @@ class PermanentLinks extends GBPPlugin
 	require_privs('publisher');
 	}
 
-	function get_all_permalinks( $sort=0 )
+	function get_all_permalinks( $sort=0, $exclude=array() )
 		{
 		$rs = safe_column(
 			"REPLACE(name, '{$this->plugin_name}_', '') AS id", 'txp_prefs',
@@ -90,7 +90,18 @@ class PermanentLinks extends GBPPlugin
 		$permalinks = array();
 		foreach ($rs as $id)
 			{
-			$permalinks[$id] = $this->get_permalink($id);
+			$pl = $this->get_permalink($id);
+
+			if (count($exclude) > 0)
+				foreach ($pl['components'] as $pl_c)
+				{
+					if (is_array($exclude) && in_array($pl_c['type'], $exclude))
+						continue 2;
+					if (is_string($exclude) && $pl_c['type'] === $exclude)
+						continue 2;
+				}
+
+			$permalinks[$id] = $pl;
 			if ($sort)
 				$precedence[$id] = $permalinks[$id]['settings']['pl_precedence'];
 			}
@@ -470,7 +481,7 @@ class PermanentLinks extends GBPPlugin
 			$pl = $this->get_permalink( $matched['permlink_id'] );
 		else
 			// We have no permalink id so grab the permalink with the highest precedence.
-			$pl = array_shift( $this->get_all_permalinks(1) );
+			$pl = array_shift( $this->get_all_permalinks(1, array('page')) );
 
 		if (is_array($pl) && array_key_exists('components', $pl))
 			{
