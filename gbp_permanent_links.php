@@ -58,6 +58,9 @@ $gbp_current_plugin = $txp_current_plugin;
 require_plugin('gbp_admin_library');
 $txp_current_plugin = $gbp_current_plugin;
 
+// Tidy up the DB preference after r179 (permalink -> permlink) for testers - remove before public release.
+safe_update('txp_prefs', "`event` = REPLACE(`event`, 'permalinks', 'permlinks')", "`name` REGEXP '^{$txp_current_plugin}'");
+
 class PermanentLinks extends GBPPlugin
 {
 	var $preferences = array(
@@ -67,6 +70,7 @@ class PermanentLinks extends GBPPlugin
 	);
 	var $matched_permlink = array();
 	var $partial_matches = array();
+	var $buffer_debug = array();
 
 	function preload()
 	{
@@ -128,7 +132,7 @@ class PermanentLinks extends GBPPlugin
 
 	function _textpattern()
 	{
-		global $pretext, $prefs;
+		global $pretext, $prefs, $plugin_callback;
 
 		$this->debug('Plugin: '.$this->plugin_name);
 		$this->debug('Function: '.__FUNCTION__.'()');
@@ -150,16 +154,16 @@ class PermanentLinks extends GBPPlugin
 			$uri_components = $uri;
 
 			// Are we expecting a date component? If so the number of pl and uri components won't match
-			$date = false; $title = false;
+			$date = false; $title_page_feed_search = false;
 			foreach($pl_components as $pl_c)
 				if ($pl_c['type'] == 'date')
 				 	$date = true;
-				else if ($pl_c['type'] == 'title')
-					$title = true;
+				else if ($pl_c['type'] == 'title' || $pl_c['type'] == 'page' || $pl_c['type'] == 'feed' || $pl_c['type'] == 'search')
+					$title_page_feed_search = true;
 
-			if (!$title)
+			if (!$title_page_feed_search)
 				// If there isn't a title component then append on to the end.
-				$pl_components[] = array('type' => 'title', 'prefix' => '', 'suffix' => '', 'regex' => '', 'text' => '');
+				$pl_components[] = array('type' => 'title_page_feed_search', 'prefix' => '', 'suffix' => '', 'regex' => '', 'text' => '');
 			
 			// Exit early if there are more URL components than PL components,
 			// taking into account whether there is a data component
@@ -187,10 +191,10 @@ class PermanentLinks extends GBPPlugin
 					// Get the next component.
 					$uri_c = array_shift( $uri_components );
 
-				else if (!$title && count($pl_components) - 1 == $uri_component_count)	
+				else if (!$title_page_feed_search && count($pl_components) - 1 == $uri_component_count)	
 					{
-					// If we appended a title component earlier and permlink and URI components counts 
-					// are equal, we must of finished checking this permlink, and it matches so break.
+					// If we appended a title_page_feed_search component earlier and permlink and URI components
+					// counts are equal, we must of finished checking this permlink, and it matches so break.
 					$match = true;
 					break;
 					}
@@ -253,6 +257,26 @@ class PermanentLinks extends GBPPlugin
 					// Compare based on type
 					switch ($type)
 					{
+						case 'title_page_feed_search':
+							if ($ID = safe_field('ID', 'textpattern', "`url_title` like '$uri_c' and `Status` >= 4 limit 1")) {
+								$pretext_replacement['id'] = $ID;
+								$pretext['numPages'] = 1;
+								$pretext['is_article_list'] = true;
+								$match = true;
+							}
+							else if (is_numeric($uri_c)) {
+								$pretext_replacement['pg'] = $uri_c;
+								$match = true;
+							}
+							else if (in_array($uri_c, array('rss', 'atom'))) {
+								$pretext_replacement[$uri_c] = 1;
+								$match = true;
+							}
+							else {
+								$pretext_replacement['q'] = $uri_c;
+								$match = true;
+							}
+						break;
 						case 'section':
 							if (safe_field('name', 'txp_section', "`name` like '$uri_c' limit 1")) {
 								$pretext_replacement['s'] = $uri_c;
@@ -271,6 +295,14 @@ class PermanentLinks extends GBPPlugin
 								$pretext['numPages'] = 1;
 								$pretext['is_article_list'] = true;
 								$match = true;
+							}
+						break;
+						case 'id':
+							if ($ID = safe_field('ID', 'textpattern', "`ID` = '$uri_c' and `Status` >= 4 limit 1")) {
+								$pretext_replacement['id'] = $ID;
+								$pretext['numPages'] = 1;
+								$pretext['is_article_list'] = true;
+								return true;
 							}
 						break;
 						case 'author':
@@ -312,6 +344,12 @@ class PermanentLinks extends GBPPlugin
 						case 'page':
 							if (is_numeric($uri_c)) {
 								$pretext_replacement['pg'] = $uri_c;
+								$match = true;
+							}
+						break;
+						case 'feed':
+							if (in_array($uri_c, array('rss', 'atom'))) {
+								$pretext_replacement[$uri_c] = 1;
 								$match = true;
 							}
 						break;
@@ -404,13 +442,23 @@ class PermanentLinks extends GBPPlugin
 
 		if (isset($pretext_replacement) || count($this->partial_matches))
 			{
-			global $plugin_callback, $permlink_mode;
+			global $permlink_mode;
 
 			if (!isset($pretext_replacement))
 				$pretext_replacement = array_shift(array_slice($this->partial_matches, -1));
 			
 			// Merge pretext_replacement with pretext
 			$pretext = array_merge($pretext, $pretext_replacement);
+
+			if (@$pretext['rss']) {
+				include txpath.'/publish/rss.php';
+				exit(rss());
+			}
+
+			if (@$pretext['atom']) {
+				include txpath.'/publish/atom.php';
+				exit(atom());
+			}
 
 			// Export required values to the global namespace
 			foreach (array('id', 's', 'c', 'is_article_list') as $key)
@@ -420,47 +468,53 @@ class PermanentLinks extends GBPPlugin
 				}
 
 			$this->debug('Pretext Replacement '.print_r($pretext, 1));
-
-			// Start output buffering and pseudo callback to textpattern_end
-			ob_start(array(&$this, '_textpattern_end'));
-
-			// Remove the plugin callbacks which have already been called
-			$new_callbacks = array();
-			$found_this = false;
-			foreach ($plugin_callback as $callback)
-				{
-				if ($found_this)
-					$new_callbacks = $callback;
-				if ( $callback['event'] == 'textpattern' 
-					&& is_array( $callback['function'] )
-					&& count( $callback['function'] )
-					&& $callback['function'][0] === $this )
-					{
-					$found_this = true;
-					}
-				}
-			$plugin_callback = $new_callbacks;
-
-			// Re-call textpattern
-			textpattern();
-
-			// Stop output buffering, this sends the buffer to _textpattern_end()
-			ob_end_flush();
-
-			// textpattern() has run, kill the connection
-		    die();
 			}
+
+		// Start output buffering and pseudo callback to textpattern_end
+		ob_start(array(&$this, '_textpattern_end'));
+
+		// Remove the plugin callbacks which have already been called
+		$new_callbacks = array();
+		$found_this = false;
+		foreach ($plugin_callback as $callback)
+			{
+			if ($found_this)
+				$new_callbacks = $callback;
+			if ( $callback['event'] == 'textpattern' 
+				&& is_array( $callback['function'] )
+				&& count( $callback['function'] )
+				&& $callback['function'][0] === $this )
+				{
+				$found_this = true;
+				}
+			}
+		$plugin_callback = $new_callbacks;
+
+		// Re-call textpattern
+		textpattern();
+
+		// Stop output buffering, this sends the buffer to _textpattern_end()
+		ob_end_flush();
+
+		// textpattern() has run, kill the connection
+	    die();
+
 	} // function _textpattern end
 
 	function _textpattern_end( $html )
 		{
 
+		// $html = preg_replace_callback(
+		// 	'%href="'.hu.'(?:(index|textpattern/css)\.php\?)?([^"]*)"%',
+		// 	array(&$this, '_pagelinkurl'),
+		// 	$html);
+
 		$html = preg_replace_callback(
-			'%(href="'.hu.')([^"]*)(")%',
+			'%href="('.hu.'|\?)([^"]*)"%',
 			array(&$this, '_pagelinkurl'),
 			$html);
 
-		return $html;
+		return tag(join(n, $this->buffer_debug), 'pre').$html;
 		}
 
 	function _permlinkurl( $article_array )
@@ -481,12 +535,10 @@ class PermanentLinks extends GBPPlugin
 			$pl = $this->get_permlink( $matched['permlink_id'] );
 		else
 			// We have no permlink id so grab the permlink with the highest precedence.
-			$pl = array_shift( $this->get_all_permlinks(1, array('page')) );
+			$pl = array_shift( $this->get_all_permlinks(1, array('feed', 'page')) );
 
 		if (is_array($pl) && array_key_exists('components', $pl))
 			{
-			// dmp($article_array);
-
 			extract($article_array);
 
 			if (!isset($title)) $title = $Title;
@@ -496,14 +548,14 @@ class PermanentLinks extends GBPPlugin
 			if (empty($authorid)) $authorid = $AuthorID;
 			if (empty($category1)) $category1 = @$Category1;
 			if (empty($category2)) $category2 = @$Category2;
-			// if (empty($thisid)) $thisid = $ID;
+			if (empty($thisid)) $thisid = $ID;
 
 			$pl_components = $pl['components'];
 
 			// Check to see if there is a title component.
 			$title = false;
 			foreach($pl_components as $pl_c)
-				if ($pl_c['type'] == 'title')
+				if ($pl_c['type'] == 'title' || $pl_c['type'] == 'id')
 					$title = true;
 
 			// If there isn't a title component then we need to append one to the end of the URI
@@ -525,6 +577,7 @@ class PermanentLinks extends GBPPlugin
 					break;
 					case 'section': $uri_c = $section; break;
 					case 'title': $uri_c = $url_title; break;
+					case 'id': $uri_c = $thisid; break;
 					case 'author': $uri_c = safe_field('RealName', 'txp_users', "name like '{$authorid}'"); break;
 					case 'login': $uri_c = $authorid; break;
 					case 'date': $uri_c = date('Y/m/d', $posted); break;
@@ -576,6 +629,73 @@ class PermanentLinks extends GBPPlugin
 
 	function _pagelinkurl( $parts, $inherit=array() )
 		{
+		extract(lAtts(array(
+			'path'		=> 'index.php',
+			'query'		=> '',
+			'fragment'	=> '',
+		), parse_url($parts[2])));
+
+		// Tidy up links back to the site homepage
+		if ($path == 'index.php' && empty($query))
+			return 'href=""';
+
+		// Fix matches like href="?s=foo"
+		elseif ($path && empty($query))
+			{
+			$query = $path;
+			$path = 'index.php';
+			}
+
+		// Check to see if there is query to work with.
+		elseif (empty($query))
+			return $parts[0];
+
+		// '&amp;' will break parse_str() if they are found in a query string
+		$query = str_replace('&amp;', '&', $query);
+
+		// Make sure variables are set, saves using isset()
+		extract('id', 's', 'c', 'rss', 'atom', 'pg', 'q', 'month', 'author');
+		parse_str($query);
+
+		// Debugging for buffers
+		// $this->buffer_debug[] = $parts[0];
+		$this->buffer_debug[] = $path;
+		$this->buffer_debug[] = $query;
+		$this->buffer_debug[] = $fragment;
+
+		// We have a id, pass to permlinkurl()
+		if ($id)
+			{
+			$rs = safe_row('*, ID as thisid, unix_timestamp(Posted) as posted', 'textpattern', "ID = '{$id}'");
+			$this->buffer_debug[] = '----';
+			return 'href="'. $this->_permlinkurl($rs) .'"';
+			}
+
+		// Some TxP tags, e.g. <txp:feed_link /> use 'section' or 'category' inconsistent
+		// with most other tags. Process these now so we only have to check $s and $c.
+		if (isset($section) && !$s)
+			$s = $section;
+		if (isset($category) && !$c)
+			$c = $category;
+
+		if ($atom)
+			{
+			$this->buffer_debug[] = '----';
+			return 'href="'. $parts[1] . ($s ? $s.'/' : '') . ($c ? $c.'/' : '') . 'atom"';
+			}
+
+		if ($rss)
+			{
+			$this->buffer_debug[] = '----';
+			return 'href="'. $parts[1] . ($s ? $s.'/' : '') . ($c ? $c.'/' : '') . 'rss"';
+			}
+
+		/*
+		1 = index, textpattern/css, NULL (=index)
+		2 = id, s, section, c, category, rss, atom, pg, q, n, p, month, author
+		*/
+		
+		$this->buffer_debug[] = '----';
 		return $parts[0];
 		}
 
@@ -1060,11 +1180,11 @@ HTML;
 		$component_types = array
 			(
 			'section' => 'Section', 'category' => 'Category',
-			'title' => 'Title', 'date' => 'Date (yyyy/mm/dd)',
+			'title' => 'Title', 'id' => 'ID', 'date' => 'Date (yyyy/mm/dd)',
 			'year' => 'Year', 'month' => 'Month', 'day' => 'Day',
 			'author' => 'Author (Real name)', 'login' => 'Author (Login)',
 			'custom' => 'Custom Field',
-			'page' => 'Page Number', 'search' => 'Search request',
+			'page' => 'Page Number', 'feed' => 'Feed', 'search' => 'Search request',
 			'text' => 'Plain Text', 'regex' => 'Regular Expression'
 			);
 		$out[] = graf(gbpFSelect('type', $component_types, '', 1, 'Component type', ' onchange="component_update();"'));
