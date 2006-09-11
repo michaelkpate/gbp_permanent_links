@@ -403,6 +403,8 @@ class PermanentLinks extends GBPPlugin
 				if (isset($pretext_replacement))
 					{
 					$this->debug('We have a match!');
+					if (isset($des_feed))
+						$pretext_replacement[$des_feed] = 1;
 					$this->matched_permlink = $pretext_replacement;
 					}
 				else
@@ -467,18 +469,22 @@ class PermanentLinks extends GBPPlugin
 
 				if (!empty($this->matched_permlink))
 				{
-					ob_clean();
+					//
 					$pl = $this->get_permlink($pretext['permlink_id']);
 					if (@$pretext['id'] && $pl_index = @$pl['settings']['des_permlink'])
 					{
 						if (count($this->get_permlink($pl_index)) > 0)
 						{
+							ob_clean();
 							$rs = safe_row('*, ID as thisid, unix_timestamp(Posted) as posted', 'textpattern', "ID = '{$pretext['id']}'");
 							$this->redirect(serverSet('SERVER_ADDR').$this->_permlinkurl($rs, $pl_index), 301);
 						}
 					}
 					else if ($url = @$pl['settings']['des_location'])
+					{
+						ob_clean();
 						$this->redirect($url, 302);
+					}
 				}
 
 				if (@$pretext['rss']) {
@@ -1163,11 +1169,13 @@ var {$components}// components array for all the data
 	</script>
 HTML;
 
-		function gbpFLabel( $label, $contents='' )
+		function gbpFLabel( $label, $contents='', $label_right=false )
 			{
 			// <label> the contents with the name $lable
-			$contents = ($contents ? ': '.$contents : '');
-			return tag( $label.$contents, 'label' );
+			$contents = ($label_right)
+			? $contents.$label
+			: $label.($contents ? ': '.$contents : '');
+			return tag( $contents, 'label' );
 			}
 
 		function gbpFBoxes( $name='', $value='', $checked_value='', $on=array(), $label='' )
@@ -1183,7 +1191,7 @@ HTML;
 					if (is_array($on)) foreach($on as $k => $v)
 						$o .= ($on) ? ' on'.$k.'="'.$v.'"' : '';
 					$o .= ' />';
-					$out[] = $o.gbpFLabel($label[$i++]);
+					$out[] = gbpFLabel($label[$i++], $o, true);
 					}
 				}
 			else
@@ -1193,10 +1201,10 @@ HTML;
 				if (is_array($on)) foreach($on as $k => $v)
 					$o .= ($on) ? ' on'.$k.'="'.$v.'"' : '';
 				$o .= ' />';
-				$out[] = $o.gbpFLabel($label);
+				$out[] = gbpFLabel($label, $o, true);
 				}
 
-			return join(br, $out);
+			return join('', $out);
 			}
 
 		function gbpFInput( $type, $name='', $value='', $on=array(), $label='' )
@@ -1323,7 +1331,7 @@ HTML;
 			gbpFSelect('des_section', $sections, $des_section, 1, 'Section').n.
 			gbpFSelect('des_category', $categories, $des_category, 1, 'Category')
 			);
-		$out[] = graf(gbpFBoxes('des_feed', array('', 'rss', 'atom'), $des_feed, NULL, array('None', 'RSS feed', 'Atom feed')));
+		$out[] = graf(gbpFBoxes('des_feed', array('rss', 'atom', ''), $des_feed, NULL, array('RSS feed', 'Atom feed', 'Neither')));
 		$out[] = graf(strong('Redirect this permanent link to...'));
 		// Generate a permlinks array
 		$permlinks = $this->parent->get_all_permlinks(1);
