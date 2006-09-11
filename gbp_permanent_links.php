@@ -153,7 +153,7 @@ class PermanentLinks extends GBPPlugin
 			'settings' => array(
 				'pl_name' => 'gbp_permanent_links_deafult', 'pl_precedence' => '', 'pl_preview' => '',
 				'con_section' => '', 'con_category' => '', 'des_section' => '', 'des_category' => '',
-				'des_feed' => '', 'des_location' => '',
+				'des_permlink' => '', 'des_feed' => '', 'des_location' => '',
 		));
 
 		foreach($permlinks as $id => $pl)
@@ -465,6 +465,22 @@ class PermanentLinks extends GBPPlugin
 				// Merge pretext_replacement with pretext
 				$pretext = array_merge($pretext, $pretext_replacement);
 
+				if (!empty($this->matched_permlink))
+				{
+					ob_clean();
+					$pl = $this->get_permlink($pretext['permlink_id']);
+					if (@$pretext['id'] && $pl_index = @$pl['settings']['des_permlink'])
+					{
+						if (count($this->get_permlink($pl_index)) > 0)
+						{
+							$rs = safe_row('*, ID as thisid, unix_timestamp(Posted) as posted', 'textpattern', "ID = '{$pretext['id']}'");
+							$this->redirect(serverSet('SERVER_ADDR').$this->_permlinkurl($rs, $pl_index), 301);
+						}
+					}
+					else if ($url = @$pl['settings']['des_location'])
+						$this->redirect($url, 302);
+				}
+
 				if (@$pretext['rss']) {
 					ob_clean();
 					include txpath.'/publish/rss.php';
@@ -531,20 +547,27 @@ class PermanentLinks extends GBPPlugin
 		return $html;
 		}
 
-	function _permlinkurl( $article_array )
+	function _permlinkurl( $article_array, $pl_index=NULL )
 		{
 		global $pretext, $prefs;
 
 		if (empty($article_array)) return;
 
-		// Get the matched pretext replacement array.
-		$matched = ( count($this->matched_permlink) )
-		? $this->matched_permlink
-		: array_shift(array_slice($this->partial_matches, -1));
+		if (!$pl_index)
+			{
+			// Get the matched pretext replacement array.
+			$matched = ( count($this->matched_permlink) )
+			? $this->matched_permlink
+			: array_shift(array_slice($this->partial_matches, -1));
+			}
+		else
+			{
+			$pl = $this->get_permlink($pl_index);
+			}
 
 		$uri = '';
 
-		if ($matched && array_key_exists('id', $matched))	
+		if (!isset($pl) && $matched && array_key_exists('id', $matched))	
 			{
 			// The permlink id is stored in the pretext replacement array, so we can find the permlink. 
 			$pl = $this->get_permlink( $matched['permlink_id'] );
@@ -797,7 +820,8 @@ class PermanentLinksBuildTabView extends GBPAdminTabView
 			$settings = array(
 				'pl_name' => 'Untitled', 'pl_precedence' => '',
 				'con_section' => '', 'con_category' => '',
-				'des_section' => '', 'des_category' => '', 'des_feed' => '', 'des_location' => '',
+				'des_section' => '', 'des_category' => '',
+				'des_permlink' => '', 'des_feed' => '', 'des_location' => '',
 			);
 			}
 
@@ -1291,6 +1315,15 @@ HTML;
 			gbpFSelect('des_section', $sections, $des_section, 1, 'Section').n.
 			gbpFSelect('des_category', $categories, $des_category, 1, 'Category')
 			);
+
+		// Generate a permlinks array
+		$permlinks = $this->parent->get_all_permlinks(1);
+		foreach ($permlinks as $key => $pl)
+			{
+			$permlinks[$key] = $pl['settings']['pl_name'];
+			}
+		unset($permlinks[$id]);
+		$out[] = graf(gbpFSelect('des_permlink', $permlinks, @$des_permlink, 1, 'Permanent link'));
 		$out[] = graf(gbpFBoxes('des_feed', array('', 'rss', 'atom'), $des_feed, NULL, array('None', 'RSS feed', 'Atom feed')));
 		$out[] = graf(gbpFInput('text', 'des_location', $des_location, NULL, 'HTTP location'));
 		$out[] = '<hr />';
@@ -1324,7 +1357,8 @@ HTML;
 		$settings = gpsa(array(
 			'pl_name', 'pl_precedence', 'pl_preview',
 			'con_section', 'con_category',
-			'des_section', 'des_category', 'des_feed', 'des_location',
+			'des_section', 'des_category',
+			'des_permlink', 'des_feed', 'des_location',
 		));
 
 		// Remove spaces from the permanent link preview
