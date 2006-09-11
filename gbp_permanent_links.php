@@ -466,11 +466,13 @@ class PermanentLinks extends GBPPlugin
 				$pretext = array_merge($pretext, $pretext_replacement);
 
 				if (@$pretext['rss']) {
+					ob_clean();
 					include txpath.'/publish/rss.php';
 					exit(rss());
 				}
 
 				if (@$pretext['atom']) {
+					ob_clean();
 					include txpath.'/publish/atom.php';
 					exit(atom());
 				}
