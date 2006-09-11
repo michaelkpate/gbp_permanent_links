@@ -818,7 +818,7 @@ class PermanentLinksBuildTabView extends GBPAdminTabView
 			));
 
 			$settings = array(
-				'pl_name' => 'Untitled', 'pl_precedence' => '',
+				'pl_name' => 'Untitled', 'pl_precedence' => '0',
 				'con_section' => '', 'con_category' => '',
 				'des_section' => '', 'des_category' => '',
 				'des_permlink' => '', 'des_feed' => '', 'des_location' => '',
@@ -1087,21 +1087,29 @@ var {$components}// components array for all the data
 	{
 		var c = ''; var is_permlink = false; var has_page_or_search = false;
 		for (var i = 0; i < components.length; i++) {
-			if (components[i]['type'] == 'title')
+			if (components[i]['type'] == 'title' || components[i]['type'] == 'id')
 				is_permlink = true;
-			if (components[i]['type'] == 'page' || components[i]['type'] == 'search')
-				has_page_or_search = true;
+			if (components[i]['type'] == 'page' || components[i]['type'] == 'feed' || components[i]['type'] == 'search')
+				has_page_feed_search = true;
 			c = c + jsArrayToPhpArray(components[i]) + '{$separator}';
 		}
 
 		if (is_permlink && has_page_or_search)
-			alert("Your permanent link can't contain either a 'page' or a 'search' component with a 'title' component.");
+			alert("Your permanent link can't contain either a 'page', 'feed' or a 'search' component with 'title' or 'id' components.");
 
 		else if (is_permlink && (form.pl_name.value == '' || form.pl_name.value == 'Untitled'))
 		{
 			document.getElementById('settings').style['display'] = '';
 			form.pl_name.style['border'] = '3px solid rgb(221, 0, 0)';
+			form.pl_precedence.style['border'] = '';
 			alert('Please enter a name for this permanent link format.');
+		}
+		else if (form.pl_precedence.value == '')
+		{
+			document.getElementById('settings').style['display'] = '';
+			form.pl_precedence.style['border'] = '3px solid rgb(221, 0, 0)';
+			form.pl_name.style['border'] = '';
+			alert('Please enter a precedence value for this permanent link format.');
 		}
 		else
 		{
@@ -1258,8 +1266,8 @@ HTML;
 			gbpFInput('text', 'suffix', '', array('keyup' => 'component_update(this);'), 'Suffix').n.
 			gbpFInput('text', 'text', '', array('keyup' => 'component_update(this);'), 'Text')
 		);
-		$out[] = '<hr />';
-
+		$hr = '<hr style="border: 0; height: 1px; background-color: rgb(200, 200, 200); color: rgb(200, 200, 200); margin-bottom: 10px;" />';
+		$out[] = $hr;
 		$out[] = '</form>';
 
 		// --- Settings form --- //
@@ -1272,14 +1280,14 @@ HTML;
 		$out[] = '<div id="settings">';
 		$out[] = graf(gbpFInput('text', 'pl_name', $pl_name, NULL, 'Name'));
 		$out[] = graf(gbpFInput('text', 'pl_precedence', $pl_precedence, NULL, 'Precedence'));
-		$out[] = '<hr />';
 		$out[] = '</div>';
+		$out[] = $hr;
 
 		// --- Conditions --- //
 
 		$out[] = hed('<a href="#" onclick="toggleDisplay(\'conditions\'); return false;">Conditions</a>', 2);
 		$out[] = '<div id="conditions" style="display:none">';
-		$out[] = graf(small('Only use this permanent link if the following conditions apply:'));
+		$out[] = graf(strong('Only use this permanent link if the following conditions apply...'));
 
 		// Generate a sections array (name=>title) 
 		$sections = array();
@@ -1302,20 +1310,21 @@ HTML;
 			gbpFSelect('con_section', $sections, $con_section, 1, 'Within section').n.
 			gbpFSelect('con_category', $categories, $con_category, 1, 'Within category')
 			);
-		$out[] = '<hr />';
 		$out[] = '</div>';
+		$out[] = $hr;
 
 		// --- Destination --- //
 
 		$out[] = hed('<a href="#" onclick="toggleDisplay(\'destination\'); return false;">Destination</a>', 2);
 		$out[] = '<div id="destination" style="display:none">';
-		$out[] = graf(small('Redirect this permanent link and forward to:'));
+		$out[] = graf(strong('Forward this permanent link to...'));
 		$out[] = graf
 			(
 			gbpFSelect('des_section', $sections, $des_section, 1, 'Section').n.
 			gbpFSelect('des_category', $categories, $des_category, 1, 'Category')
 			);
-
+		$out[] = graf(gbpFBoxes('des_feed', array('', 'rss', 'atom'), $des_feed, NULL, array('None', 'RSS feed', 'Atom feed')));
+		$out[] = graf(strong('Redirect this permanent link to...'));
 		// Generate a permlinks array
 		$permlinks = $this->parent->get_all_permlinks(1);
 		foreach ($permlinks as $key => $pl)
@@ -1324,10 +1333,9 @@ HTML;
 			}
 		unset($permlinks[$id]);
 		$out[] = graf(gbpFSelect('des_permlink', $permlinks, @$des_permlink, 1, 'Permanent link'));
-		$out[] = graf(gbpFBoxes('des_feed', array('', 'rss', 'atom'), $des_feed, NULL, array('None', 'RSS feed', 'Atom feed')));
 		$out[] = graf(gbpFInput('text', 'des_location', $des_location, NULL, 'HTTP location'));
-		$out[] = '<hr />';
 		$out[] = '</div>';
+		$out[] = $hr;
 
 		// Save button
 		$out[] = fInput('submit', '', 'Save permanent link');
@@ -1489,7 +1497,7 @@ class PermanentLinksListTabView extends GBPAdminTabView
 					td($manage, 35).
 
 					td($pl_preview, 175).
-					td($pl_precedence, 50).
+					td($pl_precedence.'&nbsp;', 50).
 
 					td(
 						fInput('checkbox', 'selected[]', $id)
