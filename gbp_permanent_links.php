@@ -283,7 +283,7 @@ class PermanentLinks extends GBPPlugin
 							if ($ID = safe_field('ID', 'textpattern', "`url_title` like '$uri_c' and `Status` >= 4 limit 1")) {
 								$pretext_replacement['id'] = $ID;
 								$pretext['numPages'] = 1;
-								$pretext['is_article_list'] = true;
+								$pretext['is_article_list'] = false;
 								$match = true;
 							}
 						break;
@@ -291,7 +291,7 @@ class PermanentLinks extends GBPPlugin
 							if ($ID = safe_field('ID', 'textpattern', "`ID` = '$uri_c' and `Status` >= 4 limit 1")) {
 								$pretext_replacement['id'] = $ID;
 								$pretext['numPages'] = 1;
-								$pretext['is_article_list'] = true;
+								$pretext['is_article_list'] = false;
 								$match = true;
 							}
 						break;
@@ -375,7 +375,7 @@ class PermanentLinks extends GBPPlugin
 						if ($type != 'title' && $ID = safe_field('ID', 'textpattern', "`url_title` like '$uri_c' and `Status` >= 4 limit 1")) {
 							$pretext_replacement['id'] = $ID;
 							$pretext['numPages'] = 1;
-							$pretext['is_article_list'] = true;
+							$pretext['is_article_list'] = false;
 							$match = true;
 						}
 						else if ($type != 'page' && is_numeric($uri_c)) {
@@ -467,6 +467,13 @@ class PermanentLinks extends GBPPlugin
 				// Merge pretext_replacement with pretext
 				$pretext = array_merge($pretext, $pretext_replacement);
 
+				// Export required values to the global namespace
+				foreach (array('id', 's', 'c', 'is_article_list') as $key)
+					{
+					if (array_key_exists($key, $pretext))
+						$GLOBALS[$key] = $pretext[$key];
+					}
+
 				if (!empty($this->matched_permlink))
 				{
 					//
@@ -498,13 +505,6 @@ class PermanentLinks extends GBPPlugin
 					include txpath.'/publish/atom.php';
 					exit(atom());
 				}
-
-				// Export required values to the global namespace
-				foreach (array('id', 's', 'c', 'is_article_list') as $key)
-					{
-					if (array_key_exists($key, $pretext_replacement))
-						$GLOBALS[$key] = $pretext_replacement[$key];
-					}
 
 				$this->debug('Pretext Replacement '.print_r($pretext, 1));
 				}
