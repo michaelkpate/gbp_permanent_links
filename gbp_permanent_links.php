@@ -70,7 +70,7 @@ class PermanentLinks extends GBPPlugin
 	);
 	var $matched_permlink = array();
 	var $partial_matches = array();
-	var $buffer_debug = array();
+	// var $buffer_debug = array();
 
 	function preload()
 	{
@@ -472,7 +472,7 @@ class PermanentLinks extends GBPPlugin
 
 				if (!isset($pretext_replacement))
 					$pretext_replacement = array_shift(array_slice($this->partial_matches, -1));
-
+			
 				// Merge pretext_replacement with pretext
 				$pretext = array_merge($pretext, $pretext_replacement);
 
@@ -485,6 +485,7 @@ class PermanentLinks extends GBPPlugin
 
 				if (!empty($this->matched_permlink))
 				{
+					//
 					$pl = $this->get_permlink($pretext['permlink_id']);
 					if (@$pretext['id'] && $pl_index = @$pl['settings']['des_permlink'])
 					{
@@ -557,7 +558,7 @@ class PermanentLinks extends GBPPlugin
 			$html
 		);
 
-		$html = $html . tag(join(n, $this->buffer_debug), 'pre');
+		// $html = tag(join(n, $this->buffer_debug), 'pre') . $html;
 		return $html;
 		}
 
@@ -705,7 +706,7 @@ class PermanentLinks extends GBPPlugin
 			$query = $path;
 			$path = 'index.php';
 			}
-
+		
 		// Check to see if there is query to work with.
 		elseif (empty($query) || $path != 'index.php' || strpos($query, '/') === true)
 			return $parts[0];
@@ -714,8 +715,15 @@ class PermanentLinks extends GBPPlugin
 		$query = str_replace('&amp;', '&', $query);
 
 		// Make sure variables are set, saves using isset()
-		extract('id', 's', 'c', 'rss', 'atom', 'pg', 'q'/* , 'month', 'author'*/);
+		extract('id', 's', 'c', 'rss', 'atom', 'pg', 'q', 'month', 'author');
 		parse_str($query);
+
+		// // Debugging for buffers
+		// // $this->buffer_debug[] = $parts[0];
+		// $this->buffer_debug[] = $path;
+		// $this->buffer_debug[] = $query;
+		// $this->buffer_debug[] = $fragment;
+		// $this->buffer_debug[] = '----';
 
 		// We have a id, pass to permlinkurl()
 		if ($id)
@@ -731,121 +739,25 @@ class PermanentLinks extends GBPPlugin
 		if (isset($category) && !$c)
 			$c = $category;
 
-		// Debugging for buffers
-		// $this->buffer_debug[] = $parts[0];
-		// $this->buffer_debug[] = $path;
-		$this->buffer_debug[] = $query;
-		// $this->buffer_debug[] = $fragment;
+		$out = hu;
+		$out .= ($s ? $s.'/' : '');
+		$out .= ($c ? $c.'/' : '');
 
-		$url;
-		$close_matches = array(); $matches = array();
-		$permlinks = $this->get_all_permlinks(1);
-		foreach ($permlinks as $key => $pl)
-			{
-			$out = array();
-			$match_count = 0;
-			foreach ($pl['components'] as $pl_c)
-				{
-				switch ( $pl_c['type'] )
-					{
-					case 'text' :
-						// $match_count++;
-						$out[] = $pl_c['text'];
-					break;
-					case 'section':
-						if ($s)
-							{
-							$match_count++;
-							$out[] = $s;
-							unset($s);
-							}
-						else break 2;
-					break;
-					case 'category':
-						if ($c)
-							{
-							$match_count++;
-							$out[] = $c;
-							unset($c);
-							}
-						else break 2;
-					break;
-					case 'feed':
-						if ($rss)
-							{
-							$match_count++;
-							$out[] = 'rss';
-							unset($rss);
-							}
-						elseif ($rss)
-							{
-							$match_count++;
-							$out[] = 'atom';
-							unset($atom);
-							}
-						else break 2;
-					break;
-					case 'page':
-						if ($pg)
-							{
-							$match_count++;
-							$out[] = $pg;
-							unset($pg);
-							}
-						else break 2;
-					break;
-					case 'search':
-						if ($q)
-							{
-							$match_count++;
-							$out[] = $q;
-							unset($q);
-							}
-						else break 2;
-					break;
-					}
-				}
-			$this->buffer_debug[] = $match_count;
-			$out = join('/', $out);
-			if ($match_count == count($pl['components']))
-				{
-				$url = $out;
-				break 1;
-				}
-			if ($match_count == count($pl['components']) - 1 && in_array($pl_c['type'], array('title', 'id')))
-				{
-				if (!array_key_exists($match_count, $close_matches))
-					$close_matches[$match_count] = $out;
-				}
-			else
-				if (!array_key_exists($match_count, $matches))
-					$matches[$match_count] = $out;
-			}
+		if ($atom)
+			return 'href="'. $out .'atom"';
 
-		if (empty($url))
-			$url = array_pop($close_matches);
+		if ($rss)
+			return 'href="'. $out .'rss"';
 
-		if (empty($url))
-			$url = array_pop($matches);
+		if ($pg)
+			return 'href="'. $out . $pg .'"';
 
-		if (isset($rss))
-			$url2 = 'rss';
-		elseif (isset($atom))
-			$url2 = 'atom';
-		elseif (isset($pg))
-			$url2 = $pg;
-
-		$url = hu.($url ? $url.'/' : '').($url2 ? $url2.'/' : '');
-
-		$this->buffer_debug[] = $url;
-		$this->buffer_debug[] = '----';
-
-		// if ($path == 'index.php' && $url != hu)
-		// 	return 'href="'. $url .'"';
+		if ($path == 'index.php' && $out != hu)
+			return 'href="'. $out .'"';
 
 		/*
 		1 = index, textpattern/css, NULL (=index)
-		2 = id, s, section, c, category, rss, atom, pg, q, (n, p, month, author)
+		2 = id, s, section, c, category, rss, atom, pg, q, n, p, month, author
 		*/
 
 		return $parts[0];
