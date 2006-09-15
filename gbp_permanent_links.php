@@ -190,6 +190,9 @@ class PermanentLinks extends GBPPlugin
 			// Reset pretext_replacement as we are about to start another comparison
 			$pretext_replacement = array('permlink_id' => $id);
 
+			// Rest the context
+			$context = array();
+
 			// Loop through the permlink components
 			foreach ( $pl_components as $pl_c_index=>$pl_c )
 			{
@@ -263,6 +266,8 @@ class PermanentLinks extends GBPPlugin
 
 				if ($check_type) {
 					$this->debug('Checking if "'.$uri_c.'" is of type "'.$type.'"');
+					$uri_c = doSlash($uri_c);
+					$context_str = ($context > 0 ? 'and '.join(' and ', $context) : '');
 
 					// Compare based on type
 					switch ($type)
@@ -270,17 +275,19 @@ class PermanentLinks extends GBPPlugin
 						case 'section':
 							if (safe_field('name', 'txp_section', "`name` like '$uri_c' limit 1")) {
 								$pretext_replacement['s'] = $uri_c;
+								$context[] = "`Section` = '$uri_c'";
 								$match = true;
 							}
 						break;
 						case 'category':
 							if (safe_field('name', 'txp_category', "`name` like '$uri_c' and `type` = 'article' limit 1")) {
 								$pretext_replacement['c'] = $uri_c;
+								$context[] = "(`Category1` = '$uri_c' OR `Category2` = '$uri_c')";
 								$match = true;
 							}
 						break;
 						case 'title':
-							if ($ID = safe_field('ID', 'textpattern', "`url_title` like '$uri_c' and `Status` >= 4 limit 1")) {
+							if ($ID = safe_field('ID', 'textpattern', "`url_title` like '$uri_c' $context_str and `Status` >= 4 limit 1")) {
 								$pretext_replacement['id'] = $ID;
 								$pretext['numPages'] = 1;
 								$pretext['is_article_list'] = false;
@@ -288,7 +295,7 @@ class PermanentLinks extends GBPPlugin
 							}
 						break;
 						case 'id':
-							if ($ID = safe_field('ID', 'textpattern', "`ID` = '$uri_c' and `Status` >= 4 limit 1")) {
+							if ($ID = safe_field('ID', 'textpattern', "`ID` = '$uri_c' $context_str and `Status` >= 4 limit 1")) {
 								$pretext_replacement['id'] = $ID;
 								$pretext['numPages'] = 1;
 								$pretext['is_article_list'] = false;
@@ -298,12 +305,14 @@ class PermanentLinks extends GBPPlugin
 						case 'author':
 							if ($author = safe_field('name', 'txp_users', "RealName like '$uri_c' limit 1")) {
 								$pretext_replacement['author'] = $author;
+								$context[] = "`AuthorID` = '$author'";
 								$match = true;
 							}
 						break;
 						case 'login':
 							if ($author = safe_field('name', 'txp_users', "name like '$uri_c' limit 1")) {
 								$pretext_replacement['author'] = $author;
+								$context[] = "`AuthorID` = '$author'";
 								$match = true;
 							}
 						break;
@@ -372,7 +381,7 @@ class PermanentLinks extends GBPPlugin
 						// component is either a title, page or a feed. This makes it more probable a
 						// successful match for a given permlink format occurs.
 						$this->debug('Checking if "'.$uri_c.'" is of type "title_page_feed"');
-						if ($type != 'title' && $ID = safe_field('ID', 'textpattern', "`url_title` like '$uri_c' and `Status` >= 4 limit 1")) {
+						if ($type != 'title' && $ID = safe_field('ID', 'textpattern', "`url_title` like '$uri_c' $context_str and `Status` >= 4 limit 1")) {
 							$pretext_replacement['id'] = $ID;
 							$pretext['numPages'] = 1;
 							$pretext['is_article_list'] = false;
