@@ -148,10 +148,10 @@ class PermanentLinks extends GBPPlugin
 
 		// We also want to match the front page of the site (for page numbers / feeds etc..).
 		// Add a permlinks format which will do that.
-		$permlinks['deafult'] = array(
+		$permlinks['default'] = array(
 			'components' => array(),
 			'settings' => array(
-				'pl_name' => 'gbp_permanent_links_deafult', 'pl_precedence' => '', 'pl_preview' => '',
+				'pl_name' => 'gbp_permanent_links_default', 'pl_precedence' => '', 'pl_preview' => '',
 				'con_section' => '', 'con_category' => '', 'des_section' => '', 'des_category' => '',
 				'des_permlink' => '', 'des_feed' => '', 'des_location' => '',
 		));
