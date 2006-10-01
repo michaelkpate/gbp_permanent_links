@@ -422,8 +422,15 @@ class PermanentLinks extends GBPPlugin
 				if (isset($pretext_replacement))
 					{
 					$this->debug('We have a match!');
-					if (isset($des_feed))
+
+					// Set the destination section/category/feed settings
+					if (!empty($des_section))
+						$pretext_replacement['s'] = $des_section;
+					if (!empty($des_category))
+						$pretext_replacement['c'] = $des_category;
+					if (!empty($des_feed))
 						$pretext_replacement[$des_feed] = 1;
+
 					$this->matched_permlink = $pretext_replacement;
 					}
 				else
