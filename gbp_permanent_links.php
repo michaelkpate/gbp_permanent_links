@@ -727,7 +727,7 @@ class PermanentLinks extends GBPPlugin
 		return $uri;
 		}
 
-	function _pagelinkurl( $parts, $inherit=array() )
+	function _pagelinkurl( $parts )
 		{
 		extract(lAtts(array(
 			'path'		=> 'index.php',
@@ -753,50 +753,139 @@ class PermanentLinks extends GBPPlugin
 		// '&amp;' will break parse_str() if they are found in a query string
 		$query = str_replace('&amp;', '&', $query);
 
-		// Make sure variables are set, saves using isset()
-		extract('id', 's', 'c', 'rss', 'atom', 'pg', 'q', 'month', 'author');
-		parse_str($query);
+		if ($fragment)
+			$fragment = '#'.$fragment;
 
-		// // Debugging for buffers
-		// // $this->buffer_debug[] = $parts[0];
-		// $this->buffer_debug[] = $path;
-		// $this->buffer_debug[] = $query;
-		// $this->buffer_debug[] = $fragment;
-		// $this->buffer_debug[] = '----';
+		global $pretext;
+		parse_str( $query, $query_part );
+		if (!array_key_exists('pg', $query_part))
+			$query_part['pg'] = 0;
+		if (!array_key_exists('id', $query_part))
+			$query_part['id'] = 0;
+		if (!array_key_exists('rss', $query_part))
+			$query_part['rss'] = 0;
+		if (!array_key_exists('atom', $query_part))
+			$query_part['atom'] = 0;
+		extract( array_merge($pretext, $query_part) );
 
 		// We have a id, pass to permlinkurl()
 		if ($id)
 			{
 			$rs = safe_row('*, ID as thisid, unix_timestamp(Posted) as posted', 'textpattern', "ID = '{$id}'");
-			return 'href="'. $this->_permlinkurl($rs) .'"';
+			return 'href="'. $this->_permlinkurl($rs) . $fragment .'"';
 			}
+
+		if (@$s == 'default')
+			unset($s);
 
 		// Some TxP tags, e.g. <txp:feed_link /> use 'section' or 'category' inconsistent
 		// with most other tags. Process these now so we only have to check $s and $c.
-		if (isset($section) && !$s)
+		if (@$section && !$s)
 			$s = $section;
-		if (isset($category) && !$c)
+		if (@$category && !$c)
 			$c = $category;
 
-		$out = hu;
-		$out .= ($s ? $s.'/' : '');
-		$out .= ($c ? $c.'/' : '');
+		// Debugging for buffers
+		$this->buffer_debug[] = 'parts[0]: '.$parts[0];
+		$this->buffer_debug[] = 'path: '.$path;
+		$this->buffer_debug[] = 'query: '.$query;
+		$this->buffer_debug[] = 'fragment: '.$fragment;
 
-		if ($atom)
-			return 'href="'. $out .'atom"';
+		$this->buffer_debug[] = 'id: '.$id;
+		$this->buffer_debug[] = 's: '.$s;
+		$this->buffer_debug[] = 'c: '.$c;
+		$this->buffer_debug[] = 'rss: '.$rss;
+		$this->buffer_debug[] = 'atom: '.$atom;
+		$this->buffer_debug[] = 'pg: '.$pg;
+		$this->buffer_debug[] = 'q: '.$q;
+
+		$permlinks = $this->get_all_permlinks(1);
+
+		$permlinks['default'] = array(
+			'components' => array(
+				array('type' => 'text', 'text' => strtolower(urlencode(gTxt('category')))),
+				array('type' => 'category'),
+			),
+			'settings' => array(
+				'pl_name' => 'gbp_permanent_links_default', 'pl_precedence' => '', 'pl_preview' => '',
+				'con_section' => '', 'con_category' => '', 'des_section' => '', 'des_category' => '',
+				'des_permlink' => '', 'des_feed' => '', 'des_location' => '',
+		));
+
+		foreach ($permlinks as $key => $pl)
+			{
+			$out = array(); $match_count = 0;
+			foreach ($pl['components'] as $pl_c)
+				{
+				switch ( $pl_c['type'] )
+					{
+					case 'text' :
+						$out[] = $pl_c['text'];
+						$match_count--;
+					break;
+					case 'section':
+						if ($s) $out[] = $s;
+						else break 2;
+					break;
+					case 'category':
+						if ($c) $out[] = $c;
+						else break 2;
+					break;
+					case 'feed':
+						if ($rss) $out[] = 'rss';
+						elseif ($atom) $out[] = 'atom';
+						else break 2;
+					break;
+					case 'page':
+						if ($pg) $out[] = $pg;
+						else break 2;
+					break;
+					case 'search':
+						if ($q) $out[] = $q;
+						else break 2;
+					break;
+					}
+					$match_count++;
+				}
+
+			$this->buffer_debug[] = $match_count;
+
+			// Todo: Store according to the precedence value
+			if (count($out) > 0 && !array_key_exists($match_count, @$matches) && !($key == 'default' && !$match_count))
+				{
+				@$matches[$match_count] = $out;
+				@$matches_ids[$match_count] = $key;
+				}
+			}
+
+		sort($matches_ids);
+		$key = $matches_ids[0];
+		$this->buffer_debug[] = 'Matched permlink: ' . ($key ? $key : 'none');
+
+		sort($matches);
+		$this->buffer_debug[] = serialize($matches);
+
+		$url = '/'.join('/', $matches[0]);
+		$url = rtrim(hu, '/').rtrim($url, '/').'/';
 
 		if ($rss)
-			return 'href="'. $out .'rss"';
+			$url .= 'rss';
+		elseif ($atom)
+			$url .= 'atom';
+		elseif ($pg)
+			$url .= $pg;
 
-		if ($pg)
-			return 'href="'. $out . $pg .'"';
+		$url = rtrim($url, '/') . '/';
 
-		if ($path == 'index.php' && $out != hu)
-			return 'href="'. $out .'"';
+		$this->buffer_debug[] = $url;
+		$this->buffer_debug[] = '----';
+
+		if ($path == 'index.php' && $url != hu)
+			return 'href="'. $url . $fragment .'"';
 
 		/*
 		1 = index, textpattern/css, NULL (=index)
-		2 = id, s, section, c, category, rss, atom, pg, q, n, p, month, author
+		2 = id, s, section, c, category, rss, atom, pg, q, (n, p, month, author)
 		*/
 
 		return $parts[0];
