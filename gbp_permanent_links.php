@@ -70,7 +70,7 @@ class PermanentLinks extends GBPPlugin
 	);
 	var $matched_permlink = array();
 	var $partial_matches = array();
-	// var $buffer_debug = array();
+	var $buffer_debug = array();
 
 	function preload()
 	{
@@ -584,13 +584,21 @@ class PermanentLinks extends GBPPlugin
 
 	function _textpattern_end( $html )
 		{
+		global $production_status;
+
 		$html = preg_replace_callback(
 			'%href="('.hu.'|\?)([^"]*)"%',
 			array(&$this, '_pagelinkurl'),
 			$html
 		);
 
-		// $html = tag(join(n, $this->buffer_debug), 'pre') . $html;
+		if ($this->pref('debug') && in_array($production_status, array('debug', 'testing')))
+			{
+			$debug = join(n, $this->buffer_debug);
+			if ($debug)
+				$html = comment(n.$debug.n) . $html;
+			}
+
 		return $html;
 		}
 
