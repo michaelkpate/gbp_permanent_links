@@ -176,7 +176,7 @@ class PermanentLinks extends GBPPlugin
 			if (!$title_page_feed)
 				// If there isn't a title component then append on to the end.
 				$pl_components[] = array('type' => 'title_page_feed', 'prefix' => '', 'suffix' => '', 'regex' => '', 'text' => '');
-			
+
 			// Exit early if there are more URL components than PL components,
 			// taking into account whether there is a data component
 			if (!$uri_components[0] || count($uri_components) > count($pl_components) + ($date ? 2 : 0))
@@ -212,7 +212,7 @@ class PermanentLinks extends GBPPlugin
 					// Get the next component.
 					$uri_c = array_shift( $uri_components );
 
-				else if (!$title_page_feed && count($pl_components) - 1 == $uri_component_count)	
+				else if (!$title_page_feed && count($pl_components) - 1 == $uri_component_count)
 					{
 					// If we appended a title_page_feed component earlier and permlink and URI components
 					// counts are equal, we must of finished checking this permlink, and it matches so break.
@@ -477,7 +477,7 @@ class PermanentLinks extends GBPPlugin
 				$page = safe_field('page', 'txp_section', "name = '{$pretext_replacement['s']}' limit 1");
 				$pretext_replacement['page'] = $page;
 
-				if (!empty($this->matched_permlink))
+				if (count($this->matched_permlink))
 					// We're done - no point checking the other permlinks
 					break;
 			}
@@ -496,7 +496,7 @@ class PermanentLinks extends GBPPlugin
 
 				if (!isset($pretext_replacement))
 					$pretext_replacement = array_shift(array_slice($this->partial_matches, -1));
-			
+
 				// Merge pretext_replacement with pretext
 				$pretext = array_merge($pretext, $pretext_replacement);
 
@@ -507,9 +507,8 @@ class PermanentLinks extends GBPPlugin
 						$GLOBALS[$key] = $pretext[$key];
 					}
 
-				if (!empty($this->matched_permlink))
+				if (count($this->matched_permlink))
 				{
-					//
 					$pl = $this->get_permlink($pretext['permlink_id']);
 					if (@$pretext['id'] && $pl_index = @$pl['settings']['des_permlink'])
 					{
@@ -622,7 +621,7 @@ class PermanentLinks extends GBPPlugin
 
 		$uri = '';
 
-		if (!isset($pl) && $matched && array_key_exists('id', $matched))	
+		if (!isset($pl) && $matched && array_key_exists('id', $matched))
 			{
 			// The permlink id is stored in the pretext replacement array, so we can find the permlink. 
 			$pl = $this->get_permlink( $matched['permlink_id'] );
@@ -702,7 +701,7 @@ class PermanentLinks extends GBPPlugin
 							$uri_c = (array_key_exists($key, $pretext)) ? $pretext[$key] : $regex_matches[0];
 							}
 						else
-							$uri_c = '--INVALID_REGEX--';	
+							$uri_c = '--INVALID_REGEX--';
 					break;
 					}
 
@@ -746,7 +745,7 @@ class PermanentLinks extends GBPPlugin
 			$query = $path;
 			$path = 'index.php';
 			}
-		
+
 		// Check to see if there is query to work with.
 		elseif (empty($query) || $path != 'index.php' || strpos($query, '/') === true)
 			return $parts[0];
@@ -820,7 +819,7 @@ class PermanentLinks extends GBPPlugin
 
 	function debug()
 	{
-		if ($this->preferences['debug']['value']) {
+		if ($this->pref('debug')) {
 			global $production_status;
 			$a = func_get_args();
 
@@ -1436,7 +1435,7 @@ HTML;
 		$components = array();
 		foreach ($serialize_components as $c)
 			$components[] = unserialize(urldecode(stripslashes($c)));
-		
+
 		// Complete the permanent link array - this is exactly what needs to be stored in the db
 		$permlink = array('settings' => $settings, 'components' => $components);
 
@@ -1472,7 +1471,7 @@ class PermanentLinksListTabView extends GBPAdminTabView
 	function main()
 		{
 		extract(gpsa(array('page', 'sort', 'dir', 'crit', 'search_method')));
-		
+
 		$event = $this->parent->event;
 
 		$permlinks = $this->parent->get_all_permlinks();
@@ -1519,7 +1518,7 @@ class PermanentLinksListTabView extends GBPAdminTabView
 		array_multisort($sort_keys, (($dir == 'desc') ? SORT_DESC : SORT_ASC), $name, SORT_ASC, $permlinks);
 
 		$switch_dir = ($dir == 'desc') ? 'asc' : 'desc';
-		
+
 		$permlinks = array_slice($permlinks, $offset, $limit);
 
 		if (count($permlinks))
