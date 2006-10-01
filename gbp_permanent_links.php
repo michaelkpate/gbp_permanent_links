@@ -528,12 +528,20 @@ class PermanentLinks extends GBPPlugin
 				}
 
 				if (@$pretext['rss']) {
+					if (@$pretext['s'])
+						$_POST['section'] = $pretext['s'];
+					if (@$pretext['c'])
+						$_POST['category'] = $pretext['c'];
 					ob_clean();
 					include txpath.'/publish/rss.php';
 					exit(rss());
 				}
 
 				if (@$pretext['atom']) {
+					if (@$pretext['s'])
+						$_POST['section'] = $pretext['s'];
+					if (@$pretext['c'])
+						$_POST['category'] = $pretext['c'];
 					ob_clean();
 					include txpath.'/publish/atom.php';
 					exit(atom());
