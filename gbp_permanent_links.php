@@ -192,8 +192,14 @@ class PermanentLinks extends GBPPlugin
 			// Reset pretext_replacement as we are about to start another comparison
 			$pretext_replacement = array('permlink_id' => $id);
 
-			// Rest the context
+			// Reset the article context string
 			$context = array();
+			unset($context_str);
+			if (!empty($des_section))
+				$context[] = "`Section` = '$des_section'";
+			if (!empty($des_category))
+				$context[] = "(`Category1` = '$des_category' OR `Category2` = '$des_category')";
+			$context_str = (count($context) > 0 ? 'and '.join(' and ', $context) : '');
 
 			// Loop through the permlink components
 			foreach ( $pl_components as $pl_c_index=>$pl_c )
@@ -269,7 +275,6 @@ class PermanentLinks extends GBPPlugin
 				if ($check_type) {
 					$this->debug('Checking if "'.$uri_c.'" is of type "'.$type.'"');
 					$uri_c = doSlash($uri_c);
-					$context_str = (count($context) > 0 ? 'and '.join(' and ', $context) : '');
 
 					// Compare based on type
 					switch ($type)
@@ -374,6 +379,9 @@ class PermanentLinks extends GBPPlugin
 							}
 						break;
 					} // switch type end
+
+					// Update the article context string
+					$context_str = (count($context) > 0 ? 'and '.join(' and ', $context) : '');
 
 					$this->debug(($match == true) ? 'YES' : 'NO');
 
