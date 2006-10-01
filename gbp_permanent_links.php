@@ -86,10 +86,12 @@ class PermanentLinks extends GBPPlugin
 
 	function get_all_permlinks( $sort=0, $exclude=array() )
 		{
-		$rs = safe_column(
-			"REPLACE(name, '{$this->plugin_name}_', '') AS id", 'txp_prefs',
-			"`event` = '{$this->event}' AND `name` REGEXP '^{$this->plugin_name}_.{13}$'"
-		);
+		static $rs;
+		if (!isset($rs))
+			$rs = safe_column(
+				"REPLACE(name, '{$this->plugin_name}_', '') AS id", 'txp_prefs',
+				"`event` = '{$this->event}' AND `name` REGEXP '^{$this->plugin_name}_.{13}$'"
+			);
 
 		$permlinks = array();
 		foreach ($rs as $id)
