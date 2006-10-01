@@ -1719,7 +1719,7 @@ class PermanentLinksListTabView extends GBPAdminTabView
 	}
 }
 
-$gbp_pl = new PermanentLinks('permanent links', 'permlinks', 'admin');
+$gbp_pl = new PermanentLinks('Permanent Links', 'permlinks', 'admin');
 if (@txpinterface == 'public')
 	register_callback(array(&$gbp_pl, '_textpattern'), 'textpattern');
 
