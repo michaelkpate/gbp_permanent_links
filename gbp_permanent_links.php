@@ -603,7 +603,7 @@ class PermanentLinks extends GBPPlugin
 
 	function _permlinkurl( $article_array, $pl_index=NULL )
 		{
-		global $pretext, $prefs;
+		global $pretext, $prefs, $production_status;
 
 		if (empty($article_array)) return;
 
@@ -673,7 +673,13 @@ class PermanentLinks extends GBPPlugin
 					case 'category':
 						if ($uri_c = $category1);
 						else if ($uri_c = $category2);
-						else $uri_c = '--INVALID_CATEGORY--';
+						else if (in_array($production_status, array('debug', 'testing')))
+							$uri_c = '--INVALID_CATEGORY--';
+						else
+							{
+							unset($uri);
+							break 2;
+							}
 					break;
 					case 'section': $uri_c = $section; break;
 					case 'title': $uri_c = $url_title; break;
@@ -687,7 +693,13 @@ class PermanentLinks extends GBPPlugin
 					case 'custom':
 						if ($uri_c = @$article_array[$prefs["custom_{$pl_c['custom']}_set"]]);
 						else if ($uri_c = @$article_array["custom_{$pl_c['custom']}"]);
-						else $uri_c = '--UNSET_CUSTOM_FIELD--';
+						else if (in_array($production_status, array('debug', 'testing')))
+							$uri_c = '--UNSET_CUSTOM_FIELD--';
+						else
+							{
+							unset($uri);
+							break 2;
+							}
 					break;
 					case 'text': $uri_c = $pl_c['text']; break;
 					case 'regex':
@@ -706,13 +718,20 @@ class PermanentLinks extends GBPPlugin
 					}
 
 				if (empty($uri_c))
-					$uri_c = '--PERMLINK_FORMAT_ERROR--';
+					if (in_array($production_status, array('debug', 'testing')))
+						$uri_c = '--PERMLINK_FORMAT_ERROR--';
+					else 
+						{
+						unset($uri);
+						break;
+						}
 
 				$uri .= urlencode($uri_c);
 				unset($uri_c);
 				}
 
-				$uri .= '/';
+				if (isset($uri))
+					$uri .= '/';
 			}
 
 		if (empty($uri))
