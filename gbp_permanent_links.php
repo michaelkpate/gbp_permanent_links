@@ -4,7 +4,7 @@ $plugin['name'] = 'gbp_permanent_links';
 $plugin['version'] = '0.7';
 $plugin['author'] = 'Graeme Porteous';
 $plugin['author_uri'] = 'http://porteo.us/projects/textpattern/gbp_permanent_links/';
-$plugin['description'] = 'Custom permanent links formats';
+$plugin['description'] = 'Custom permanent links rules';
 $plugin['type'] = '1';
 
 $plugin['url'] = '$HeadURL$';
@@ -35,7 +35,7 @@ div#permlink_help h3 { color: #693; font: bold 12px Arial, sans-serif; letter-sp
  
 h1(#top). gbp_permanent_links.
 
-Provides custom, user defined, permanent links formats.
+Provides custom, user defined, permanent links rules.
 
 </div>
 # --- END PLUGIN HELP ---
@@ -149,7 +149,7 @@ class PermanentLinks extends GBPPlugin
 		$permlinks = $this->get_all_permlinks(1);
 
 		// We also want to match the front page of the site (for page numbers / feeds etc..).
-		// Add a permlinks format which will do that.
+		// Add a permlinks rule which will do that.
 		$permlinks['default'] = array(
 			'components' => array(),
 			'settings' => array(
@@ -389,7 +389,7 @@ class PermanentLinks extends GBPPlugin
 					{
 						// There hasn't been a match. Lets try to be cleaver and check to see if this
 						// component is either a title, page or a feed. This makes it more probable a
-						// successful match for a given permlink format occurs.
+						// successful match for a given permlink rule occurs.
 						$this->debug('Checking if "'.$uri_c.'" is of type "title_page_feed"');
 						if ($type != 'title' && $ID = safe_field('ID', 'textpattern', "`url_title` like '$uri_c' $context_str and `Status` >= 4 limit 1")) {
 							$pretext_replacement['id'] = $ID;
@@ -1270,14 +1270,14 @@ var {$components}// components array for all the data
 			document.getElementById('settings').style['display'] = '';
 			form.pl_name.style['border'] = '3px solid rgb(221, 0, 0)';
 			form.pl_precedence.style['border'] = '';
-			alert('Please enter a name for this permanent link format.');
+			alert('Please enter a name for this permanent link rule.');
 		}
 		else if (form.pl_precedence.value == '')
 		{
 			document.getElementById('settings').style['display'] = '';
 			form.pl_precedence.style['border'] = '3px solid rgb(221, 0, 0)';
 			form.pl_name.style['border'] = '';
-			alert('Please enter a precedence value for this permanent link format.');
+			alert('Please enter a precedence value for this permanent link rule.');
 		}
 		else
 		{
@@ -1309,7 +1309,7 @@ var {$components}// components array for all the data
 
 	function permlink_div()
 	{
-		// Return the permlink format element
+		// Return the permlink rule element
 		return document.getElementById('{$components_div}');
 	}
 
@@ -1387,9 +1387,9 @@ HTML;
 			return ($label ? gbpFLabel($label, $o) : $o);
 			}
 
-		// --- Format --- //
+		// --- Rule --- //
 
-		$out[] = hed('Permanent link format', 2);
+		$out[] = hed('Permanent link rule', 2);
 		$out[] = '<div id="'.$components_div.'" style="background-color: rgb(230, 230, 230); width: auto; height: 1.5em; margin: 10px 0; padding: 5px;"></div>';
 		$out[] = graf
 			(
@@ -1593,7 +1593,7 @@ class PermanentLinksListTabView extends GBPAdminTabView
 
 		if ($total < 1)
 			{
-			echo graf('You haven\'t created any custom permanent links formats yet.', ' style="text-align: center;"').
+			echo graf('You haven\'t created any custom permanent links rules yet.', ' style="text-align: center;"').
 				 graf('<a href="'.$this->url(array(gbp_tab => 'build'), true).'">Click here</a> to add one.', ' style="text-align: center;"');
 			return;
 			}
