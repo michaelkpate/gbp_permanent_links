@@ -497,6 +497,12 @@ class PermanentLinks extends GBPPlugin
 				if (!isset($pretext_replacement))
 					$pretext_replacement = array_shift(array_slice($this->partial_matches, -1));
 
+				if (in_array($prefs['permlink_mode'], array('id_title', 'section_id_title')) && @$pretext_replacement['pg'] && !@$pretext_replacement['id'])
+					{
+					$pretext_replacement['id'] = '';
+					$pretext_replacement['is_article_list'] = true;
+					}
+
 				// Merge pretext_replacement with pretext
 				$pretext = array_merge($pretext, $pretext_replacement);
 
