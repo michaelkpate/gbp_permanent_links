@@ -294,16 +294,18 @@ class PermanentLinks extends GBPPlugin
 							}
 						break;
 						case 'title':
-							if ($ID = safe_field('ID', 'textpattern', "`url_title` like '$uri_c' $context_str and `Status` >= 4 limit 1")) {
-								$pretext_replacement['id'] = $ID;
+							if ($rs = safe_row('ID, Posted', 'textpattern', "`url_title` like '$uri_c' $context_str and `Status` >= 4 limit 1")) {
+								$pretext_replacement['id'] = $rs['ID'];
+								$pretext_replacement['Posted'] = $rs['Posted'];
 								$pretext['numPages'] = 1;
 								$pretext['is_article_list'] = false;
 								$match = true;
 							}
 						break;
 						case 'id':
-							if ($ID = safe_field('ID', 'textpattern', "`ID` = '$uri_c' $context_str and `Status` >= 4 limit 1")) {
-								$pretext_replacement['id'] = $ID;
+							if ($rs = safe_row('ID', 'textpattern', "`ID` = '$uri_c' $context_str and `Status` >= 4 limit 1")) {
+								$pretext_replacement['id'] = $rs['ID'];
+								$pretext_replacement['Posted'] = $rs['Posted'];
 								$pretext['numPages'] = 1;
 								$pretext['is_article_list'] = false;
 								$match = true;
@@ -438,6 +440,13 @@ class PermanentLinks extends GBPPlugin
 					if (!empty($des_feed))
 						$pretext_replacement[$des_feed] = 1;
 
+					if (@$pretext_replacement['id'] && @$pretext_replacement['Posted'])
+						{
+					 	if ($np = getNextPrev($pretext_replacement['id'], $pretext_replacement['Posted'], $pretext_replacement['s']))
+							$pretext_replacement = array_merge($pretext_replacement, $np);
+						}
+					unset($pretext_replacement['Posted']);
+
 					$this->matched_permlink = $pretext_replacement;
 					}
 				else
@@ -507,7 +516,7 @@ class PermanentLinks extends GBPPlugin
 				$pretext = array_merge($pretext, $pretext_replacement);
 
 				// Export required values to the global namespace
-				foreach (array('id', 's', 'c', 'is_article_list') as $key)
+				foreach (array('id', 's', 'c', 'is_article_list', 'prev_id', 'prev_title', 'next_id', 'next_title') as $key)
 					{
 					if (array_key_exists($key, $pretext))
 						$GLOBALS[$key] = $pretext[$key];
