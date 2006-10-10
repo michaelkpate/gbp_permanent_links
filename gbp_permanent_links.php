@@ -722,7 +722,7 @@ class PermanentLinks extends GBPPlugin
 					case 'id': $uri_c = $thisid; break;
 					case 'author': $uri_c = safe_field('RealName', 'txp_users', "name like '{$authorid}'"); break;
 					case 'login': $uri_c = $authorid; break;
-					case 'date': $uri_c = date('Y/m/d', $posted); break;
+					case 'date': $uri_c = explode('/', date('Y/m/d', $posted)); break;
 					case 'year': $uri_c = date('Y', $posted); break;
 					case 'month': $uri_c = date('m', $posted); break;
 					case 'day': $uri_c = date('d', $posted); break;
@@ -762,7 +762,15 @@ class PermanentLinks extends GBPPlugin
 						break;
 						}
 
-				$uri .= urlencode($uri_c);
+				if ( is_array($uri_c) )
+					{
+					foreach ( $uri_c as $uri_c2 )
+						$uri .= urlencode($uri_c2) . '/';
+					$uri = rtrim($uri, '/');
+					}
+				else
+					$uri .= urlencode($uri_c);
+
 				unset($uri_c);
 				}
 
