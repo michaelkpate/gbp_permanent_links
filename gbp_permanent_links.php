@@ -613,35 +613,56 @@ class PermanentLinks extends GBPPlugin
 
 		if (empty($article_array)) return;
 
-		if (!$pl_index)
+		if (!function_exists('check_permlink_conditions'))
+			{
+			function check_permlink_conditions($pl, $article_array)
+				{
+				if (empty($article_array['section'])) $article_array['section'] = @$article_array['Section'];
+				if (empty($article_array['category1'])) $article_array['category1'] = @$article_array['Category1'];
+				if (empty($article_array['category2'])) $article_array['category2'] = @$article_array['Category2'];
+			
+				if (@$pl['settings']['con_category'] && ($pl['settings']['con_category'] != $article_array['category1'] || $pl['settings']['con_category'] != $article_array['category2']))
+					return false;
+				if (@$pl['settings']['con_section'] && $pl['settings']['con_section'] != $article_array['section'])
+					return false;
+
+				return true;
+				}
+			}
+
+		if ($pl_index)
+			$pl = $this->get_permlink($pl_index);
+		else
 			{
 			// Get the matched pretext replacement array.
 			$matched = ( count($this->matched_permlink) )
 			? $this->matched_permlink
 			: array_shift(array_slice($this->partial_matches, -1));
-			}
-		else
-			{
-			$pl = $this->get_permlink($pl_index);
+
+			if (!isset($pl) && $matched && array_key_exists('id', $matched))
+				{
+				// The permlink id is stored in the pretext replacement array, so we can find the permlink. 
+				$pl = $this->get_permlink( $matched['permlink_id'] );
+				foreach ($pl['components'] as $pl_c)
+					if ( in_array($pl_c['type'], array('feed', 'page')) || !check_permlink_conditions($pl, $article_array) )
+						{
+						unset($pl);
+						break;
+						}
+				}
+			
+			if (!isset($pl))
+				{
+				// We have no permlink id so grab the permlink with the highest precedence.
+				$permlinks = $this->get_all_permlinks(1, array('feed', 'page'));
+				foreach ($permlinks as $key => $pl)
+					if ( !check_permlink_conditions($pl, $article_array) )
+						unset($permlinks[$key]);
+				$pl = array_shift($permlinks);
+				}
 			}
 
 		$uri = '';
-
-		if (!isset($pl) && $matched && array_key_exists('id', $matched))
-			{
-			// The permlink id is stored in the pretext replacement array, so we can find the permlink. 
-			$pl = $this->get_permlink( $matched['permlink_id'] );
-			foreach ($pl['components'] as $pl_c)
-				if ( in_array($pl_c['type'], array('feed', 'page')) )
-					{
-					unset($pl);
-					break;
-					}
-			}
-
-		if (!isset($pl))
-			// We have no permlink id so grab the permlink with the highest precedence.
-			$pl = array_shift( $this->get_all_permlinks(1, array('feed', 'page')) );
 
 		if (is_array($pl) && array_key_exists('components', $pl))
 			{
@@ -736,8 +757,8 @@ class PermanentLinks extends GBPPlugin
 				unset($uri_c);
 				}
 
-				if (isset($uri))
-					$uri .= '/';
+			if (isset($uri))
+				$uri .= '/';
 			}
 
 		if (empty($uri))
