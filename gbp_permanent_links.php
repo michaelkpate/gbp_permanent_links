@@ -849,22 +849,22 @@ class PermanentLinks extends GBPPlugin
 			$c = $category;
 
 		// Debugging for buffers
-		$this->buffer_debug[] = 'parts[0]: '.$parts[0];
+		$this->buffer_debug[] = 'url: '.str_replace('&amp;', '&', $parts[1].$parts[2]);
 		$this->buffer_debug[] = 'path: '.$path;
 		$this->buffer_debug[] = 'query: '.$query;
-		$this->buffer_debug[] = 'fragment: '.$fragment;
+		if ($fragment) $this->buffer_debug[] = 'fragment: '.$fragment;
 
-		$this->buffer_debug[] = 'id: '.$id;
-		$this->buffer_debug[] = 's: '.$s;
-		$this->buffer_debug[] = 'c: '.$c;
-		$this->buffer_debug[] = 'rss: '.$rss;
-		$this->buffer_debug[] = 'atom: '.$atom;
-		$this->buffer_debug[] = 'pg: '.$pg;
-		$this->buffer_debug[] = 'q: '.$q;
+		if (@$id) $this->buffer_debug[] = 'id: '.$id;
+		if (@$s) $this->buffer_debug[] = 's: '.$s;
+		if (@$c) $this->buffer_debug[] = 'c: '.$c;
+		if (@$rss) $this->buffer_debug[] = 'rss: '.$rss;
+		if (@$atom) $this->buffer_debug[] = 'atom: '.$atom;
+		if (@$pg) $this->buffer_debug[] = 'pg: '.$pg;
+		if (@$q) $this->buffer_debug[] = 'q: '.$q;
 
 		$permlinks = $this->get_all_permlinks(1);
 
-		$permlinks['default'] = array(
+		$permlinks['gbp_permanent_links_default'] = array(
 			'components' => array(
 				array('type' => 'text', 'text' => strtolower(urlencode(gTxt('category')))),
 				array('type' => 'category'),
@@ -875,6 +875,7 @@ class PermanentLinks extends GBPPlugin
 				'des_permlink' => '', 'des_feed' => '', 'des_location' => '',
 		));
 
+		$highest_match_count = null;
 		foreach ($permlinks as $key => $pl)
 			{
 			$out = array(); $match_count = 0;
@@ -908,27 +909,27 @@ class PermanentLinks extends GBPPlugin
 						else break 2;
 					break;
 					}
-					$match_count++;
+					if ( !in_array($pl_c['type'], array('title', 'id')) )
+						$match_count++;
+					else break;
 				}
 
-			$this->buffer_debug[] = $match_count;
+			$this->buffer_debug[] = 'Testing permlink: '. $key;
+			$this->buffer_debug[] = 'Match count: '. $match_count;
 
 			// Todo: Store according to the precedence value
-			if (count($out) > 0 && !array_key_exists($match_count, @$matches) && !($key == 'default' && !$match_count))
+			if ( count($out) > 0 && ($match_count > $highest_match_count || !isset($highest_match_count))
+			&& !($key == 'gbp_permanent_links_default' && !$match_count) )
 				{
-				@$matches[$match_count] = $out;
-				@$matches_ids[$match_count] = $key;
+				$this->buffer_debug[] = 'New highest match!';
+				$highest_match_count = $match_count;
+				$match = $out;
 				}
 			}
 
-		sort($matches_ids);
-		$key = $matches_ids[0];
-		$this->buffer_debug[] = 'Matched permlink: ' . ($key ? $key : 'none');
+		$this->buffer_debug[] = serialize($match);
 
-		sort($matches);
-		$this->buffer_debug[] = serialize($matches);
-
-		$url = '/'.join('/', $matches[0]);
+		$url = '/'.join('/', $match);
 		$url = rtrim(hu, '/').rtrim($url, '/').'/';
 
 		if ($rss)
