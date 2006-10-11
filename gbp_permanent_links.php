@@ -419,39 +419,39 @@ class PermanentLinks extends GBPPlugin
 				}
 			} // foreach permlink component end
 
-			if ((!empty($con_section) && $con_section != @$pretext_replacement['s']) ||
-				(!empty($con_category) && $con_category != @$pretext_replacement['c']))
+			if ($match)
+				{
+				if ( isset($pretext_replacement) )
+					$this->debug('We have a match!');
+				else
+					// Restore the partial match. Sorted by number of components and then precedence
+					$pretext_replacement = array_shift(array_slice($this->partial_matches, -1));
+				}
+
+			if (( !empty($con_section) && $con_section != @$pretext_replacement['s'] )
+			|| ( !empty($con_category) && $con_category != @$pretext_replacement['c'] ))
 			{
 				$match = false;
 				unset($pretext_replacement);
 			}
 
-			// If pretext_replacement is still set here then we have a match or a partial match
+			// If pretext_replacement is still set here then we have a match
 			if ($match) {
-				if (isset($pretext_replacement))
+				if (!empty($des_section))
+					$pretext_replacement['s'] = $des_section;
+				if (!empty($des_category))
+					$pretext_replacement['c'] = $des_category;
+				if (!empty($des_feed))
+					$pretext_replacement[$des_feed] = 1;
+
+				if (@$pretext_replacement['id'] && @$pretext_replacement['Posted'])
 					{
-					$this->debug('We have a match!');
-
-					// Set the destination section/category/feed settings
-					if (!empty($des_section))
-						$pretext_replacement['s'] = $des_section;
-					if (!empty($des_category))
-						$pretext_replacement['c'] = $des_category;
-					if (!empty($des_feed))
-						$pretext_replacement[$des_feed] = 1;
-
-					if (@$pretext_replacement['id'] && @$pretext_replacement['Posted'])
-						{
-					 	if ($np = getNextPrev($pretext_replacement['id'], $pretext_replacement['Posted'], $pretext_replacement['s']))
-							$pretext_replacement = array_merge($pretext_replacement, $np);
-						}
-					unset($pretext_replacement['Posted']);
-
-					$this->matched_permlink = $pretext_replacement;
+				 	if ($np = getNextPrev($pretext_replacement['id'], $pretext_replacement['Posted'], $pretext_replacement['s']))
+						$pretext_replacement = array_merge($pretext_replacement, $np);
 					}
-				else
-					// Restore the partial match. Sorted by number of components and then precedence
-					$pretext_replacement = array_shift(array_slice($this->partial_matches, -1));
+				unset($pretext_replacement['Posted']);
+
+				$this->matched_permlink = $pretext_replacement;
 
 				// If there is a match then we most set the http status correctly as txp's pretext might set it to 404
 				$pretext_replacement['status'] = '200';
