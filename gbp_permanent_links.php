@@ -921,10 +921,27 @@ class PermanentLinks extends GBPPlugin
 			if ( count($out) > 0 && ($match_count > $highest_match_count || !isset($highest_match_count))
 			&& !($key == 'gbp_permanent_links_default' && !$match_count) )
 				{
-				$this->buffer_debug[] = 'New highest match!';
-				$highest_match_count = $match_count;
-				$match = $out;
+				extract($pl['settings']);
+				if (( empty($s) && empty($c) )
+				|| ( !empty($s) && !empty($con_section) && @$s == $con_section )
+				|| ( !empty($c) && !empty($con_category) && @$c == $con_category ))
+					{
+					$this->buffer_debug[] = 'New highest match!';
+					$highest_match_count = $match_count;
+					$match = $out;
+					}
 				}
+			}
+
+		if (empty($match))
+			{
+			global $prefs, $pretext, $permlink_mode;
+			$this->buffer_debug[] = 'No match';
+			$this->buffer_debug[] = '----';
+			$pretext['permlink_mode'] = $permlink_mode = $prefs['permlink_mode'];
+			$url = pagelinkurl( $query_part );
+			$pretext['permlink_mode'] = $permlink_mode = 'messy';
+			return 'href="'. $url .'"';
 			}
 
 		$this->buffer_debug[] = serialize($match);
