@@ -1,7 +1,7 @@
 <?php
 
 $plugin['name'] = 'gbp_permanent_links';
-$plugin['version'] = '0.7';
+$plugin['version'] = '0.8';
 $plugin['author'] = 'Graeme Porteous';
 $plugin['author_uri'] = 'http://porteo.us/projects/textpattern/gbp_permanent_links/';
 $plugin['description'] = 'Custom permanent links rules';
