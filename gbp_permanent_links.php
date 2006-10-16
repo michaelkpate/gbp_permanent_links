@@ -923,8 +923,8 @@ class PermanentLinks extends GBPPlugin
 				{
 				extract($pl['settings']);
 				if (( empty($s) && empty($c) )
-				|| ( !empty($s) && !empty($con_section) && @$s == $con_section )
-				|| ( !empty($c) && !empty($con_category) && @$c == $con_category ))
+				|| ( empty($con_section) || @$s == $con_section )
+				|| ( empty($con_category) || @$c == $con_category ))
 					{
 					$this->buffer_debug[] = 'New highest match!';
 					$highest_match_count = $match_count;
