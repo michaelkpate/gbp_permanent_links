@@ -368,6 +368,7 @@ class PermanentLinks extends GBPPlugin
 						case 'text':
 							if ($text == $uri_c) {
 								$match = true;
+								$pretext_replacement["permlink_text_{$name}"] = $uri_c;
 							}
 						break;
 						case 'regex':
@@ -598,19 +599,22 @@ class PermanentLinks extends GBPPlugin
 
 	} // function _textpattern end
 
-	function _textpattern_end( $html )
+	function _textpattern_end( $html, $override='' )
 		{
-		global $production_status;
+		global $pretext, $production_status;
 
+		if ($override) $pretext['permlink_override'] = $override;
 		$html = preg_replace_callback(
 			'%href="('.hu.'|\?)([^"]*)"%',
 			array(&$this, '_pagelinkurl'),
 			$html
 		);
+		unset($pretext['permlink_override']);
 
 		if ($this->pref('debug') && in_array($production_status, array('debug', 'testing')))
 			{
 			$debug = join(n, $this->buffer_debug);
+			$this->buffer_debug = array();
 			if ($debug)
 				$html = comment(n.$debug.n) . $html;
 			}
@@ -864,18 +868,31 @@ class PermanentLinks extends GBPPlugin
 		if (@$pg) $this->buffer_debug[] = 'pg: '.$pg;
 		if (@$q) $this->buffer_debug[] = 'q: '.$q;
 
-		$permlinks = $this->get_all_permlinks(1);
+		if (@$permlink_override)
+			{
+			$override_ids = explode(',', $permlink_override);
+			foreach ($override_ids as $override_id)
+				{
+				$pl = $this->get_permlink($override_id);
+				if (count($pl) > 0) $permlinks[] = $pl;
+				}
+			}
+		
+		if (empty($permlinks))
+			{
+			$permlinks = $this->get_all_permlinks(1);
 
-		$permlinks['gbp_permanent_links_default'] = array(
-			'components' => array(
-				array('type' => 'text', 'text' => strtolower(urlencode(gTxt('category')))),
-				array('type' => 'category'),
-			),
-			'settings' => array(
-				'pl_name' => 'gbp_permanent_links_default', 'pl_precedence' => '', 'pl_preview' => '',
-				'con_section' => '', 'con_category' => '', 'des_section' => '', 'des_category' => '',
-				'des_permlink' => '', 'des_feed' => '', 'des_location' => '',
-		));
+			$permlinks['gbp_permanent_links_default'] = array(
+				'components' => array(
+					array('type' => 'text', 'text' => strtolower(urlencode(gTxt('category')))),
+					array('type' => 'category'),
+				),
+				'settings' => array(
+					'pl_name' => 'gbp_permanent_links_default', 'pl_precedence' => '', 'pl_preview' => '',
+					'con_section' => '', 'con_category' => '', 'des_section' => '', 'des_category' => '',
+					'des_permlink' => '', 'des_feed' => '', 'des_location' => '',
+			));
+			}
 
 		$highest_match_count = null;
 		foreach ($permlinks as $key => $pl)
@@ -1805,19 +1822,42 @@ class PermanentLinksListTabView extends GBPAdminTabView
 	}
 }
 
+global $gbp_pl;
 $gbp_pl = new PermanentLinks('Permanent Links', 'permlinks', 'admin');
 if (@txpinterface == 'public')
+{
 	register_callback(array(&$gbp_pl, '_textpattern'), 'textpattern');
 
-function gbp_if_regex($atts, $thing)	
-{
-	global $pretext;
-	extract(lAtts(array(
-		'name' => '',
-		'val'  => '',
-	),$atts));
-	$match = (@$pretext["permlink_regex_{$name}"] == $val);
-	return parse(EvalElse($thing, $match));
+	function gbp_if_regex($atts, $thing)	
+	{
+		global $pretext;
+		extract(lAtts(array(
+			'name' => '',
+			'val'  => '',
+		),$atts));
+		$match = (@$pretext["permlink_regex_{$name}"] == $val);
+		return parse(EvalElse($thing, $match));
+	}
+
+	function gbp_if_text($atts, $thing)	
+	{
+		global $pretext;
+		extract(lAtts(array(
+			'name' => '',
+			'val'  => '',
+		),$atts));
+		$match = (@$pretext["permlink_text_{$name}"] == $val);
+		return parse(EvalElse($thing, $match));
+	}
+
+	function gbp_use_pagelink($atts, $thing = '')
+	{
+		global $gbp_pl;
+		extract(lAtts(array(
+			'rule' => '',
+		),$atts));
+		return $gbp_pl->_textpattern_end(parse($thing), $rule);
+	}
 }
 
 # --- END PLUGIN CODE ---
