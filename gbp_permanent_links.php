@@ -1599,7 +1599,7 @@ HTML;
 		));
 
 		// Remove spaces from the permanent link preview
-		$settings['pl_preview'] = preg_replace('%\s*/\s*%', '/', $settings['pl_preview']);
+		$settings['pl_preview'] = preg_replace('%\s+/\s*%', '/', $settings['pl_preview']);
 
 		// Explode the separated string of serialize components - this was made by JavaScript. 
 		$serialize_components = explode(gbp_separator, rtrim(gps('components'), gbp_separator));
