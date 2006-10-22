@@ -880,13 +880,19 @@ class PermanentLinks extends GBPPlugin
 		$highest_match_count = null;
 		foreach ($permlinks as $key => $pl)
 			{
+			$this->buffer_debug[] = 'Testing permlink: '. $pl['settings']['pl_name'] .' - '. $key;
+			$this->buffer_debug[] = 'Preview: '. $pl['settings']['pl_preview'];
 			$out = array(); $match_count = 0;
 			foreach ($pl['components'] as $pl_c)
 				{
 				switch ( $pl_c['type'] )
 					{
-					case 'text' :
+					case 'text':
 						$out[] = $pl_c['text'];
+						$match_count--;
+					break;
+					case 'regex':
+						$out[] = $pretext['permlink_regex_'.$pl_c['name']];
 						$match_count--;
 					break;
 					case 'section':
@@ -902,21 +908,17 @@ class PermanentLinks extends GBPPlugin
 						elseif ($atom) $out[] = 'atom';
 						else break 2;
 					break;
-					case 'page':
-						if ($pg) $out[] = $pg;
-						else break 2;
-					break;
 					case 'search':
 						if ($q) $out[] = $q;
 						else break 2;
 					break;
+					default: break 2;
 					}
 					if ( !in_array($pl_c['type'], array('title', 'id')) )
 						$match_count++;
 					else break;
 				}
 
-			$this->buffer_debug[] = 'Testing permlink: '. $key;
 			$this->buffer_debug[] = 'Match count: '. $match_count;
 
 			// Todo: Store according to the precedence value
@@ -928,7 +930,7 @@ class PermanentLinks extends GBPPlugin
 				|| ( empty($con_section) || @$s == $con_section )
 				|| ( empty($con_category) || @$c == $con_category ))
 					{
-					$this->buffer_debug[] = 'New highest match!';
+					$this->buffer_debug[] = 'New highest match! '. implode('/', $out);
 					$highest_match_count = $match_count;
 					$match = $out;
 					}
@@ -1806,6 +1808,17 @@ class PermanentLinksListTabView extends GBPAdminTabView
 $gbp_pl = new PermanentLinks('Permanent Links', 'permlinks', 'admin');
 if (@txpinterface == 'public')
 	register_callback(array(&$gbp_pl, '_textpattern'), 'textpattern');
+
+function gbp_if_regex($atts, $thing)	
+{
+	global $pretext;
+	extract(lAtts(array(
+		'name' => '',
+		'val'  => '',
+	),$atts));
+	$match = (@$pretext["permlink_regex_{$name}"] == $val);
+	return parse(EvalElse($thing, $match));
+}
 
 # --- END PLUGIN CODE ---
 
