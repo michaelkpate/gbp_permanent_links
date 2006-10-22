@@ -483,7 +483,9 @@ class PermanentLinks extends GBPPlugin
 					$pretext_replacement['s'] = 'default';
 
 				// Set the page template, otherwise we get an unknown section error
-				$page = safe_field('page', 'txp_section', "name = '{$pretext_replacement['s']}' limit 1");
+				$page = (@$des_page)
+				? $des_page
+				: safe_field('page', 'txp_section', "name = '{$pretext_replacement['s']}' limit 1");
 				$pretext_replacement['page'] = $page;
 
 				if (count($this->matched_permlink))
@@ -1044,7 +1046,7 @@ class PermanentLinksBuildTabView extends GBPAdminTabView
 			$settings = array(
 				'pl_name' => 'Untitled', 'pl_precedence' => '0',
 				'con_section' => '', 'con_category' => '',
-				'des_section' => '', 'des_category' => '',
+				'des_section' => '', 'des_category' => '', 'des_page' => '',
 				'des_permlink' => '', 'des_feed' => '', 'des_location' => '',
 			);
 			}
@@ -1549,6 +1551,7 @@ HTML;
 			gbpFSelect('des_section', $sections, $des_section, 1, 'Section').n.
 			gbpFSelect('des_category', $categories, $des_category, 1, 'Category')
 			);
+		$out[] = graf(gbpFSelect('des_page', safe_column('name', 'txp_page', "1"), @$des_page, 1, 'Page'));
 		$out[] = graf(gbpFBoxes('des_feed', array('rss', 'atom', ''), $des_feed, NULL, array('RSS feed', 'Atom feed', 'Neither')));
 		$out[] = graf(strong('Redirect this permanent link to...'));
 		// Generate a permlinks array
@@ -1591,7 +1594,7 @@ HTML;
 		$settings = gpsa(array(
 			'pl_name', 'pl_precedence', 'pl_preview',
 			'con_section', 'con_category',
-			'des_section', 'des_category',
+			'des_section', 'des_category', 'des_page',
 			'des_permlink', 'des_feed', 'des_location',
 		));
 
