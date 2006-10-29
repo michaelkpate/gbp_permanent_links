@@ -1858,6 +1858,15 @@ if (@txpinterface == 'public')
 		),$atts));
 		return $gbp_pl->_textpattern_end(parse($thing), $rule);
 	}
+
+	function gbp_disable_permlinks($atts, $thing = '')
+	{
+		global $gbp_pl;
+		$gbp_pl->reset_permlink_mode();
+		$html = parse($thing);
+		$gbp_pl->set_permlink_mode();
+		return $html;
+	}
 }
 
 # --- END PLUGIN CODE ---
