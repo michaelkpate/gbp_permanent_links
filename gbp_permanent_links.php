@@ -533,8 +533,10 @@ class PermanentLinks extends GBPPlugin
 						if (count($this->get_permlink($pl_index)) > 0)
 						{
 							ob_clean();
+							global $siteurl;
 							$rs = safe_row('*, ID as thisid, unix_timestamp(Posted) as posted', 'textpattern', "ID = '{$pretext['id']}'");
-							$this->redirect(serverSet('SERVER_ADDR').$this->_permlinkurl($rs, $pl_index), 301);
+							$host = rtrim(str_replace(rtrim(doStrip($pretext['subpath']), '/'), '', hu), '/');
+							$this->redirect($host.$this->_permlinkurl($rs, $pl_index), 301);
 						}
 					}
 					else if ($url = @$pl['settings']['des_location'])
