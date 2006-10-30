@@ -66,6 +66,7 @@ class PermanentLinks extends GBPPlugin
 	var $preferences = array(
 		'show_prefix' => array('value' => 0, 'type' => 'yesnoradio'),
 		'show_suffix' => array('value' => 0, 'type' => 'yesnoradio'),
+		'omit_trailing_slash' => array('value' => 0 , 'type' => 'yesnoradio'),
 		'debug' => array('value' => 0, 'type' => 'yesnoradio'),
 	);
 	var $matched_permlink = array();
@@ -800,6 +801,9 @@ class PermanentLinks extends GBPPlugin
 			$this->set_permlink_mode();
 			}
 
+		if ($this->pref('omit_trailing_slash'))
+			$uri = rtrim($uri, '/');
+
 		return $uri;
 		}
 
@@ -985,6 +989,9 @@ class PermanentLinks extends GBPPlugin
 			$url .= $pg;
 
 		$url = rtrim($url, '/') . '/';
+
+		if ($this->pref('omit_trailing_slash'))
+			$url = rtrim($url, '/');
 
 		$this->buffer_debug[] = $url;
 		$this->buffer_debug[] = '----';
