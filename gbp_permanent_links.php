@@ -409,6 +409,11 @@ class PermanentLinks extends GBPPlugin
 							$match = true;
 						}
 						$this->debug(($match == true) ? 'YES' : 'NO');
+						if ($match)
+						{
+							$match = false;
+							break;
+						}
 					}
 				}
 
