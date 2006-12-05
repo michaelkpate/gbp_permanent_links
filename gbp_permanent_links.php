@@ -177,8 +177,8 @@ class PermanentLinks extends GBPPlugin
 			// URI components
 			$uri_components = $uri;
 
-		  $this->debug('PL component count: '.count($pl_components));
-		  $this->debug('URL component count: '.count($uri_components));
+			$this->debug('PL component count: '.count($pl_components));
+			$this->debug('URL component count: '.count($uri_components));
 
 			// Are we expecting a date component? If so the number of pl and uri components won't match
 			$date = false; $title_page_feed = false;
