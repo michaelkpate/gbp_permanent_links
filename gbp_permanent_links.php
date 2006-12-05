@@ -67,6 +67,7 @@ class PermanentLinks extends GBPPlugin
 		'show_prefix' => array('value' => 0, 'type' => 'yesnoradio'),
 		'show_suffix' => array('value' => 0, 'type' => 'yesnoradio'),
 		'omit_trailing_slash' => array('value' => 0 , 'type' => 'yesnoradio'),
+		'join_pretext_to_pagelinks' => array('value' => 1 , 'type' => 'yesnoradio'),
 		'debug' => array('value' => 0, 'type' => 'yesnoradio'),
 	);
 	var $matched_permlink = array();
@@ -855,7 +856,10 @@ class PermanentLinks extends GBPPlugin
 			$query_part['rss'] = 0;
 		if (!array_key_exists('atom', $query_part))
 			$query_part['atom'] = 0;
-		extract( array_merge($pretext, $query_part) );
+		if ($this->pref('join_pretext_to_pagelinks'))
+			extract( array_merge($pretext, $query_part) );
+		else
+			extract( $query_part );
 
 		// We have a id, pass to permlinkurl()
 		if ($id)
