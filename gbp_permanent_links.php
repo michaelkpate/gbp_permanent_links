@@ -536,6 +536,12 @@ class PermanentLinks extends GBPPlugin
 				// Merge pretext_replacement with pretext
 				$pretext = array_merge($pretext, $pretext_replacement);
 
+				if (is_numeric(@$pretext['id']))
+				{
+					$a = safe_row('*, unix_timestamp(Posted) as uPosted', 'textpattern', 'ID='.intval($pretext['id']).' and Status = 4', 1);
+					populateArticleData($a);
+				}
+
 				// Export required values to the global namespace
 				foreach (array('id', 's', 'c', 'is_article_list', 'prev_id', 'prev_title', 'next_id', 'next_title') as $key)
 					{
