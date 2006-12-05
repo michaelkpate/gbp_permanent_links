@@ -141,7 +141,10 @@ class PermanentLinks extends GBPPlugin
 		$this->debug('Function: '.__FUNCTION__.'()');
 
 		// URI
-		$uri = explode('/', trim($pretext['req'], '/'));
+		$req = $pretext['req'];
+		$req = preg_replace('%\?[^\/]+$%', '', $req);
+		$this->debug('Request URI: '.$req);
+		$uri = explode('/', trim($req, '/'));
 
 		// The number of components comes in useful when determining the best partial match.
 		$uri_component_count = count($uri);
@@ -161,10 +164,20 @@ class PermanentLinks extends GBPPlugin
 
 		foreach($permlinks as $id => $pl)
 		{
+			// Extract the permlink settings
+			$pl_settings = $pl['settings'];
+			extract($pl_settings);
+
+			$this->debug('Permlink name: '.$pl_name);
+			$this->debug('Preview: '.$pl_preview);
+
 			$pl_components = $pl['components'];
 
 			// URI components
 			$uri_components = $uri;
+
+		  $this->debug('PL component count: '.count($pl_components));
+		  $this->debug('URL component count: '.count($uri_components));
 
 			// Are we expecting a date component? If so the number of pl and uri components won't match
 			$date = false; $title_page_feed = false;
@@ -181,14 +194,10 @@ class PermanentLinks extends GBPPlugin
 			// Exit early if there are more URL components than PL components,
 			// taking into account whether there is a data component
 			if (!$uri_components[0] || count($uri_components) > count($pl_components) + ($date ? 2 : 0))
+			{
+				$this->debug('More URL components than PL components');
 				continue;
-
-			// Extract the permlink settings
-			$pl_settings = $pl['settings'];
-			extract($pl_settings);
-
-			$this->debug('Permlink name: '.$pl_name);
-			$this->debug('Preview: '.$pl_preview);
+			}
 
 			// Reset pretext_replacement as we are about to start another comparison
 			$pretext_replacement = array('permlink_id' => $id);
