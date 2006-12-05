@@ -68,6 +68,8 @@ class PermanentLinks extends GBPPlugin
 		'show_suffix' => array('value' => 0, 'type' => 'yesnoradio'),
 		'omit_trailing_slash' => array('value' => 0 , 'type' => 'yesnoradio'),
 		'join_pretext_to_pagelinks' => array('value' => 1 , 'type' => 'yesnoradio'),
+		'permlink_redirect_http_status' => array('value' => '301' , 'type' => 'text_input'),
+		'url_redirect_http_status' => array('value' => '302' , 'type' => 'text_input'),
 		'debug' => array('value' => 0, 'type' => 'yesnoradio'),
 	);
 	var $matched_permlink = array();
@@ -552,13 +554,13 @@ class PermanentLinks extends GBPPlugin
 							global $siteurl;
 							$rs = safe_row('*, ID as thisid, unix_timestamp(Posted) as posted', 'textpattern', "ID = '{$pretext['id']}'");
 							$host = rtrim(str_replace(rtrim(doStrip($pretext['subpath']), '/'), '', hu), '/');
-							$this->redirect($host.$this->_permlinkurl($rs, $pl_index), 301);
+							$this->redirect($host.$this->_permlinkurl($rs, $pl_index), $this->pref('permlink_redirect_http_status'));
 						}
 					}
 					else if ($url = @$pl['settings']['des_location'])
 					{
 						ob_clean();
-						$this->redirect($url, 302);
+						$this->redirect($url, $this->pref('url_redirect_http_status'));
 					}
 				}
 
