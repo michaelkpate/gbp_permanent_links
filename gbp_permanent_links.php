@@ -538,7 +538,7 @@ class PermanentLinks extends GBPPlugin
 
 				if (is_numeric(@$pretext['id']))
 				{
-					$a = safe_row('*, unix_timestamp(Posted) as uPosted', 'textpattern', 'ID='.intval($pretext['id']).' and Status = 4', 1);
+					$a = safe_row('*, unix_timestamp(Posted) as uPosted', 'textpattern', 'ID='.intval($pretext['id']).' and Status = 4');
 					populateArticleData($a);
 				}
 
