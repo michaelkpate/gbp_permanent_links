@@ -67,7 +67,7 @@ class PermanentLinks extends GBPPlugin
 		'show_prefix' => array('value' => 0, 'type' => 'yesnoradio'),
 		'show_suffix' => array('value' => 0, 'type' => 'yesnoradio'),
 		'omit_trailing_slash' => array('value' => 0 , 'type' => 'yesnoradio'),
-		'clean_archive_page_link' => array('value' => 1 , 'type' => 'yesnoradio'),
+		'clean_page_archive_links' => array('value' => 1 , 'type' => 'yesnoradio'),
 		'join_pretext_to_pagelinks' => array('value' => 1 , 'type' => 'yesnoradio'),
 		'permlink_redirect_http_status' => array('value' => '301' , 'type' => 'text_input'),
 		'url_redirect_http_status' => array('value' => '302' , 'type' => 'text_input'),
@@ -414,7 +414,7 @@ class PermanentLinks extends GBPPlugin
 							$pretext['is_article_list'] = false;
 							$match = true;
 						}
-						else if ($this->pref('clean_archive_page_link') && $type != 'page' && is_numeric($uri_c)) {
+						else if ($this->pref('clean_page_archive_links') && $type != 'page' && is_numeric($uri_c)) {
 							$pretext_replacement['pg'] = $uri_c;
 							$match = true;
 						}
@@ -1016,7 +1016,7 @@ class PermanentLinks extends GBPPlugin
 			$url .= 'rss';
 		elseif ($atom)
 			$url .= 'atom';
-		elseif ($this->pref('clean_archive_page_link') && $pg)
+		elseif ($this->pref('clean_page_archive_links') && $pg)
 			$url .= $pg;
 		elseif ($pg)
 			{
