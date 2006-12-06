@@ -954,20 +954,20 @@ class PermanentLinks extends GBPPlugin
 						$match_count--;
 					break;
 					case 'section':
-						if ($s) $out[] = $s;
+						if (@$s) $out[] = $s;
 						else break 2;
 					break;
 					case 'category':
-						if ($c) $out[] = $c;
+						if (@$c) $out[] = $c;
 						else break 2;
 					break;
 					case 'feed':
-						if ($rss) $out[] = 'rss';
-						elseif ($atom) $out[] = 'atom';
+						if (@$rss) $out[] = 'rss';
+						elseif (@$atom) $out[] = 'atom';
 						else break 2;
 					break;
 					case 'search':
-						if ($q) $out[] = $q;
+						if (@$q) $out[] = $q;
 						else break 2;
 					break;
 					default: break 2;
