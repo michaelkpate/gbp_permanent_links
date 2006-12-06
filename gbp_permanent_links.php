@@ -909,9 +909,9 @@ class PermanentLinks extends GBPPlugin
 		if (@$pg) $this->buffer_debug[] = 'pg: '.$pg;
 		if (@$q) $this->buffer_debug[] = 'q: '.$q;
 
-		if (@$permlink_override)
+		if (@$pretext['permlink_override'])
 			{
-			$override_ids = explode(',', $permlink_override);
+			$override_ids = explode(',', $pretext['permlink_override']);
 			foreach ($override_ids as $override_id)
 				{
 				$pl = $this->get_permlink($override_id);
