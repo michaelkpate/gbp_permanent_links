@@ -424,7 +424,6 @@ class PermanentLinks extends GBPPlugin
 						$this->debug(($match == true) ? 'YES' : 'NO');
 						if ($match)
 						{
-							$match = false;
 							$cleaver_partial_match = true;
 							break;
 						}
@@ -441,19 +440,20 @@ class PermanentLinks extends GBPPlugin
 
 			if ($match || @$cleaver_partial_match)
 				{
-				if ( isset($pretext_replacement) )
+				if ( !@$cleaver_partial_match && isset($pretext_replacement) )
 					$this->debug('We have a match!');
-				else if (@$cleaver_partial_match)
-					{
+
+				else if ( @$cleaver_partial_match && isset($pretext_replacement) )
 					$this->debug('We have a \'cleaver partial match\'');
-					$match = true;
-					}
-				else
+
+				else if ( count($this->partial_matches) )
 					{
 					$this->debug('We have a \'partial match\'');
 					// Restore the partial match. Sorted by number of components and then precedence
 					$pretext_replacement = array_shift(array_slice($this->partial_matches, -1));
 					}
+				else
+					$match = false;
 				}
 
 			if (( !empty($con_section) && $con_section != @$pretext_replacement['s'] )
