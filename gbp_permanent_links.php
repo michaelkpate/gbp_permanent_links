@@ -161,7 +161,7 @@ class PermanentLinks extends GBPPlugin
 		$permlinks['default'] = array(
 			'components' => array(),
 			'settings' => array(
-				'pl_name' => 'gbp_permanent_links_default', 'pl_precedence' => '', 'pl_preview' => '',
+				'pl_name' => 'gbp_permanent_links_default', 'pl_precedence' => '', 'pl_preview' => '/',
 				'con_section' => '', 'con_category' => '', 'des_section' => '', 'des_category' => '',
 				'des_permlink' => '', 'des_feed' => '', 'des_location' => '',
 		));
@@ -173,6 +173,7 @@ class PermanentLinks extends GBPPlugin
 			extract($pl_settings);
 
 			$this->debug('Permlink name: '.$pl_name);
+			$this->debug('Permlink id: '.$id);
 			$this->debug('Preview: '.$pl_preview);
 
 			$pl_components = $pl['components'];
@@ -454,14 +455,26 @@ class PermanentLinks extends GBPPlugin
 					$pretext_replacement = array_shift(array_slice($this->partial_matches, -1));
 					}
 				else
+					{
+					$this->debug('Error: Can\'t determine the correct type match');
+
 					$match = false;
+					unset($pretext_replacement);
+					continue;
+					}
 				}
+			$this->debug('Pretext Replacement '.print_r($pretext_replacement, 1));
 
 			if (( !empty($con_section) && $con_section != @$pretext_replacement['s'] )
 			|| ( !empty($con_category) && $con_category != @$pretext_replacement['c'] ))
 			{
+				$this->debug('Permlink conditions failed');
+				if (@$con_section) $this->debug('con_section = '. $con_section);
+				if (@$con_category) $this->debug('con_category = '. $con_category);
+
 				$match = false;
 				unset($pretext_replacement);
+				continue;
 			}
 
 			// If pretext_replacement is still set here then we have a match
@@ -601,6 +614,10 @@ class PermanentLinks extends GBPPlugin
 				}
 
 				$this->debug('Pretext Replacement '.print_r($pretext, 1));
+				}
+			else
+				{
+				$this->debug('NO CHANGES MADE');
 				}
 
 			// Start output buffering and pseudo callback to textpattern_end
