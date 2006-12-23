@@ -586,7 +586,7 @@ class PermanentLinks extends GBPPlugin
 				}
 
 				// Export required values to the global namespace
-				foreach (array('id', 's', 'c', 'is_article_list', 'prev_id', 'prev_title', 'next_id', 'next_title') as $key)
+				foreach (array('id', 's', 'c', 'pg', 'is_article_list', 'prev_id', 'prev_title', 'next_id', 'next_title') as $key)
 					{
 					if (array_key_exists($key, $pretext))
 						$GLOBALS[$key] = $pretext[$key];
