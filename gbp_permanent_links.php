@@ -67,6 +67,7 @@ class PermanentLinks extends GBPPlugin
 		'show_prefix' => array('value' => 0, 'type' => 'yesnoradio'),
 		'show_suffix' => array('value' => 0, 'type' => 'yesnoradio'),
 		'omit_trailing_slash' => array('value' => 0 , 'type' => 'yesnoradio'),
+		'redirect_mt_style_links' => array('value' => 1 , 'type' => 'yesnoradio'),
 		'clean_page_archive_links' => array('value' => 1 , 'type' => 'yesnoradio'),
 		'join_pretext_to_pagelinks' => array('value' => 1 , 'type' => 'yesnoradio'),
 		'permlink_redirect_http_status' => array('value' => '301' , 'type' => 'text_input'),
@@ -291,25 +292,43 @@ class PermanentLinks extends GBPPlugin
 					$this->debug('Checking if "'.$uri_c.'" is of type "'.$type.'"');
 					$uri_c = doSlash($uri_c);
 
+					if ($prefs['permalink_title_format'])
+					{
+						$mt_search = array('/_/', '/\.html$/');
+						$mt_replace = array('-', '');
+					}
+					else
+					{
+						$mt_search = array('/(?:^|_)(.)/e', '/\.html$/');
+						$mt_replace = array("strtoupper('\\1')", '');
+					}
+					$mt_uri_c = $this->pref('redirect_mt_style_links')
+						? preg_replace($mt_search, $mt_replace, $uri_c)
+						: '';
+
 					// Compare based on type
 					switch ($type)
 					{
 						case 'section':
-							if (safe_field('name', 'txp_section', "`name` like '$uri_c' limit 1")) {
-								$pretext_replacement['s'] = $uri_c;
-								$context[] = "`Section` = '$uri_c'";
+							if ($rs = safe_row('name', 'txp_section', "(`name` like '$uri_c' or `name` like '$mt_uri_c') limit 1")) {
+								$this->debug('Section name: '.$rs['name']);
+								$pretext_replacement['s'] = $rs['name'];
+								$context[] = "`Section` = '{$rs['name']}'";
 								$match = true;
 							}
 						break;
 						case 'category':
-							if (safe_field('name', 'txp_category', "`name` like '$uri_c' and `type` = 'article' limit 1")) {
-								$pretext_replacement['c'] = $uri_c;
-								$context[] = "(`Category1` = '$uri_c' OR `Category2` = '$uri_c')";
+							if ($rs = safe_row('name', 'txp_category', "(`name` like '$uri_c' or `name` like '$mt_uri_c') and `type` = 'article' limit 1")) {
+								$this->debug('Category name: '.$rs['name']);
+								$pretext_replacement['c'] = $rs['name'];
+								$context[] = "(`Category1` = '{$rs['name']}' OR `Category2` = '$uri_c')";
 								$match = true;
 							}
 						break;
 						case 'title':
-							if ($rs = safe_row('ID, Posted', 'textpattern', "`url_title` like '$uri_c' $context_str and `Status` >= 4 limit 1")) {
+							if ($rs = safe_row('ID, Posted', 'textpattern', "(`url_title` like '$uri_c' or `url_title` like '$mt_uri_c') $context_str and `Status` >= 4 limit 1")) {
+								$this->debug('Article id: '.$rs['ID']);
+								$mt_redirect = ($uri_c != $mt_uri_c);
 								$pretext_replacement['id'] = $rs['ID'];
 								$pretext_replacement['Posted'] = $rs['Posted'];
 								$pretext['numPages'] = 1;
@@ -463,7 +482,8 @@ class PermanentLinks extends GBPPlugin
 					continue;
 					}
 				}
-			$this->debug('Pretext Replacement '.print_r($pretext_replacement, 1));
+			if (@$pretext_replacement)
+				$this->debug('Pretext Replacement '.print_r($pretext_replacement, 1));
 
 			if (( !empty($con_section) && $con_section != @$pretext_replacement['s'] )
 			|| ( !empty($con_category) && $con_category != @$pretext_replacement['c'] ))
@@ -572,10 +592,16 @@ class PermanentLinks extends GBPPlugin
 						$GLOBALS[$key] = $pretext[$key];
 					}
 
-				if (count($this->matched_permlink))
+				if (count($this->matched_permlink) || @$mt_redirect)
 				{
-					$pl = $this->get_permlink($pretext['permlink_id']);
-					if (@$pretext['id'] && $pl_index = @$pl['settings']['des_permlink'])
+					$pl_index = $pretext['permlink_id'];
+					if (!@$mt_redirect || !$this->pref('redirect_mt_style_links'))
+					{
+						$pl = $this->get_permlink($pretext['permlink_id']);
+						$pl_index = @$pl['settings']['des_permlink'];
+					}
+
+					if (@$pretext['id'] && $pl_index)
 					{
 						if (count($this->get_permlink($pl_index)) > 0)
 						{
