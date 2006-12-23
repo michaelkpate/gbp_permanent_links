@@ -285,7 +285,7 @@ class PermanentLinks extends GBPPlugin
 					}
 					else
 						// Check passed, remove suffix ready for the next check
-						$uri_c = substr_replace($uri_c, '', $pos, strlen($prefix));
+						$uri_c = substr_replace($uri_c, '', 0, strlen($suffix));
 				}
 
 				if ($check_type) {
@@ -847,6 +847,9 @@ class PermanentLinks extends GBPPlugin
 						break;
 						}
 
+				if (@$pl_c['prefix'])
+					$uri .= urlencode($pl_c['prefix']);
+
 				if ( is_array($uri_c) )
 					{
 					foreach ( $uri_c as $uri_c2 )
@@ -855,6 +858,9 @@ class PermanentLinks extends GBPPlugin
 					}
 				else
 					$uri .= urlencode($uri_c);
+
+				if (@$pl_c['suffix'])
+					$uri .= urlencode($pl_c['suffix']);
 
 				unset($uri_c);
 				}
