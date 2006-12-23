@@ -881,6 +881,9 @@ class PermanentLinks extends GBPPlugin
 		if ($this->pref('omit_trailing_slash'))
 			$uri = rtrim($uri, '/');
 
+		if (in_array('rss.php', get_included_files()) || in_array('atom.php', get_included_files()))
+			$uri = rtrim(hu, '/') . $uri;
+
 		return $uri;
 		}
 
