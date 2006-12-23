@@ -1507,72 +1507,16 @@ var {$components}// components array for all the data
 	</script>
 HTML;
 
-		function gbpFLabel( $label, $contents='', $label_right=false )
-			{
-			// <label> the contents with the name $lable
-			$contents = ($label_right)
-			? $contents.$label
-			: $label.($contents ? ': '.$contents : '');
-			return tag( $contents, 'label' );
-			}
-
-		function gbpFBoxes( $name='', $value='', $checked_value='', $on=array(), $label='' )
-			{
-			$out = array();
-			if (is_array($value))
-				{
-				$i = 0;
-				foreach ($value as $val)
-					{
-					$o = '<input type="radio" name="'.$name.'" value="'.$val.'"';
-					$o .= ($checked_value == $val) ? ' checked="checked"' : '';
-					if (is_array($on)) foreach($on as $k => $v)
-						$o .= ($on) ? ' on'.$k.'="'.$v.'"' : '';
-					$o .= ' />';
-					$out[] = gbpFLabel($label[$i++], $o, true);
-					}
-				}
-			else
-				{
-				$o = '<input type="checkbox" name="'.$name.'" value="'.$value.'"';
-				$o .= ($checked_value == $value) ? ' checked="checked"' : '';
-				if (is_array($on)) foreach($on as $k => $v)
-					$o .= ($on) ? ' on'.$k.'="'.$v.'"' : '';
-				$o .= ' />';
-				$out[] = gbpFLabel($label, $o, true);
-				}
-
-			return join('', $out);
-			}
-
-		function gbpFInput( $type, $name='', $value='', $on=array(), $label='' )
-			{
-			if ($type == 'radio' || $type == 'checkbox')
-				return gbpFBoxes($name, $value, $on, $label);
-
-			$o = '<input type="'.$type.'" name="'.$name.'" value="'.$value.'"';
-			if (is_array($on)) foreach($on as $k => $v)
-					$o .= ($on) ? ' on'.$k.'="'.$v.'"' : '';
-			$o .= ' />';
-			return ($label) ? gbpFLabel($label, $o) : $o;
-			}
-
-		function gbpFSelect( $name='', $array='', $value='', $blank_first='', $label='', $on_submit='' )
-			{
-			$o = selectInput($name, $array, $value, $blank_first, $on_submit);
-			return ($label ? gbpFLabel($label, $o) : $o);
-			}
-
 		// --- Rule --- //
 
 		$out[] = hed('Permanent link rule', 2);
 		$out[] = '<div id="'.$components_div.'" style="background-color: rgb(230, 230, 230); width: auto; height: 1.5em; margin: 10px 0; padding: 5px;"></div>';
 		$out[] = graf
 			(
-			gbpFInput('button', 'component_add', 'Add component', array('click' => 'component_add();')).n.
-			gbpFInput('button', 'component_remove', 'Remove component', array('click' => 'component_remove();')).n.
-			gbpFInput('button', 'component_left', 'Move left', array('click' => 'component_left();')).n.
-			gbpFInput('button', 'component_right', 'Move right', array('click' => 'component_right();'))
+			$this->fInput('button', 'component_add', 'Add component', array('click' => 'component_add();')).n.
+			$this->fInput('button', 'component_remove', 'Remove component', array('click' => 'component_remove();')).n.
+			$this->fInput('button', 'component_left', 'Move left', array('click' => 'component_left();')).n.
+			$this->fInput('button', 'component_right', 'Move right', array('click' => 'component_right();'))
 			);
 
 		// --- Component form --- //
@@ -1592,7 +1536,7 @@ HTML;
 			'feed' => 'Feed', 'search' => 'Search request',
 			'text' => 'Plain Text', 'regex' => 'Regular Expression'
 			);
-		$out[] = graf(gbpFSelect('type', $component_types, '', 1, 'Component type', ' onchange="component_update();"'));
+		$out[] = graf($this->fSelect('type', $component_types, '', 1, 'Component type', ' onchange="component_update();"'));
 
 		// --- Component data --- //
 
@@ -1605,12 +1549,12 @@ HTML;
 			}
 
 		$out[] = graf(
-			gbpFSelect('custom', $custom_fields, '', 0, 'Custom', ' onchange="component_update(this);"').n.
-			gbpFInput('text', 'name', '', array('keyup' => 'component_update(this);'), 'Name').n.
-			gbpFInput('text', 'prefix', '', array('keyup' => 'component_update(this);'), 'Prefix').n.
-			gbpFInput('text', 'regex', '', array('keyup' => 'component_update(this);'), 'Regular Expression').n.
-			gbpFInput('text', 'suffix', '', array('keyup' => 'component_update(this);'), 'Suffix').n.
-			gbpFInput('text', 'text', '', array('keyup' => 'component_update(this);'), 'Text')
+			$this->fSelect('custom', $custom_fields, '', 0, 'Custom', ' onchange="component_update(this);"').n.
+			$this->fInput('text', 'name', '', array('keyup' => 'component_update(this);'), 'Name').n.
+			$this->fInput('text', 'prefix', '', array('keyup' => 'component_update(this);'), 'Prefix').n.
+			$this->fInput('text', 'regex', '', array('keyup' => 'component_update(this);'), 'Regular Expression').n.
+			$this->fInput('text', 'suffix', '', array('keyup' => 'component_update(this);'), 'Suffix').n.
+			$this->fInput('text', 'text', '', array('keyup' => 'component_update(this);'), 'Text')
 		);
 		$hr = '<hr style="border: 0; height: 1px; background-color: rgb(200, 200, 200); color: rgb(200, 200, 200); margin-bottom: 10px;" />';
 		$out[] = $hr;
@@ -1624,8 +1568,8 @@ HTML;
 
 		$out[] = hed('<a href="#" onclick="toggleDisplay(\'settings\'); return false;">Settings</a>', 2);
 		$out[] = '<div id="settings">';
-		$out[] = graf(gbpFInput('text', 'pl_name', $pl_name, NULL, 'Name'));
-		$out[] = graf(gbpFInput('text', 'pl_precedence', $pl_precedence, NULL, 'Precedence'));
+		$out[] = graf($this->fInput('text', 'pl_name', $pl_name, NULL, 'Name'));
+		$out[] = graf($this->fInput('text', 'pl_precedence', $pl_precedence, NULL, 'Precedence'));
 		$out[] = '</div>';
 		$out[] = $hr;
 
@@ -1653,8 +1597,8 @@ HTML;
 
 		$out[] = graf
 			(
-			gbpFSelect('con_section', $sections, $con_section, 1, 'Within section').n.
-			gbpFSelect('con_category', $categories, $con_category, 1, 'Within category')
+			$this->fSelect('con_section', $sections, $con_section, 1, 'Within section').n.
+			$this->fSelect('con_category', $categories, $con_category, 1, 'Within category')
 			);
 		$out[] = '</div>';
 		$out[] = $hr;
@@ -1666,11 +1610,11 @@ HTML;
 		$out[] = graf(strong('Forward this permanent link to...'));
 		$out[] = graf
 			(
-			gbpFSelect('des_section', $sections, $des_section, 1, 'Section').n.
-			gbpFSelect('des_category', $categories, $des_category, 1, 'Category')
+			$this->fSelect('des_section', $sections, $des_section, 1, 'Section').n.
+			$this->fSelect('des_category', $categories, $des_category, 1, 'Category')
 			);
-		$out[] = graf(gbpFSelect('des_page', safe_column('name', 'txp_page', "1"), @$des_page, 1, 'Page'));
-		$out[] = graf(gbpFBoxes('des_feed', array('rss', 'atom', ''), $des_feed, NULL, array('RSS feed', 'Atom feed', 'Neither')));
+		$out[] = graf($this->fSelect('des_page', safe_column('name', 'txp_page', "1"), @$des_page, 1, 'Page'));
+		$out[] = graf($this->fBoxes('des_feed', array('rss', 'atom', ''), $des_feed, NULL, array('RSS feed', 'Atom feed', 'Neither')));
 		$out[] = graf(strong('Redirect this permanent link to...'));
 		// Generate a permlinks array
 		$permlinks = $this->parent->get_all_permlinks(1);
@@ -1679,8 +1623,8 @@ HTML;
 			$permlinks[$key] = $pl['settings']['pl_name'];
 			}
 		unset($permlinks[$id]);
-		$out[] = graf(gbpFSelect('des_permlink', $permlinks, @$des_permlink, 1, 'Permanent link'));
-		$out[] = graf(gbpFInput('text', 'des_location', $des_location, NULL, 'HTTP location'));
+		$out[] = graf($this->fSelect('des_permlink', $permlinks, @$des_permlink, 1, 'Permanent link'));
+		$out[] = graf($this->fInput('text', 'des_location', $des_location, NULL, 'HTTP location'));
 		$out[] = '</div>';
 		$out[] = $hr;
 
@@ -1701,6 +1645,62 @@ HTML;
 		// Lets echo everything out. Yah!
 		echo join(n, $out);
 		}
+
+	function fLabel( $label, $contents='', $label_right=false )
+	{
+		// <label> the contents with the name $lable
+		$contents = ($label_right)
+		? $contents.$label
+		: $label.($contents ? ': '.$contents : '');
+		return tag( $contents, 'label' );
+	}
+
+	function fBoxes( $name='', $value='', $checked_value='', $on=array(), $label='' )
+	{
+		$out = array();
+		if (is_array($value))
+		{
+			$i = 0;
+			foreach ($value as $val)
+			{
+				$o = '<input type="radio" name="'.$name.'" value="'.$val.'"';
+				$o .= ($checked_value == $val) ? ' checked="checked"' : '';
+				if (is_array($on)) foreach($on as $k => $v)
+					$o .= ($on) ? ' on'.$k.'="'.$v.'"' : '';
+				$o .= ' />';
+				$out[] = $this->fLabel($label[$i++], $o, true);
+			}
+		}
+		else
+		{
+			$o = '<input type="checkbox" name="'.$name.'" value="'.$value.'"';
+			$o .= ($checked_value == $value) ? ' checked="checked"' : '';
+			if (is_array($on)) foreach($on as $k => $v)
+				$o .= ($on) ? ' on'.$k.'="'.$v.'"' : '';
+			$o .= ' />';
+			$out[] = $this->fLabel($label, $o, true);
+		}
+
+		return join('', $out);
+	}
+
+	function fInput( $type, $name='', $value='', $on=array(), $label='' )
+	{
+		if ($type == 'radio' || $type == 'checkbox')
+			return $this->fBoxes($name, $value, $on, $label);
+
+		$o = '<input type="'.$type.'" name="'.$name.'" value="'.$value.'"';
+		if (is_array($on)) foreach($on as $k => $v)
+			$o .= ($on) ? ' on'.$k.'="'.$v.'"' : '';
+		$o .= ' />';
+		return ($label) ? $this->fLabel($label, $o) : $o;
+	}
+
+	function fSelect( $name='', $array='', $value='', $blank_first='', $label='', $on_submit='' )
+	{
+		$o = selectInput($name, $array, $value, $blank_first, $on_submit);
+		return ($label ? $this->fLabel($label, $o) : $o);
+	}
 
 	function post_save_permlink()
 		{
