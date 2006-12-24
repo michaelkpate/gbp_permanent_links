@@ -895,7 +895,7 @@ class PermanentLinks extends GBPPlugin
 			'path'		=> 'index.php',
 			'query'		=> '',
 			'fragment'	=> '',
-		), parse_url($parts[2])));
+		), parse_url(html_entity_decode($parts[2]))));
 
 		// Tidy up links back to the site homepage
 		if ($path == 'index.php' && empty($query))
@@ -936,8 +936,15 @@ class PermanentLinks extends GBPPlugin
 		// We have a id, pass to permlinkurl()
 		if ($id)
 			{
-			$rs = safe_row('*, ID as thisid, unix_timestamp(Posted) as posted', 'textpattern', "ID = '{$id}'");
-			return 'href="'. $this->_permlinkurl($rs) . $fragment .'"';
+			if (@$s == 'file_download') {
+				$this->reset_permlink_mode();
+				$url = filedownloadurl($id);
+				$this->set_permlink_mode();
+			} else {
+				$rs = safe_row('*, ID as thisid, unix_timestamp(Posted) as posted', 'textpattern', "ID = '{$id}'");
+				$url = $this->_permlinkurl($rs) . $fragment;
+			}
+			return 'href="'. $url .'"';
 			}
 
 		if (@$s == 'default')
