@@ -58,9 +58,6 @@ $gbp_current_plugin = $txp_current_plugin;
 require_plugin('gbp_admin_library');
 $txp_current_plugin = $gbp_current_plugin;
 
-// Tidy up the DB preference after r179 (permalink -> permlink) for testers - remove before public release.
-safe_update('txp_prefs', "`event` = REPLACE(`event`, 'permalinks', 'permlinks')", "`name` REGEXP '^{$txp_current_plugin}'");
-
 class PermanentLinks extends GBPPlugin
 {
 	var $preferences = array(
