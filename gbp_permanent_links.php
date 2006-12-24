@@ -704,28 +704,25 @@ class PermanentLinks extends GBPPlugin
 		return $html;
 		}
 
+	function check_permlink_conditions($pl, $article_array)
+	{
+		if (empty($article_array['section'])) $article_array['section'] = @$article_array['Section'];
+		if (empty($article_array['category1'])) $article_array['category1'] = @$article_array['Category1'];
+		if (empty($article_array['category2'])) $article_array['category2'] = @$article_array['Category2'];
+	
+		if (@$pl['settings']['con_category'] && ($pl['settings']['con_category'] != $article_array['category1'] || $pl['settings']['con_category'] != $article_array['category2']))
+			return false;
+		if (@$pl['settings']['con_section'] && $pl['settings']['con_section'] != $article_array['section'])
+			return false;
+
+		return true;
+	}
+
 	function _permlinkurl( $article_array, $pl_index=NULL )
 		{
 		global $pretext, $prefs, $production_status;
 
 		if (empty($article_array)) return;
-
-		if (!function_exists('check_permlink_conditions'))
-			{
-			function check_permlink_conditions($pl, $article_array)
-				{
-				if (empty($article_array['section'])) $article_array['section'] = @$article_array['Section'];
-				if (empty($article_array['category1'])) $article_array['category1'] = @$article_array['Category1'];
-				if (empty($article_array['category2'])) $article_array['category2'] = @$article_array['Category2'];
-			
-				if (@$pl['settings']['con_category'] && ($pl['settings']['con_category'] != $article_array['category1'] || $pl['settings']['con_category'] != $article_array['category2']))
-					return false;
-				if (@$pl['settings']['con_section'] && $pl['settings']['con_section'] != $article_array['section'])
-					return false;
-
-				return true;
-				}
-			}
 
 		if ($pl_index)
 			$pl = $this->get_permlink($pl_index);
@@ -741,7 +738,7 @@ class PermanentLinks extends GBPPlugin
 				// The permlink id is stored in the pretext replacement array, so we can find the permlink. 
 				$pl = $this->get_permlink( $matched['permlink_id'] );
 				foreach ($pl['components'] as $pl_c)
-					if ( in_array($pl_c['type'], array('feed', 'page')) || !check_permlink_conditions($pl, $article_array) )
+					if ( in_array($pl_c['type'], array('feed', 'page')) || !$this->check_permlink_conditions($pl, $article_array) )
 						{
 						unset($pl);
 						break;
@@ -753,7 +750,7 @@ class PermanentLinks extends GBPPlugin
 				// We have no permlink id so grab the permlink with the highest precedence.
 				$permlinks = $this->get_all_permlinks(1, array('feed', 'page'));
 				foreach ($permlinks as $key => $pl)
-					if ( !check_permlink_conditions($pl, $article_array) )
+					if ( !$this->check_permlink_conditions($pl, $article_array) )
 						unset($permlinks[$key]);
 				$pl = array_shift($permlinks);
 				}
@@ -1785,20 +1782,7 @@ class PermanentLinksListTabView extends GBPAdminTabView
 
 		$limit = max($this->pref('list_pageby'), 15);
 
-		if (!function_exists('pager'))
-			{
-			// This is taken from txplib_misc.php r1588 it is required for 4.0.3 compatibitly
-			function pager($total, $limit, $page)
-				{
-				$num_pages = ceil($total / $limit);
-				$page = $page ? (int) $page : 1;
-				$page = min(max($page, 1), $num_pages);
-				$offset = max(($page - 1) * $limit, 0);
-				return array($page, $offset, $num_pages);
-				}
-			}
-
-		list($page, $offset, $numPages) = pager($total, $limit, $page);
+		list($page, $offset, $numPages) = $this->pager($total, $limit, $page);
 
 		if (empty($sort))
 			$sort = 'pl_precedence';
@@ -1860,25 +1844,6 @@ class PermanentLinksListTabView extends GBPAdminTabView
 				);
 				}
 
-			if (!function_exists('nav_form'))
-				{
-				// This is basically stolen from the 4.0.3 version of includes/txp_list.php 
-				// - list_nav_form() for 4.0.3 compatibitly
-				function nav_form($event, $page, $numPages, $sort, $dir, $crit, $method)
-					{
-						$nav[] = ($page > 1) 
-						? PrevNextLink($event, $page-1, gTxt('prev'), 'prev', $sort, $dir)
-						: '';
-						$nav[] = sp.small($page. '/'.$numPages).sp;
-						$nav[] = ($page != $numPages) 
-						? PrevNextLink($event, $page+1, gTxt('next'), 'next', $sort, $dir)
-						: '';
-						return ($nav)
-						? graf(join('', $nav), ' align="center"')
-						: '';
-					}
-				}
-
 			echo n.n.tr(
 				tda(
 					select_buttons().
@@ -1889,11 +1854,40 @@ class PermanentLinksListTabView extends GBPAdminTabView
 			n.endTable().
 			n.'</form>'.
 
-			n.nav_form($event, $page, $numPages, $sort, $dir, $crit, $search_method).
+			n.$this->nav_form($event, $page, $numPages, $sort, $dir, $crit, $search_method).
 
 			n.pageby_form($event, $this->pref('list_pageby'));
 			}
 		}
+
+	function pager($total, $limit, $page)
+	{
+		if (function_exists('pager'))
+			return pager($total, $limit, $page);
+
+		// This is taken from txplib_misc.php r1588 it is required for 4.0.3 compatibitly
+		$num_pages = ceil($total / $limit);
+		$page = $page ? (int) $page : 1;
+		$page = min(max($page, 1), $num_pages);
+		$offset = max(($page - 1) * $limit, 0);
+		return array($page, $offset, $num_pages);
+	}
+
+	function nav_form($event, $page, $numPages, $sort, $dir, $crit, $method)
+	{
+		if (function_exists('nav_form'))
+			return nav_form($event, $page, $numPages, $sort, $dir, $crit, $method);
+
+		// This is basically stolen from the 4.0.3 version of includes/txp_list.php 
+		// - list_nav_form() for 4.0.3 compatibitly
+		$nav[] = ($page > 1) 
+			? PrevNextLink($event, $page-1, gTxt('prev'), 'prev', $sort, $dir) : '';
+		$nav[] = sp.small($page. '/'.$numPages).sp;
+		$nav[] = ($page != $numPages) 
+			? PrevNextLink($event, $page+1, gTxt('next'), 'next', $sort, $dir) : '';
+		return ($nav)
+			? graf(join('', $nav), ' align="center"') : '';
+	}
 
 	function permlinks_multiedit_form($page, $sort, $dir, $crit, $search_method)
 	{
