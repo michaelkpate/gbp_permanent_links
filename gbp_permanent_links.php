@@ -422,7 +422,7 @@ class PermanentLinks extends GBPPlugin
 
 					$this->debug(($match == true) ? 'YES' : 'NO');
 
-					if (!$match)
+					if (!$match && !@$cleaver_partial_match)
 					{
 						// There hasn't been a match. Lets try to be cleaver and check to see if this
 						// component is either a title, page or a feed. This makes it more probable a
@@ -446,8 +446,11 @@ class PermanentLinks extends GBPPlugin
 						if ($match)
 						{
 							$cleaver_partial_match = true;
+							$match = false;
 							break;
 						}
+					} else {
+						$cleaver_partial_match = false;
 					}
 				}
 
