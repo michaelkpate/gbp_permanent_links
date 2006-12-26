@@ -135,6 +135,16 @@ class PermanentLinks extends GBPPlugin
 		return $permlink['settings']['pl_name'];
 	}
 
+	function _feed_entry()
+	{
+		static $set;
+		if (!isset($set))
+		{
+			$set = true;
+			$this->set_permlink_mode(true);
+		}
+	}
+
 	function _textpattern()
 	{
 		global $pretext, $prefs, $plugin_callback;
@@ -866,19 +876,17 @@ class PermanentLinks extends GBPPlugin
 				$uri .= '/';
 			}
 
-		if (empty($uri))
-			{
+		if ($uri_empty = empty($uri))
+		{
 			// It is possible the uri is still empty if there is no match or if we're using
 			// strict matching if so try the default permlink mode. 
-			$this->reset_permlink_mode();
-			$uri = permlinkurl( $article_array );
-			$this->set_permlink_mode();
-			}
+			$uri = $this->toggle_permlink_mode('permlinkurl', $article_array);
+		}
 
 		if ($this->pref('omit_trailing_slash'))
 			$uri = rtrim($uri, '/');
 
-		if (in_array(txpath.'/publish/rss.php', get_included_files()) || in_array(txpath.'/publish/atom.php', get_included_files())) {
+		if (!$uri_empty && in_array(txpath.'/publish/rss.php', get_included_files()) || in_array(txpath.'/publish/atom.php', get_included_files())) {
 			$host = rtrim(str_replace(rtrim(doStrip($pretext['subpath']), '/'), '', hu), '/');
 			$uri = $host . $uri;
 		}
@@ -934,9 +942,7 @@ class PermanentLinks extends GBPPlugin
 		if ($id)
 			{
 			if (@$s == 'file_download') {
-				$this->reset_permlink_mode();
-				$url = filedownloadurl($id);
-				$this->set_permlink_mode();
+				$url = $this->toggle_permlink_mode('filedownloadurl', $id);
 			} else {
 				$rs = safe_row('*, ID as thisid, unix_timestamp(Posted) as posted', 'textpattern', "ID = '{$id}'");
 				$url = $this->_permlinkurl($rs) . $fragment;
@@ -1101,20 +1107,42 @@ class PermanentLinks extends GBPPlugin
 		return $parts[0];
 		}
 
-	function set_permlink_mode( $function_only=NULL )
-		{
+	function set_permlink_mode ($reset_function = false)
+	{
 		global $prefs, $pretext, $permlink_mode;
 		$prefs['custom_url_func'] = array(&$this, '_permlinkurl');
-		if (!$function_only)
-			$pretext['permlink_mode'] = $permlink_mode = 'messy';
-		}
 
-	function reset_permlink_mode()
-		{
+		if (!$reset_function)
+			$pretext['permlink_mode'] = $permlink_mode = 'messy';
+		else
+			$pretext['permlink_mode'] = $permlink_mode = $prefs['permlink_mode'];
+	}
+
+	function reset_permlink_mode ()
+	{
 		global $prefs, $pretext, $permlink_mode;
-		$prefs['custom_url_func'] = '';
+		unset($prefs['custom_url_func']);
 		$pretext['permlink_mode'] = $permlink_mode = $prefs['permlink_mode'];
-		}
+	}
+
+	function toggle_permlink_mode ($func, $atts = NULL)
+	{
+		global $prefs, $pretext, $permlink_mode;
+
+		$_call_user_func = $prefs['custom_url_func'];
+		$_permlink_mode = $permlink_mode;
+
+		unset($prefs['custom_url_func']);
+		$pretext['permlink_mode'] = $permlink_mode = $prefs['permlink_mode'];
+
+		if (is_callable($func))
+			$rs = call_user_func($func, $atts);
+
+		$prefs['custom_url_func'] = $_call_user_func;
+		$pretext['permlink_mode'] = $permlink_mode = $_permlink_mode;
+
+		return $rs;
+	}
 
 	function debug()
 	{
@@ -1931,6 +1959,8 @@ global $gbp_pl;
 $gbp_pl = new PermanentLinks('Permanent Links', 'permlinks', 'admin');
 if (@txpinterface == 'public')
 {
+	register_callback(array(&$gbp_pl, '_feed_entry'), 'rss_entry');
+	register_callback(array(&$gbp_pl, '_feed_entry'), 'atom_entry');
 	register_callback(array(&$gbp_pl, '_textpattern'), 'textpattern');
 
 	function gbp_if_regex($atts, $thing)	
@@ -1967,10 +1997,7 @@ if (@txpinterface == 'public')
 	function gbp_disable_permlinks($atts, $thing = '')
 	{
 		global $gbp_pl;
-		$gbp_pl->reset_permlink_mode();
-		$html = parse($thing);
-		$gbp_pl->set_permlink_mode();
-		return $html;
+		return $gbp_pl->toggle_permlink_mode('parse', $thing);
 	}
 }
 
