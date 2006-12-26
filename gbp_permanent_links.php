@@ -75,20 +75,17 @@ class PermanentLinks extends GBPPlugin
 	var $partial_matches = array();
 	var $buffer_debug = array();
 
-	function preload()
-	{
+	function preload () {
 		new PermanentLinksListTabView('list', 'list', $this);
 		new PermanentLinksBuildTabView('build', 'build', $this);
 		new GBPPreferenceTabView($this);
 	}
 
-	function main()
-	{
-	require_privs('publisher');
+	function main () {
+		require_privs('publisher');
 	}
 
-	function get_all_permlinks( $sort=0, $exclude=array() )
-		{
+	function get_all_permlinks ($sort = 0, $exclude = array()) {
 		static $rs;
 		if (!isset($rs))
 			$rs = safe_column(
@@ -97,13 +94,11 @@ class PermanentLinks extends GBPPlugin
 			);
 
 		$permlinks = array();
-		foreach ($rs as $id)
-			{
+		foreach ($rs as $id) {
 			$pl = $this->get_permlink($id);
 
 			if (count($exclude) > 0)
-				foreach ($pl['components'] as $pl_c)
-				{
+				foreach ($pl['components'] as $pl_c) {
 					if (is_array($exclude) && in_array($pl_c['type'], $exclude))
 						continue 2;
 					if (is_string($exclude) && $pl_c['type'] === $exclude)
@@ -113,40 +108,35 @@ class PermanentLinks extends GBPPlugin
 			$permlinks[$id] = $pl;
 			if ($sort)
 				$precedence[$id] = $permlinks[$id]['settings']['pl_precedence'];
-			}
+		}
 
 		// If more than one permanent link, sort by their precedence value.
 		if ($sort && count($permlinks) > 1)
 			array_multisort($precedence, SORT_DESC, $permlinks);
 
 		return $permlinks;
-		}
+	}
 
-	function get_permlink($id)
-		{
+	function get_permlink ($id) {
 		$permlink = $this->pref($id);
 		return is_array($permlink) ? $permlink : array();
-		}
+	}
 
-	function remove_permlink($id)
-	{
+	function remove_permlink ($id) {
 		$permlink = $this->get_permlink($id);
 		safe_delete('txp_prefs', "`event` = '{$this->event}' AND `name` LIKE '{$this->plugin_name}_{$id}%'");
 		return $permlink['settings']['pl_name'];
 	}
 
-	function _feed_entry()
-	{
+	function _feed_entry () {
 		static $set;
-		if (!isset($set))
-		{
+		if (!isset($set)) {
 			$set = true;
 			$this->set_permlink_mode(true);
 		}
 	}
 
-	function _textpattern()
-	{
+	function _textpattern () {
 		global $pretext, $prefs, $plugin_callback;
 
 		$this->debug('Plugin: '.$this->plugin_name);
@@ -174,8 +164,7 @@ class PermanentLinks extends GBPPlugin
 				'des_permlink' => '', 'des_feed' => '', 'des_location' => '',
 		));
 
-		foreach($permlinks as $id => $pl)
-		{
+		foreach($permlinks as $id => $pl) {
 			// Extract the permlink settings
 			$pl_settings = $pl['settings'];
 			extract($pl_settings);
@@ -206,8 +195,7 @@ class PermanentLinks extends GBPPlugin
 
 			// Exit early if there are more URL components than PL components,
 			// taking into account whether there is a data component
-			if (!$uri_components[0] || count($uri_components) > count($pl_components) + ($date ? 2 : 0))
-			{
+			if (!$uri_components[0] || count($uri_components) > count($pl_components) + ($date ? 2 : 0)) {
 				$this->debug('More URL components than PL components');
 				continue;
 			}
@@ -225,28 +213,23 @@ class PermanentLinks extends GBPPlugin
 			$context_str = (count($context) > 0 ? 'and '.join(' and ', $context) : '');
 
 			// Loop through the permlink components
-			foreach ( $pl_components as $pl_c_index=>$pl_c )
-			{
+			foreach ($pl_components as $pl_c_index => $pl_c) {
 				// Assume there is no match
 				$match = false;
 
 				// Check to see if there are still URI components to be checked.
-				if (count( $uri_components ))
+				if (count($uri_components))
 					// Get the next component.
-					$uri_c = array_shift( $uri_components );
+					$uri_c = array_shift($uri_components);
 
-				else if (!$title_page_feed && count($pl_components) - 1 == $uri_component_count)
-					{
+				else if (!$title_page_feed && count($pl_components) - 1 == $uri_component_count) {
 					// If we appended a title_page_feed component earlier and permlink and URI components
 					// counts are equal, we must of finished checking this permlink, and it matches so break.
 					$match = true;
 					break;
-					}
-
-				else
-					{
+				} else {
 					// If there are no more URI components then we have a partial match.
-					$this->debug( 'We have a partial match (No more URI components)' );
+					$this->debug('We have a partial match (No more URI components)');
 
 					// Store the partial match data unless there has been a preceding permlink with the
 					// same number of components, as permlink have already been sorted by precedence.
@@ -254,19 +237,19 @@ class PermanentLinks extends GBPPlugin
 						$this->partial_matches[$uri_component_count] = $pretext_replacement;
 
 					// Unset pretext_replacement as changes could of been made in a preceding component
-					unset( $pretext_replacement );
+					unset($pretext_replacement);
 
 					// Break early form the foreach permlink components loop.
 					$match = true;
 					break;
-					}
+				}
 
 				// Extract the permlink components.
 				extract($pl_c);
 
 				// If it's a date, grab and combine the next two URI components.
 				if ($type == 'date')
-					$uri_c .= '/'.array_shift( $uri_components ).'/'.array_shift( $uri_components );
+					$uri_c .= '/'.array_shift($uri_components).'/'.array_shift($uri_components);
 
 				$uri_c = urldecode($uri_c);
 
@@ -278,8 +261,7 @@ class PermanentLinks extends GBPPlugin
 					if (($pos = strpos($uri_c, $prefix)) === false || $pos != 0) {
 						$check_type = false;
 						$this->debug('Can\'t find prefix: '.$prefix);
-					}
-					else
+					} else
 						// Check passed, remove prefix ready for the next check
 						$uri_c = substr_replace($uri_c, '', 0, strlen($prefix));
 				}
@@ -289,8 +271,7 @@ class PermanentLinks extends GBPPlugin
 					if (($pos = strrpos($uri_c, $suffix)) === false) {
 						$check_type = false;
 						$this->debug('Can\'t find suffix: '.$suffix);
-					}
-					else
+					} else
 						// Check passed, remove suffix ready for the next check
 						$uri_c = substr_replace($uri_c, '', $pos, strlen($suffix));
 				}
@@ -299,13 +280,10 @@ class PermanentLinks extends GBPPlugin
 					$this->debug('Checking if "'.$uri_c.'" is of type "'.$type.'"');
 					$uri_c = doSlash($uri_c);
 
-					if ($prefs['permalink_title_format'])
-					{
+					if ($prefs['permalink_title_format']) {
 						$mt_search = array('/_/', '/\.html$/');
 						$mt_replace = array('-', '');
-					}
-					else
-					{
+					} else {
 						$mt_search = array('/(?:^|_)(.)/e', '/\.html$/');
 						$mt_replace = array("strtoupper('\\1')", '');
 					}
@@ -314,8 +292,7 @@ class PermanentLinks extends GBPPlugin
 						: '';
 
 					// Compare based on type
-					switch ($type)
-					{
+					switch ($type) {
 						case 'section':
 							if ($rs = safe_row('name', 'txp_section', "(`name` like '$uri_c' or `name` like '$mt_uri_c') limit 1")) {
 								$this->debug('Section name: '.$rs['name']);
@@ -429,8 +406,7 @@ class PermanentLinks extends GBPPlugin
 
 					$this->debug(($match == true) ? 'YES' : 'NO');
 
-					if (!$match && !@$cleaver_partial_match)
-					{
+					if (!$match && !@$cleaver_partial_match) {
 						// There hasn't been a match. Lets try to be cleaver and check to see if this
 						// component is either a title, page or a feed. This makes it more probable a
 						// successful match for a given permlink rule occurs.
@@ -440,18 +416,15 @@ class PermanentLinks extends GBPPlugin
 							$pretext['numPages'] = 1;
 							$pretext['is_article_list'] = false;
 							$match = true;
-						}
-						else if ($this->pref('clean_page_archive_links') && $type != 'page' && is_numeric($uri_c)) {
+						} else if ($this->pref('clean_page_archive_links') && $type != 'page' && is_numeric($uri_c)) {
 							$pretext_replacement['pg'] = $uri_c;
 							$match = true;
-						}
-						else if ($type != 'feed' && in_array($uri_c, array('rss', 'atom'))) {
+						} else if ($type != 'feed' && in_array($uri_c, array('rss', 'atom'))) {
 							$pretext_replacement[$uri_c] = 1;
 							$match = true;
 						}
 						$this->debug(($match == true) ? 'YES' : 'NO');
-						if ($match)
-						{
+						if ($match) {
 							$cleaver_partial_match = true;
 							$match = false;
 							break;
@@ -469,22 +442,18 @@ class PermanentLinks extends GBPPlugin
 				}
 			} // foreach permlink component end
 
-			if ($match || @$cleaver_partial_match)
-				{
-				if ( !@$cleaver_partial_match && isset($pretext_replacement) )
+			if ($match || @$cleaver_partial_match) {
+				if (!@$cleaver_partial_match && isset($pretext_replacement))
 					$this->debug('We have a match!');
 
-				else if ( @$cleaver_partial_match && isset($pretext_replacement) )
+				else if (@$cleaver_partial_match && isset($pretext_replacement))
 					$this->debug('We have a \'cleaver partial match\'');
 
-				else if ( count($this->partial_matches) )
-					{
+				else if (count($this->partial_matches)) {
 					$this->debug('We have a \'partial match\'');
 					// Restore the partial match. Sorted by number of components and then precedence
 					$pretext_replacement = array_shift(array_slice($this->partial_matches, -1));
-					}
-				else
-					{
+				} else {
 					$this->debug('Error: Can\'t determine the correct type match');
 
 					$match = false;
@@ -495,9 +464,8 @@ class PermanentLinks extends GBPPlugin
 			if (@$pretext_replacement)
 				$this->debug('Pretext Replacement '.print_r($pretext_replacement, 1));
 
-			if (( !empty($con_section) && $con_section != @$pretext_replacement['s'] )
-			|| ( !empty($con_category) && $con_category != @$pretext_replacement['c'] ))
-			{
+			if ((!empty($con_section)  && $con_section  != @$pretext_replacement['s']) ||
+			(!empty($con_category) && $con_category != @$pretext_replacement['c'])) {
 				$this->debug('Permlink conditions failed');
 				if (@$con_section) $this->debug('con_section = '. $con_section);
 				if (@$con_category) $this->debug('con_category = '. $con_category);
@@ -516,11 +484,10 @@ class PermanentLinks extends GBPPlugin
 				if (!empty($des_feed))
 					$pretext_replacement[$des_feed] = 1;
 
-				if (@$pretext_replacement['id'] && @$pretext_replacement['Posted'])
-					{
+				if (@$pretext_replacement['id'] && @$pretext_replacement['Posted']) {
 				 	if ($np = getNextPrev($pretext_replacement['id'], $pretext_replacement['Posted'], $pretext_replacement['s']))
 						$pretext_replacement = array_merge($pretext_replacement, $np);
-					}
+				}
 				unset($pretext_replacement['Posted']);
 
 				$this->matched_permlink = $pretext_replacement;
@@ -532,11 +499,9 @@ class PermanentLinks extends GBPPlugin
 				if (array_key_exists('date', $pretext_replacement)) {
 					$pretext_replacement['month'] = $pretext_replacement['date'];
 					unset($pretext_replacement['date']);
-				}
-				elseif (array_key_exists('year', $pretext_replacement) || 
-					array_key_exists('month', $pretext_replacement) || 
-					array_key_exists('day', $pretext_replacement)
-				) {
+				} else if (array_key_exists('year', $pretext_replacement) || 
+				array_key_exists('month', $pretext_replacement) || 
+				array_key_exists('day', $pretext_replacement)) {
 					$month = '';
 					$month .= (array_key_exists('year', $pretext_replacement))
 						? $pretext_replacement['year'].'-' : '____-';
@@ -567,63 +532,52 @@ class PermanentLinks extends GBPPlugin
 
 		} // foreach permlinks end
 
-		if (count($permlinks) > 1)
-		{
+		if (count($permlinks) > 1) {
 			// Force Textpattern and tags to use messy URLs - these are easier to
 			// find in regex
 			$this->set_permlink_mode();
 
-			if (isset($pretext_replacement) || count($this->partial_matches))
-				{
+			if (isset($pretext_replacement) || count($this->partial_matches)) {
 				global $permlink_mode;
 
 				if (!isset($pretext_replacement))
 					$pretext_replacement = array_shift(array_slice($this->partial_matches, -1));
 
-				if (in_array($prefs['permlink_mode'], array('id_title', 'section_id_title')) && @$pretext_replacement['pg'] && !@$pretext_replacement['id'])
-					{
+				if (in_array($prefs['permlink_mode'], array('id_title', 'section_id_title')) && @$pretext_replacement['pg'] && !@$pretext_replacement['id']) {
 					$pretext_replacement['id'] = '';
 					$pretext_replacement['is_article_list'] = true;
-					}
+				}
 
 				// Merge pretext_replacement with pretext
 				$pretext = array_merge($pretext, $pretext_replacement);
 
-				if (is_numeric(@$pretext['id']))
-				{
+				if (is_numeric(@$pretext['id'])) {
 					$a = safe_row('*, unix_timestamp(Posted) as uPosted', 'textpattern', 'ID='.intval($pretext['id']).' and Status = 4');
 					populateArticleData($a);
 				}
 
 				// Export required values to the global namespace
-				foreach (array('id', 's', 'c', 'pg', 'is_article_list', 'prev_id', 'prev_title', 'next_id', 'next_title') as $key)
-					{
+				foreach (array('id', 's', 'c', 'pg', 'is_article_list', 'prev_id', 'prev_title', 'next_id', 'next_title') as $key) {
 					if (array_key_exists($key, $pretext))
 						$GLOBALS[$key] = $pretext[$key];
-					}
+				}
 
-				if (count($this->matched_permlink) || @$mt_redirect)
-				{
+				if (count($this->matched_permlink) || @$mt_redirect) {
 					$pl_index = $pretext['permlink_id'];
-					if (!@$mt_redirect || !$this->pref('redirect_mt_style_links'))
-					{
+					if (!@$mt_redirect || !$this->pref('redirect_mt_style_links')) {
 						$pl = $this->get_permlink($pretext['permlink_id']);
 						$pl_index = @$pl['settings']['des_permlink'];
 					}
 
-					if (@$pretext['id'] && $pl_index)
-					{
-						if (count($this->get_permlink($pl_index)) > 0)
-						{
+					if (@$pretext['id'] && $pl_index) {
+						if (count($this->get_permlink($pl_index)) > 0) {
 							ob_clean();
 							global $siteurl;
 							$rs = safe_row('*, ID as thisid, unix_timestamp(Posted) as posted', 'textpattern', "ID = '{$pretext['id']}'");
 							$host = rtrim(str_replace(rtrim(doStrip($pretext['subpath']), '/'), '', hu), '/');
 							$this->redirect($host.$this->_permlinkurl($rs, $pl_index), $this->pref('permlink_redirect_http_status'));
 						}
-					}
-					else if ($url = @$pl['settings']['des_location'])
-					{
+					} else if ($url = @$pl['settings']['des_location']) {
 						ob_clean();
 						$this->redirect($url, $this->pref('url_redirect_http_status'));
 					}
@@ -650,11 +604,9 @@ class PermanentLinks extends GBPPlugin
 				}
 
 				$this->debug('Pretext Replacement '.print_r($pretext, 1));
-				}
-			else
-				{
+			} else {
 				$this->debug('NO CHANGES MADE');
-				}
+			}
 
 			// Start output buffering and pseudo callback to textpattern_end
 			ob_start(array(&$this, '_textpattern_end'));
@@ -662,18 +614,16 @@ class PermanentLinks extends GBPPlugin
 			// Remove the plugin callbacks which have already been called
 			$new_callbacks = array();
 			$found_this = false;
-			foreach ($plugin_callback as $callback)
-				{
+			foreach ($plugin_callback as $callback) {
 				if ($found_this)
 					$new_callbacks = $callback;
-				if ( $callback['event'] == 'textpattern' 
-					&& is_array( $callback['function'] )
-					&& count( $callback['function'] )
-					&& $callback['function'][0] === $this )
-					{
+				if ($callback['event'] == 'textpattern' &&
+				is_array($callback['function']) &&
+				count($callback['function']) &&
+				$callback['function'][0] === $this) {
 					$found_this = true;
-					}
 				}
+			}
 			$plugin_callback = $new_callbacks;
 
 			// Re-call textpattern
@@ -688,8 +638,7 @@ class PermanentLinks extends GBPPlugin
 
 	} // function _textpattern end
 
-	function _textpattern_end( $html, $override='' )
-		{
+	function _textpattern_end ($html, $override = '') {
 		global $pretext, $production_status;
 
 		if ($override) $pretext['permlink_override'] = $override;
@@ -700,19 +649,17 @@ class PermanentLinks extends GBPPlugin
 		);
 		unset($pretext['permlink_override']);
 
-		if ($this->pref('debug') && in_array($production_status, array('debug', 'testing')))
-			{
+		if ($this->pref('debug') && in_array($production_status, array('debug', 'testing'))) {
 			$debug = join(n, $this->buffer_debug);
 			$this->buffer_debug = array();
 			if ($debug)
 				$html = comment(n.$debug.n) . $html;
-			}
-
-		return $html;
 		}
 
-	function check_permlink_conditions($pl, $article_array)
-	{
+		return $html;
+	}
+
+	function check_permlink_conditions ($pl, $article_array) {
 		if (empty($article_array['section'])) $article_array['section'] = @$article_array['Section'];
 		if (empty($article_array['category1'])) $article_array['category1'] = @$article_array['Category1'];
 		if (empty($article_array['category2'])) $article_array['category2'] = @$article_array['Category2'];
@@ -725,48 +672,42 @@ class PermanentLinks extends GBPPlugin
 		return true;
 	}
 
-	function _permlinkurl( $article_array, $pl_index=NULL )
-		{
+	function _permlinkurl ($article_array, $pl_index = NULL) {
 		global $pretext, $prefs, $production_status;
 
 		if (empty($article_array)) return;
 
 		if ($pl_index)
 			$pl = $this->get_permlink($pl_index);
-		else
-			{
+		else {
 			// Get the matched pretext replacement array.
-			$matched = ( count($this->matched_permlink) )
+			$matched = (count($this->matched_permlink))
 			? $this->matched_permlink
 			: array_shift(array_slice($this->partial_matches, -1));
 
-			if (!isset($pl) && $matched && array_key_exists('id', $matched))
-				{
+			if (!isset($pl) && $matched && array_key_exists('id', $matched)) {
 				// The permlink id is stored in the pretext replacement array, so we can find the permlink. 
-				$pl = $this->get_permlink( $matched['permlink_id'] );
+				$pl = $this->get_permlink($matched['permlink_id']);
 				foreach ($pl['components'] as $pl_c)
-					if ( in_array($pl_c['type'], array('feed', 'page')) || !$this->check_permlink_conditions($pl, $article_array) )
-						{
+					if (in_array($pl_c['type'], array('feed', 'page')) || !$this->check_permlink_conditions($pl, $article_array)) {
 						unset($pl);
 						break;
-						}
-				}
+					}
+			}
 			
-			if (!isset($pl))
-				{
+			if (!isset($pl)) {
 				// We have no permlink id so grab the permlink with the highest precedence.
 				$permlinks = $this->get_all_permlinks(1, array('feed', 'page'));
 				foreach ($permlinks as $key => $pl)
-					if ( !$this->check_permlink_conditions($pl, $article_array) )
+					if (!$this->check_permlink_conditions($pl, $article_array))
 						unset($permlinks[$key]);
 				$pl = array_shift($permlinks);
-				}
 			}
+		}
 
 		$uri = '';
 
-		if (is_array($pl) && array_key_exists('components', $pl))
-			{
+		if (is_array($pl) && array_key_exists('components', $pl)) {
 			extract($article_array);
 
 			if (!isset($title)) $title = $Title;
@@ -791,23 +732,20 @@ class PermanentLinks extends GBPPlugin
 				$pl_components[] = array('type' => 'title', 'prefix' => '', 'suffix' => '', 'regex' => '', 'text' => '');
 
 			$uri = rtrim(doStrip($pretext['subpath']), '/');
-			foreach ( $pl_components as $pl_c )
-				{
+			foreach ($pl_components as $pl_c) {
 				$uri .= '/';
 
 				$type = $pl_c['type'];
-				switch ($type)
-					{
+				switch ($type) {
 					case 'category':
 						if ($uri_c = $category1);
 						else if ($uri_c = $category2);
 						else if (in_array($production_status, array('debug', 'testing')))
 							$uri_c = '--INVALID_CATEGORY--';
-						else
-							{
+						else {
 							unset($uri);
 							break 2;
-							}
+						}
 					break;
 					case 'section': $uri_c = $section; break;
 					case 'title': $uri_c = $url_title; break;
@@ -823,11 +761,10 @@ class PermanentLinks extends GBPPlugin
 						else if ($uri_c = @$article_array["custom_{$pl_c['custom']}"]);
 						else if (in_array($production_status, array('debug', 'testing')))
 							$uri_c = '--UNSET_CUSTOM_FIELD--';
-						else
-							{
+						else {
 							unset($uri);
 							break 2;
-							}
+						}
 					break;
 					case 'text': $uri_c = $pl_c['text']; break;
 					case 'regex':
@@ -835,49 +772,43 @@ class PermanentLinks extends GBPPlugin
 						ob_start();
 						preg_match($pl_c['regex'], $pl_c['regex'], $regex_matches);
 						$is_valid_regex = !(ob_get_clean());
-						if ($is_valid_regex)
-							{
+						if ($is_valid_regex) {
 							$key = "permlink_regex_{$pl_c['name']}";
 							$uri_c = (array_key_exists($key, $pretext)) ? $pretext[$key] : $regex_matches[0];
-							}
-						else
+						} else
 							$uri_c = '--INVALID_REGEX--';
 					break;
-					}
+				}
 
 				if (empty($uri_c))
 					if (in_array($production_status, array('debug', 'testing')))
 						$uri_c = '--PERMLINK_FORMAT_ERROR--';
-					else 
-						{
+					else {
 						unset($uri);
 						break;
-						}
+					}
 
 				if (@$pl_c['prefix'])
 					$uri .= urlencode($pl_c['prefix']);
 
-				if ( is_array($uri_c) )
-					{
-					foreach ( $uri_c as $uri_c2 )
+				if (is_array($uri_c)) {
+					foreach ($uri_c as $uri_c2)
 						$uri .= urlencode($uri_c2) . '/';
 					$uri = rtrim($uri, '/');
-					}
-				else
+				} else
 					$uri .= urlencode($uri_c);
 
 				if (@$pl_c['suffix'])
 					$uri .= urlencode($pl_c['suffix']);
 
 				unset($uri_c);
-				}
+			}
 
 			if (isset($uri))
 				$uri .= '/';
-			}
+		}
 
-		if ($uri_empty = empty($uri))
-		{
+		if ($uri_empty = empty($uri)) {
 			// It is possible the uri is still empty if there is no match or if we're using
 			// strict matching if so try the default permlink mode. 
 			$uri = $this->toggle_permlink_mode('permlinkurl', $article_array);
@@ -892,10 +823,9 @@ class PermanentLinks extends GBPPlugin
 		}
 
 		return $uri;
-		}
+	}
 
-	function _pagelinkurl( $parts )
-		{
+	function _pagelinkurl ($parts) {
 		extract(lAtts(array(
 			'path'		=> 'index.php',
 			'query'		=> '',
@@ -907,14 +837,13 @@ class PermanentLinks extends GBPPlugin
 			return 'href="' .hu. '"';
 
 		// Fix matches like href="?s=foo"
-		elseif ($path && empty($query) && $parts[1] == '?')
-			{
+		else if ($path && empty($query) && $parts[1] == '?') {
 			$query = $path;
 			$path = 'index.php';
-			}
+		}
 
 		// Check to see if there is query to work with.
-		elseif (empty($query) || $path != 'index.php' || strpos($query, '/') === true)
+		else if (empty($query) || $path != 'index.php' || strpos($query, '/') === true)
 			return $parts[0];
 
 		// '&amp;' will break parse_str() if they are found in a query string
@@ -924,7 +853,7 @@ class PermanentLinks extends GBPPlugin
 			$fragment = '#'.$fragment;
 
 		global $pretext;
-		parse_str( $query, $query_part );
+		parse_str($query, $query_part);
 		if (!array_key_exists('pg', $query_part))
 			$query_part['pg'] = 0;
 		if (!array_key_exists('id', $query_part))
@@ -934,13 +863,12 @@ class PermanentLinks extends GBPPlugin
 		if (!array_key_exists('atom', $query_part))
 			$query_part['atom'] = 0;
 		if ($this->pref('join_pretext_to_pagelinks'))
-			extract( array_merge($pretext, $query_part) );
+			extract(array_merge($pretext, $query_part));
 		else
-			extract( $query_part );
+			extract($query_part);
 
 		// We have a id, pass to permlinkurl()
-		if ($id)
-			{
+		if ($id) {
 			if (@$s == 'file_download') {
 				$url = $this->toggle_permlink_mode('filedownloadurl', $id);
 			} else {
@@ -948,7 +876,7 @@ class PermanentLinks extends GBPPlugin
 				$url = $this->_permlinkurl($rs) . $fragment;
 			}
 			return 'href="'. $url .'"';
-			}
+		}
 
 		if (@$s == 'default')
 			unset($s);
@@ -974,18 +902,15 @@ class PermanentLinks extends GBPPlugin
 		if (@$pg) $this->buffer_debug[] = 'pg: '.$pg;
 		if (@$q) $this->buffer_debug[] = 'q: '.$q;
 
-		if (@$pretext['permlink_override'])
-			{
+		if (@$pretext['permlink_override']) {
 			$override_ids = explode(',', $pretext['permlink_override']);
-			foreach ($override_ids as $override_id)
-				{
+			foreach ($override_ids as $override_id) {
 				$pl = $this->get_permlink($override_id);
 				if (count($pl) > 0) $permlinks[] = $pl;
-				}
 			}
+		}
 		
-		if (empty($permlinks))
-			{
+		if (empty($permlinks)) {
 			$permlinks = $this->get_all_permlinks(1);
 
 			$permlinks['gbp_permanent_links_default'] = array(
@@ -998,18 +923,15 @@ class PermanentLinks extends GBPPlugin
 					'con_section' => '', 'con_category' => '', 'des_section' => '', 'des_category' => '',
 					'des_permlink' => '', 'des_feed' => '', 'des_location' => '',
 			));
-			}
+		}
 
 		$highest_match_count = null;
-		foreach ($permlinks as $key => $pl)
-			{
+		foreach ($permlinks as $key => $pl) {
 			$this->buffer_debug[] = 'Testing permlink: '. $pl['settings']['pl_name'] .' - '. $key;
 			$this->buffer_debug[] = 'Preview: '. $pl['settings']['pl_preview'];
 			$out = array(); $match_count = 0;
-			foreach ($pl['components'] as $pl_c)
-				{
-				switch ( $pl_c['type'] )
-					{
+			foreach ($pl['components'] as $pl_c) {
+				switch ($pl_c['type']) {
 					case 'text':
 						$out[] = $pl_c['text'];
 						$match_count--;
@@ -1028,7 +950,7 @@ class PermanentLinks extends GBPPlugin
 					break;
 					case 'feed':
 						if (@$rss) $out[] = 'rss';
-						elseif (@$atom) $out[] = 'atom';
+						else if (@$atom) $out[] = 'atom';
 						else break 2;
 					break;
 					case 'search':
@@ -1036,40 +958,37 @@ class PermanentLinks extends GBPPlugin
 						else break 2;
 					break;
 					default: break 2;
-					}
-					if ( !in_array($pl_c['type'], array('title', 'id')) )
+				}
+					if (!in_array($pl_c['type'], array('title', 'id')))
 						$match_count++;
 					else break;
-				}
+			}
 
 			$this->buffer_debug[] = 'Match count: '. $match_count;
 
 			// Todo: Store according to the precedence value
-			if ( count($out) > 0 && ($match_count > $highest_match_count || !isset($highest_match_count))
-			&& !($key == 'gbp_permanent_links_default' && !$match_count) )
-				{
+			if (count($out) > 0 && ($match_count > $highest_match_count || !isset($highest_match_count)) &&
+			!($key == 'gbp_permanent_links_default' && !$match_count)) {
 				extract($pl['settings']);
-				if (( empty($s) && empty($c) )
-				|| ( empty($con_section) || @$s == $con_section )
-				|| ( empty($con_category) || @$c == $con_category ))
-					{
+				if ((empty($s) && empty($c)) ||
+				(empty($con_section) || @$s == $con_section) ||
+				(empty($con_category) || @$c == $con_category)) {
 					$this->buffer_debug[] = 'New highest match! '. implode('/', $out);
 					$highest_match_count = $match_count;
 					$match = $out;
-					}
 				}
 			}
+		}
 
-		if (empty($match) && !(@$pg && $this->pref('clean_page_archive_links')))
-			{
+		if (empty($match) && !(@$pg && $this->pref('clean_page_archive_links'))) {
 			global $prefs, $pretext, $permlink_mode;
 			$this->buffer_debug[] = 'No match';
 			$this->buffer_debug[] = '----';
 			$pretext['permlink_mode'] = $permlink_mode = $prefs['permlink_mode'];
-			$url = pagelinkurl( $query_part );
+			$url = pagelinkurl($query_part);
 			$pretext['permlink_mode'] = $permlink_mode = 'messy';
 			return 'href="'. $url .'"';
-			}
+		}
 
 		$this->buffer_debug[] = serialize($match);
 
@@ -1078,15 +997,14 @@ class PermanentLinks extends GBPPlugin
 
 		if ($rss)
 			$url .= 'rss';
-		elseif ($atom)
+		else if ($atom)
 			$url .= 'atom';
-		elseif ($this->pref('clean_page_archive_links') && $pg)
+		else if ($this->pref('clean_page_archive_links') && $pg)
 			$url .= $pg;
-		elseif ($pg)
-			{
+		else if ($pg) {
 			$url .= '?pg='. $pg;
 			$omit_trailing_slash = true;
-			}
+		}
 
 		$url = rtrim($url, '/') . '/';
 
@@ -1105,10 +1023,9 @@ class PermanentLinks extends GBPPlugin
 		*/
 
 		return $parts[0];
-		}
+	}
 
-	function set_permlink_mode ($reset_function = false)
-	{
+	function set_permlink_mode ($reset_function = false) {
 		global $prefs, $pretext, $permlink_mode;
 		$prefs['custom_url_func'] = array(&$this, '_permlinkurl');
 
@@ -1118,15 +1035,13 @@ class PermanentLinks extends GBPPlugin
 			$pretext['permlink_mode'] = $permlink_mode = $prefs['permlink_mode'];
 	}
 
-	function reset_permlink_mode ()
-	{
+	function reset_permlink_mode () {
 		global $prefs, $pretext, $permlink_mode;
 		unset($prefs['custom_url_func']);
 		$pretext['permlink_mode'] = $permlink_mode = $prefs['permlink_mode'];
 	}
 
-	function toggle_permlink_mode ($func, $atts = NULL)
-	{
+	function toggle_permlink_mode ($func, $atts = NULL) {
 		global $prefs, $pretext, $permlink_mode;
 
 		$_call_user_func = $prefs['custom_url_func'];
@@ -1144,8 +1059,7 @@ class PermanentLinks extends GBPPlugin
 		return $rs;
 	}
 
-	function debug()
-	{
+	function debug () {
 		if ($this->pref('debug')) {
 			global $production_status;
 			$a = func_get_args();
@@ -1163,20 +1077,17 @@ class PermanentLinks extends GBPPlugin
 
 class PermanentLinksBuildTabView extends GBPAdminTabView
 {
-	function preload()
-		{
+	function preload () {
 		register_callback(array(&$this, 'post_save_permlink'), $this->parent->event, gbp_save, 1);
 		register_callback(array(&$this, 'post_save_permlink'), $this->parent->event, gbp_post, 1);
-		}
+	}
 
-	function main()
-		{
+	function main () {
 		global $prefs;
 		extract(gpsa(array('step', gbp_id)));
 
 		// With have an ID, either the permlink has just been saved or the user wants to edit it
-		if ($id)
-			{
+		if ($id) {
 			// Newly saved or beening edited, either way we're editing a permlink
 			$step = gbp_save;
 
@@ -1184,9 +1095,7 @@ class PermanentLinksBuildTabView extends GBPAdminTabView
 			$permlink = $this->parent->get_permlink($id);
 			$components = $this->phpArrayToJsArray('components', $permlink['components']);
 			$settings = $permlink['settings'];
-			}
-		else
-			{
+		} else {
 			// Creating a new ID and permlink.
 			$step = gbp_post;
 			$id = uniqid('');
@@ -1204,7 +1113,7 @@ class PermanentLinksBuildTabView extends GBPAdminTabView
 				'des_section' => '', 'des_category' => '', 'des_page' => '',
 				'des_permlink' => '', 'des_feed' => '', 'des_location' => '',
 			);
-			}
+		}
 
 		// Extract settings - this will be useful when creating the user interface
 		extract($settings);
@@ -1231,14 +1140,12 @@ var {$components}// components array for all the data
 	var _current = 0; // Index of the components array, of the currently selected component
 	var c_vals = new Array('type', 'custom', 'name', 'prefix', 'suffix', 'regex', 'text');
 
-	window.onload = function()
-	{
+	window.onload = function() {
 		component_refresh_all();
 		component_switch(component(_current));
 	}
 
-	function component_add()
-	{
+	function component_add () {
 		// Create data set
 		var data = new Array();
 		for (key in c_vals) {
@@ -1259,8 +1166,7 @@ var {$components}// components array for all the data
 		component_update();
 	}
 
-	function component_refresh(element)
-	{
+	function component_refresh (element) {
 		var c = components[element.id];
 
 		// CSS
@@ -1281,8 +1187,7 @@ var {$components}// components array for all the data
 		element.style['display'] = 'inline';
 
 		// Remove all child nodes
-		while (element.hasChildNodes())
-			{ element.removeChild(element.firstChild); }
+		while (element.hasChildNodes()) { element.removeChild(element.firstChild); }
 
 		// Create the visible string representing this component
 		switch (c['type']) {
@@ -1310,14 +1215,11 @@ var {$components}// components array for all the data
 		return element;
 	}
 
-	function component_refresh_all()
-	{
+	function component_refresh_all () {
 		// Remove all child nodes
-		while (permlink_div().hasChildNodes())
-			{ permlink_div().removeChild(permlink_div().firstChild); }
+		while (permlink_div().hasChildNodes()) { permlink_div().removeChild(permlink_div().firstChild); }
 
-		for (var i = 0; i < components.length; i++)
-		{
+		for (var i = 0; i < components.length; i++) {
 			var c = components[i];
 
 			// Create the new component
@@ -1338,10 +1240,8 @@ var {$components}// components array for all the data
 		}
 	}
 
-	function component_remove()
-	{
-		if (components.length > 1)
-		{
+	function component_remove () {
+		if (components.length > 1) {
 			components.splice(_current, 1);
 
 			if (_current >= components.length)
@@ -1351,8 +1251,7 @@ var {$components}// components array for all the data
 		}
 	}
 
-	function component_switch(element)
-	{
+	function component_switch (element) {
 		// Update current index
 		_current = element.id;
 
@@ -1373,8 +1272,7 @@ var {$components}// components array for all the data
 		component_update();
 	}
 
-	function component_update(element)
-	{
+	function component_update (element) {
 		// Store the data in form inputs, and hide all form inputs
 		var c = new Array()
 		for (key in c_vals) {
@@ -1422,10 +1320,8 @@ var {$components}// components array for all the data
 			element.focus();
 	}
 
-	function component_left()
-	{
-		if (components.length > 1 && _current > 0)
-		{
+	function component_left () {
+		if (components.length > 1 && _current > 0) {
 			// Store current component
 			var c = components[_current];
 
@@ -1443,10 +1339,8 @@ var {$components}// components array for all the data
 		}
 	}
 
-	function component_right()
-	{
-		if (_current < components.length - 1)
-		{
+	function component_right () {
+		if (_current < components.length - 1) {
 			// Store current component
 			var c = components[_current];
 
@@ -1464,8 +1358,7 @@ var {$components}// components array for all the data
 		}
 	}
 
-	function save(form)
-	{
+	function save (form) {
 		var c = ''; var is_permlink = false; var has_page_or_search = false;
 		for (var i = 0; i < components.length; i++) {
 			if (components[i]['type'] == 'title' || components[i]['type'] == 'id')
@@ -1478,22 +1371,17 @@ var {$components}// components array for all the data
 		if (is_permlink && has_page_or_search)
 			alert("Your permanent link can't contain either a 'page', 'feed' or a 'search' component with 'title' or 'id' components.");
 
-		else if (is_permlink && (form.pl_name.value == '' || form.pl_name.value == 'Untitled'))
-		{
+		else if (is_permlink && (form.pl_name.value == '' || form.pl_name.value == 'Untitled')) {
 			document.getElementById('settings').style['display'] = '';
 			form.pl_name.style['border'] = '3px solid rgb(221, 0, 0)';
 			form.pl_precedence.style['border'] = '';
 			alert('Please enter a name for this permanent link rule.');
-		}
-		else if (form.pl_precedence.value == '')
-		{
+		} else if (form.pl_precedence.value == '') {
 			document.getElementById('settings').style['display'] = '';
 			form.pl_precedence.style['border'] = '3px solid rgb(221, 0, 0)';
 			form.pl_name.style['border'] = '';
 			alert('Please enter a precedence value for this permanent link rule.');
-		}
-		else
-		{
+		} else {
 			form.components.value = c;
 			if (permlink_div().textContent)
 				form.pl_preview.value = permlink_div().textContent;
@@ -1505,8 +1393,7 @@ var {$components}// components array for all the data
 		return false;
 	}
 
-	function jsArrayToPhpArray(array)
-	{
+	function jsArrayToPhpArray (array) {
 		// http://farm.tucows.com/blog/_archives/2005/5/30/895901.html
 		var array_php = "";
 		var total = 0;
@@ -1520,22 +1407,19 @@ var {$components}// components array for all the data
 		return array_php;
 	}
 
-	function permlink_div()
-	{
+	function permlink_div () {
 		// Return the permlink rule element
 		return document.getElementById('{$components_div}');
 	}
 
-	function form(name)
-	{
+	function form (name) {
 		if (!name)
 			name = '{$components_form}'
 		// Return the form element with name
 		return document.forms.namedItem(name);
 	}
 
-	function component(index)
-	{
+	function component (index) {
 		// Return component with index
 		return permlink_div().childNodes[index];
 	}
@@ -1562,8 +1446,7 @@ HTML;
 
 		// --- Component type --- //
 
-		$component_types = array
-			(
+		$component_types = array (
 			'section' => 'Section', 'category' => 'Category',
 			'title' => 'Title', 'id' => 'ID',
 			'date' => 'Date (yyyy/mm/dd)', 'year' => 'Year',
@@ -1572,20 +1455,19 @@ HTML;
 			'custom' => 'Custom Field', 'page' => 'Page Number',
 			'feed' => 'Feed', 'search' => 'Search request',
 			'text' => 'Plain Text', 'regex' => 'Regular Expression'
-			);
+		);
 		$out[] = graf($this->fSelect('type', $component_types, '', 1, 'Component type', ' onchange="component_update();"'));
 
 		// --- Component data --- //
 
 		// Grab the custom field titles
 		$custom_fields = array();
-		for ($i = 1; $i <= 10; $i++)
-			{ 
+		for ($i = 1; $i <= 10; $i++) { 
 			if ($v = $prefs["custom_{$i}_set"])
 				$custom_fields[$i] = $v;
-			}
+		}
 
-		$out[] = graf(
+		$out[] = graf (
 			$this->fSelect('custom', $custom_fields, '', 0, 'Custom', ' onchange="component_update(this);"').n.
 			$this->fInput('text', 'name', '', array('keyup' => 'component_update(this);'), 'Name').n.
 			$this->fInput('text', 'prefix', '', array('keyup' => 'component_update(this);'), 'Prefix').n.
@@ -1619,24 +1501,21 @@ HTML;
 		// Generate a sections array (name=>title) 
 		$sections = array();
 		$rs = safe_rows('name, title', 'txp_section', "name != 'default' order by name");
-		foreach ($rs as $sec)
-			{
+		foreach ($rs as $sec) {
 			$sections[$sec['name']] = $sec['title'];
-			}
+		}
 
 		// Generate a categories array (name=>title) 
 		$categories = array();
 		$rs = safe_rows('name, title', 'txp_category', "type = 'article' and name != 'root' order by name");
-		foreach ($rs as $sec)
-			{
+		foreach ($rs as $sec) {
 			$categories[$sec['name']] = $sec['title'];
-			}
+		}
 
-		$out[] = graf
-			(
+		$out[] = graf (
 			$this->fSelect('con_section', $sections, $con_section, 1, 'Within section').n.
 			$this->fSelect('con_category', $categories, $con_category, 1, 'Within category')
-			);
+		);
 		$out[] = '</div>';
 		$out[] = $hr;
 
@@ -1645,20 +1524,18 @@ HTML;
 		$out[] = hed('<a href="#" onclick="toggleDisplay(\'destination\'); return false;">Destination</a>', 2);
 		$out[] = '<div id="destination" style="display:none">';
 		$out[] = graf(strong('Forward this permanent link to...'));
-		$out[] = graf
-			(
+		$out[] = graf (
 			$this->fSelect('des_section', $sections, $des_section, 1, 'Section').n.
 			$this->fSelect('des_category', $categories, $des_category, 1, 'Category')
-			);
+		);
 		$out[] = graf($this->fSelect('des_page', safe_column('name', 'txp_page', "1"), @$des_page, 1, 'Page'));
 		$out[] = graf($this->fBoxes('des_feed', array('rss', 'atom', ''), $des_feed, NULL, array('RSS feed', 'Atom feed', 'Neither')));
 		$out[] = graf(strong('Redirect this permanent link to...'));
 		// Generate a permlinks array
 		$permlinks = $this->parent->get_all_permlinks(1);
-		foreach ($permlinks as $key => $pl)
-			{
+		foreach ($permlinks as $key => $pl) {
 			$permlinks[$key] = $pl['settings']['pl_name'];
-			}
+		}
 		unset($permlinks[$id]);
 		$out[] = graf($this->fSelect('des_permlink', $permlinks, @$des_permlink, 1, 'Permanent link'));
 		$out[] = graf($this->fInput('text', 'des_location', $des_location, NULL, 'HTTP location'));
@@ -1681,25 +1558,21 @@ HTML;
 
 		// Lets echo everything out. Yah!
 		echo join(n, $out);
-		}
+	}
 
-	function fLabel( $label, $contents='', $label_right=false )
-	{
+	function fLabel ($label, $contents = '', $label_right = false) {
 		// <label> the contents with the name $lable
 		$contents = ($label_right)
 		? $contents.$label
 		: $label.($contents ? ': '.$contents : '');
-		return tag( $contents, 'label' );
+		return tag($contents, 'label');
 	}
 
-	function fBoxes( $name='', $value='', $checked_value='', $on=array(), $label='' )
-	{
+	function fBoxes ($name = '', $value = '', $checked_value = '', $on = array(), $label = '') {
 		$out = array();
-		if (is_array($value))
-		{
+		if (is_array($value)) {
 			$i = 0;
-			foreach ($value as $val)
-			{
+			foreach ($value as $val) {
 				$o = '<input type="radio" name="'.$name.'" value="'.$val.'"';
 				$o .= ($checked_value == $val) ? ' checked="checked"' : '';
 				if (is_array($on)) foreach($on as $k => $v)
@@ -1707,9 +1580,7 @@ HTML;
 				$o .= ' />';
 				$out[] = $this->fLabel($label[$i++], $o, true);
 			}
-		}
-		else
-		{
+		} else {
 			$o = '<input type="checkbox" name="'.$name.'" value="'.$value.'"';
 			$o .= ($checked_value == $value) ? ' checked="checked"' : '';
 			if (is_array($on)) foreach($on as $k => $v)
@@ -1721,8 +1592,7 @@ HTML;
 		return join('', $out);
 	}
 
-	function fInput( $type, $name='', $value='', $on=array(), $label='' )
-	{
+	function fInput ($type, $name = '', $value = '', $on = array(), $label = '') {
 		if ($type == 'radio' || $type == 'checkbox')
 			return $this->fBoxes($name, $value, $on, $label);
 
@@ -1733,14 +1603,12 @@ HTML;
 		return ($label) ? $this->fLabel($label, $o) : $o;
 	}
 
-	function fSelect( $name='', $array='', $value='', $blank_first='', $label='', $on_submit='' )
-	{
+	function fSelect ($name = '', $array = '', $value = '', $blank_first = '', $label = '', $on_submit = '') {
 		$o = selectInput($name, $array, $value, $blank_first, $on_submit);
 		return ($label ? $this->fLabel($label, $o) : $o);
 	}
 
-	function post_save_permlink()
-		{
+	function post_save_permlink () {
 		// The function posts or saves a permanent link to txp_prefs
 
 		extract(gpsa(array('step', gbp_id)));
@@ -1771,13 +1639,11 @@ HTML;
 		$this->set_preference($id, $permlink, 'gbp_serialized');
 
 		$this->parent->message = messenger('', $settings['pl_name'], 'saved');
-		}
+	}
 
-	function phpArrayToJsArray($name, $array)
-	{
+	function phpArrayToJsArray ($name, $array) {
 		// From PHP.net
-		if (is_array($array))
-		{
+		if (is_array($array)) {
 			$result = $name.' = new Array();'.n;
 			foreach ($array as $key => $value)
 				$result .= $this->phpArrayToJsArray($name.'[\''.$key.'\']',$value,'').n;
@@ -1790,14 +1656,12 @@ HTML;
 
 class PermanentLinksListTabView extends GBPAdminTabView
 {
-	function preload()
-	{
+	function preload () {
 		register_callback(array(&$this, $this->parent->event.'_multi_edit'), $this->parent->event, $this->parent->event.'_multi_edit', 1);
 		register_callback(array(&$this, $this->parent->event.'_change_pageby'), $this->parent->event, $this->parent->event.'_change_pageby', 1);
 	}
 
-	function main()
-		{
+	function main () {
 		extract(gpsa(array('page', 'sort', 'dir', 'crit', 'search_method')));
 
 		$event = $this->parent->event;
@@ -1805,12 +1669,11 @@ class PermanentLinksListTabView extends GBPAdminTabView
 		$permlinks = $this->parent->get_all_permlinks();
 		$total = count($permlinks);
 
-		if ($total < 1)
-			{
+		if ($total < 1) {
 			echo graf('You haven\'t created any custom permanent links rules yet.', ' style="text-align: center;"').
 				 graf('<a href="'.$this->url(array(gbp_tab => 'build'), true).'">Click here</a> to add one.', ' style="text-align: center;"');
 			return;
-			}
+		}
 
 		$limit = max($this->pref('list_pageby'), 15);
 
@@ -1825,19 +1688,17 @@ class PermanentLinksListTabView extends GBPAdminTabView
 		$dir = ($dir == 'desc') ? 'desc' : 'asc';
 
 		// Sort the permlinks via the selected column and then their names.
-		foreach ($permlinks as $id => $permlink)
-			{
+		foreach ($permlinks as $id => $permlink) {
 			$sort_keys[$id] = $permlink['settings'][$sort];
 			$name[$id] = $permlink['settings']['pl_name'];
-			}
+		}
 		array_multisort($sort_keys, (($dir == 'desc') ? SORT_DESC : SORT_ASC), $name, SORT_ASC, $permlinks);
 
 		$switch_dir = ($dir == 'desc') ? 'asc' : 'desc';
 
 		$permlinks = array_slice($permlinks, $offset, $limit);
 
-		if (count($permlinks))
-			{
+		if (count($permlinks)) {
 			echo n.n.'<form name="longform" method="post" action="index.php" onsubmit="return verify(\''.gTxt('are_you_sure').'\')">'.
 
 				n.startTable('list').
@@ -1851,8 +1712,7 @@ class PermanentLinksListTabView extends GBPAdminTabView
 
 			include_once txpath.'/publish/taghandlers.php';
 
-			foreach ($permlinks as $id => $permlink)
-				{
+			foreach ($permlinks as $id => $permlink) {
 				extract($permlink['settings']);
 
 				$manage = n.'<ul'.(version_compare($GLOBALS['thisversion'], '4.0.3', '<=') ? ' style="margin:0;padding:0;list-style-type:none;">' : '>').
@@ -1874,7 +1734,7 @@ class PermanentLinksListTabView extends GBPAdminTabView
 						fInput('checkbox', 'selected[]', $id)
 					)
 				);
-				}
+			}
 
 			echo n.n.tr(
 				tda(
@@ -1889,11 +1749,10 @@ class PermanentLinksListTabView extends GBPAdminTabView
 			n.$this->nav_form($event, $page, $numPages, $sort, $dir, $crit, $search_method).
 
 			n.pageby_form($event, $this->pref('list_pageby'));
-			}
 		}
+	}
 
-	function pager($total, $limit, $page)
-	{
+	function pager ($total, $limit, $page) {
 		if (function_exists('pager'))
 			return pager($total, $limit, $page);
 
@@ -1905,8 +1764,7 @@ class PermanentLinksListTabView extends GBPAdminTabView
 		return array($page, $offset, $num_pages);
 	}
 
-	function nav_form($event, $page, $numPages, $sort, $dir, $crit, $method)
-	{
+	function nav_form ($event, $page, $numPages, $sort, $dir, $crit, $method) {
 		if (function_exists('nav_form'))
 			return nav_form($event, $page, $numPages, $sort, $dir, $crit, $method);
 
@@ -1921,8 +1779,7 @@ class PermanentLinksListTabView extends GBPAdminTabView
 			? graf(join('', $nav), ' align="center"') : '';
 	}
 
-	function permlinks_multiedit_form($page, $sort, $dir, $crit, $search_method)
-	{
+	function permlinks_multiedit_form ($page, $sort, $dir, $crit, $search_method) {
 		$methods = array(
 			'delete' => gTxt('delete'),
 		);
@@ -1930,13 +1787,11 @@ class PermanentLinksListTabView extends GBPAdminTabView
 		return event_multiedit_form($this->parent->event, $methods, $page, $sort, $dir, $crit, $search_method);
 	}
 
-	function permlinks_change_pageby() 
-	{
+	function permlinks_change_pageby () {
 		$this->set_preference('list_pageby', gps('qty'));
 	}
 
-	function permlinks_multi_edit()
-	{
+	function permlinks_multi_edit () {
 		$method = gps('edit_method')
 			? gps('edit_method') // From Txp 4.0.4 and greater
 			: gps('method'); // Up to Txp 4.0.3
@@ -1957,14 +1812,12 @@ class PermanentLinksListTabView extends GBPAdminTabView
 
 global $gbp_pl;
 $gbp_pl = new PermanentLinks('Permanent Links', 'permlinks', 'admin');
-if (@txpinterface == 'public')
-{
+if (@txpinterface == 'public') {
 	register_callback(array(&$gbp_pl, '_feed_entry'), 'rss_entry');
 	register_callback(array(&$gbp_pl, '_feed_entry'), 'atom_entry');
 	register_callback(array(&$gbp_pl, '_textpattern'), 'textpattern');
 
-	function gbp_if_regex($atts, $thing)	
-	{
+	function gbp_if_regex ($atts, $thing) {
 		global $pretext;
 		extract(lAtts(array(
 			'name' => '',
@@ -1974,8 +1827,7 @@ if (@txpinterface == 'public')
 		return parse(EvalElse($thing, $match));
 	}
 
-	function gbp_if_text($atts, $thing)	
-	{
+	function gbp_if_text ($atts, $thing) {
 		global $pretext;
 		extract(lAtts(array(
 			'name' => '',
@@ -1985,8 +1837,7 @@ if (@txpinterface == 'public')
 		return parse(EvalElse($thing, $match));
 	}
 
-	function gbp_use_pagelink($atts, $thing = '')
-	{
+	function gbp_use_pagelink ($atts, $thing = '') {
 		global $gbp_pl;
 		extract(lAtts(array(
 			'rule' => '',
@@ -1994,8 +1845,7 @@ if (@txpinterface == 'public')
 		return $gbp_pl->_textpattern_end(parse($thing), $rule);
 	}
 
-	function gbp_disable_permlinks($atts, $thing = '')
-	{
+	function gbp_disable_permlinks ($atts, $thing = '') {
 		global $gbp_pl;
 		return $gbp_pl->toggle_permlink_mode('parse', $thing);
 	}
