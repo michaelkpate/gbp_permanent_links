@@ -1,7 +1,7 @@
 <?php
 
 $plugin['name'] = 'gbp_permanent_links';
-$plugin['version'] = '0.11';
+$plugin['version'] = '0.12b';
 $plugin['author'] = 'Graeme Porteous';
 $plugin['author_uri'] = 'http://porteo.us/projects/textpattern/gbp_permanent_links/';
 $plugin['description'] = 'Custom permanent links rules';
@@ -94,7 +94,8 @@ class PermanentLinks extends GBPPlugin
 				"`event` = '{$this->event}' AND `name` REGEXP '^{$this->plugin_name}_.{13}$'"
 			);
 
-		$this->debug('Loading permlinks from db');
+		if (@txpinterface == 'public')
+			$this->debug('Loading permlinks from db');
 		$i = 0;
 
 		$permlinks = array();
@@ -111,7 +112,8 @@ class PermanentLinks extends GBPPlugin
 
 			$permlinks[$id] = $pl;
 
-			$this->debug(++$i.': '.$pl['settings']['pl_name'].' ('.$pl['settings']['pl_preview'].')');
+			if (@txpinterface == 'public')
+				$this->debug(++$i.': '.$pl['settings']['pl_name'].' ('.$pl['settings']['pl_preview'].')');
 
 			if ($sort)
 				$precedence[$id] = $permlinks[$id]['settings']['pl_precedence'];
