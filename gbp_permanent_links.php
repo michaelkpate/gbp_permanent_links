@@ -137,9 +137,9 @@ class PermanentLinks extends GBPPlugin
 	}
 
 	function _textpattern () {
-		global $pretext, $prefs, $plugin_callback;
+		global $plugins_ver, $pretext, $prefs, $plugin_callback;
 
-		$this->debug('Plugin: '.$this->plugin_name);
+		$this->debug('Plugin: '.$this->plugin_name.' - '.$plugins_ver[$this->plugin_name]);
 		$this->debug('Function: '.__FUNCTION__.'()');
 
 		// URI
