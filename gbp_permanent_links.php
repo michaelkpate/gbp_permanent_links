@@ -94,6 +94,9 @@ class PermanentLinks extends GBPPlugin
 				"`event` = '{$this->event}' AND `name` REGEXP '^{$this->plugin_name}_.{13}$'"
 			);
 
+		$this->debug('Loading permlinks from db');
+		$i = 0;
+
 		$permlinks = array();
 		foreach ($rs as $id) {
 			$pl = $this->get_permlink($id);
@@ -107,6 +110,9 @@ class PermanentLinks extends GBPPlugin
 				}
 
 			$permlinks[$id] = $pl;
+
+			$this->debug(++$i.': '.$pl['settings']['pl_name'].' ('.$pl['settings']['pl_preview'].')');
+
 			if ($sort)
 				$precedence[$id] = $permlinks[$id]['settings']['pl_precedence'];
 		}
