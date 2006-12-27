@@ -131,8 +131,11 @@ class PermanentLinks extends GBPPlugin
 	function _feed_entry () {
 		static $set;
 		if (!isset($set)) {
-			$set = true;
+			// We're in a feed force debugging off.
+			$this->preferences['debug']['value'] = $GLOBALS['prefs'][$this->plugin_name.'_debug'] = 0;
+
 			$this->set_permlink_mode(true);
+			$set = true;
 		}
 	}
 
@@ -731,7 +734,7 @@ class PermanentLinks extends GBPPlugin
 			if (!$title)
 				$pl_components[] = array('type' => 'title', 'prefix' => '', 'suffix' => '', 'regex' => '', 'text' => '');
 
-			$uri = rtrim(doStrip($pretext['subpath']), '/');
+			$uri = rtrim(doStrip(@$pretext['subpath']), '/');
 			foreach ($pl_components as $pl_c) {
 				$uri .= '/';
 
@@ -740,7 +743,7 @@ class PermanentLinks extends GBPPlugin
 					case 'category':
 						if ($uri_c = $category1);
 						else if ($uri_c = $category2);
-						else if (in_array($production_status, array('debug', 'testing')))
+						else if ($this->pref('debug') && in_array($production_status, array('debug', 'testing')))
 							$uri_c = '--INVALID_CATEGORY--';
 						else {
 							unset($uri);
@@ -759,7 +762,7 @@ class PermanentLinks extends GBPPlugin
 					case 'custom':
 						if ($uri_c = @$article_array[$prefs["custom_{$pl_c['custom']}_set"]]);
 						else if ($uri_c = @$article_array["custom_{$pl_c['custom']}"]);
-						else if (in_array($production_status, array('debug', 'testing')))
+						else if ($this->pref('debug') && in_array($production_status, array('debug', 'testing')))
 							$uri_c = '--UNSET_CUSTOM_FIELD--';
 						else {
 							unset($uri);
@@ -775,13 +778,13 @@ class PermanentLinks extends GBPPlugin
 						if ($is_valid_regex) {
 							$key = "permlink_regex_{$pl_c['name']}";
 							$uri_c = (array_key_exists($key, $pretext)) ? $pretext[$key] : $regex_matches[0];
-						} else
+						} else if ($this->pref('debug'))
 							$uri_c = '--INVALID_REGEX--';
 					break;
 				}
 
 				if (empty($uri_c))
-					if (in_array($production_status, array('debug', 'testing')))
+					if ($this->pref('debug') && in_array($production_status, array('debug', 'testing')))
 						$uri_c = '--PERMLINK_FORMAT_ERROR--';
 					else {
 						unset($uri);
@@ -818,7 +821,7 @@ class PermanentLinks extends GBPPlugin
 			$uri = rtrim($uri, '/');
 
 		if (!$uri_empty && in_array(txpath.'/publish/rss.php', get_included_files()) || in_array(txpath.'/publish/atom.php', get_included_files())) {
-			$host = rtrim(str_replace(rtrim(doStrip($pretext['subpath']), '/'), '', hu), '/');
+			$host = rtrim(str_replace(rtrim(doStrip(@$pretext['subpath']), '/'), '', hu), '/');
 			$uri = $host . $uri;
 		}
 
@@ -1044,7 +1047,7 @@ class PermanentLinks extends GBPPlugin
 	function toggle_permlink_mode ($func, $atts = NULL) {
 		global $prefs, $pretext, $permlink_mode;
 
-		$_call_user_func = $prefs['custom_url_func'];
+		$_call_user_func = @$prefs['custom_url_func'];
 		$_permlink_mode = $permlink_mode;
 
 		unset($prefs['custom_url_func']);
