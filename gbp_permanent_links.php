@@ -762,8 +762,11 @@ class PermanentLinks extends GBPPlugin
 				$type = $pl_c['type'];
 				switch ($type) {
 					case 'category':
-						if ($uri_c = $category1);
-						else if ($uri_c = $category2);
+						if (!@$pl_c['category']) $pl_c['category'] = 1;
+						$primary = 'category'. $pl_c['category'];
+						$secondary = 'category'. (3-(int)$pl_c['category']);
+						if ($uri_c = $$primary);
+						else if ($uri_c = $$secondary);
 						else if ($this->pref('debug') && in_array($production_status, array('debug', 'testing')))
 							$uri_c = '--INVALID_CATEGORY--';
 						else {
@@ -1127,7 +1130,7 @@ class PermanentLinksBuildTabView extends GBPAdminTabView
 			// Set the default set of components depending on whether there is parent permlink 
 			$components = $this->phpArrayToJsArray('components', array(
 				array('type' => 'section', 'prefix' => '', 'suffix' => '', 'regex' => '', 'text' => ''),
-				array('type' => 'category', 'prefix' => '', 'suffix' => '', 'regex' => '', 'text' => ''),
+				array('type' => 'category', 'prefix' => '', 'suffix' => '', 'regex' => '', 'text' => '', 'category' => '1'),
 				array('type' => 'title', 'prefix' => '', 'suffix' => '', 'regex' => '', 'text' => ''),
 			));
 
@@ -1162,7 +1165,7 @@ $out[] = <<<HTML
 var {$components}// components array for all the data
 
 	var _current = 0; // Index of the components array, of the currently selected component
-	var c_vals = new Array('type', 'custom', 'name', 'prefix', 'suffix', 'regex', 'text');
+	var c_vals = new Array('type', 'custom', 'category', 'name', 'prefix', 'suffix', 'regex', 'text');
 
 	window.onload = function() {
 		component_refresh_all();
@@ -1325,11 +1328,14 @@ var {$components}// components array for all the data
 			break;
 			case 'custom' :
 				form('{$components_form}').custom.parentNode.style['display'] = '';
+				display_fixes();
+			break;
+			case 'category' :
+				form('{$components_form}').category.parentNode.style['display'] = '';
+				display_fixes();
+			break;
 			default :
-				if ('{$show_prefix}')
-					form('{$components_form}').prefix.parentNode.style['display'] = '';
-				if ('{$show_suffix}')
-					form('{$components_form}').suffix.parentNode.style['display'] = '';
+				display_fixes();
 			break;
 		}
 
@@ -1342,6 +1348,13 @@ var {$components}// components array for all the data
 		// Re-focus the active form input
 		if (element)
 			element.focus();
+	}
+
+	function display_fixes () {
+		if ('{$show_prefix}')
+			form('{$components_form}').prefix.parentNode.style['display'] = '';
+		if ('{$show_suffix}')
+			form('{$components_form}').suffix.parentNode.style['display'] = '';
 	}
 
 	function component_left () {
@@ -1493,6 +1506,7 @@ HTML;
 
 		$out[] = graf (
 			$this->fSelect('custom', $custom_fields, '', 0, 'Custom', ' onchange="component_update(this);"').n.
+			$this->fSelect('category', array('1' => 'Category 1', '2' => 'Category 2'), '', 0, 'Primary Category', ' onchange="component_update(this);"').n.
 			$this->fInput('text', 'name', '', array('keyup' => 'component_update(this);'), 'Name').n.
 			$this->fInput('text', 'prefix', '', array('keyup' => 'component_update(this);'), 'Prefix').n.
 			$this->fInput('text', 'regex', '', array('keyup' => 'component_update(this);'), 'Regular Expression').n.
