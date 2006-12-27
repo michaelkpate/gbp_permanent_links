@@ -32,7 +32,7 @@ div#permlink_help h3 { color: #693; font: bold 12px Arial, sans-serif; letter-sp
 <!-- HELP SECTION
 # --- BEGIN PLUGIN HELP ---
 <div id="permlink_help">
- 
+
 h1(#top). gbp_permanent_links.
 
 Provides custom, user defined, permanent links rules.
@@ -73,6 +73,7 @@ class PermanentLinks extends GBPPlugin
 	);
 	var $matched_permlink = array();
 	var $partial_matches = array();
+	var $cleaver_partial_match;
 	var $buffer_debug = array();
 
 	function preload () {
@@ -156,330 +157,362 @@ class PermanentLinks extends GBPPlugin
 
 		// Permanent links
 		$permlinks = $this->get_all_permlinks(1);
+		
+		if (count($permlinks)) {
 
-		// We also want to match the front page of the site (for page numbers / feeds etc..).
-		// Add a permlinks rule which will do that.
-		$permlinks['default'] = array(
-			'components' => array(),
-			'settings' => array(
-				'pl_name' => 'gbp_permanent_links_default', 'pl_precedence' => '', 'pl_preview' => '/',
-				'con_section' => '', 'con_category' => '', 'des_section' => '', 'des_category' => '',
-				'des_permlink' => '', 'des_feed' => '', 'des_location' => '',
-		));
+			// We also want to match the front page of the site (for page numbers / feeds etc..).
+			// Add a permlinks rule which will do that.
+			$permlinks['default'] = array(
+				'components' => array(),
+				'settings' => array(
+					'pl_name' => 'gbp_permanent_links_default', 'pl_precedence' => '', 'pl_preview' => '/',
+					'con_section' => '', 'con_category' => '', 'des_section' => '', 'des_category' => '',
+					'des_permlink' => '', 'des_feed' => '', 'des_location' => '',
+			));
 
-		foreach($permlinks as $id => $pl) {
-			// Extract the permlink settings
-			$pl_settings = $pl['settings'];
-			extract($pl_settings);
+			// Extend the pretext_replacement scope outside the foreach permlink loop 
+			$pretext_replacement = NULL;
 
-			$this->debug('Permlink name: '.$pl_name);
-			$this->debug('Permlink id: '.$id);
-			$this->debug('Preview: '.$pl_preview);
+			foreach($permlinks as $id => $pl) {
+				// Extract the permlink settings
+				$pl_settings = $pl['settings'];
+				extract($pl_settings);
 
-			$pl_components = $pl['components'];
+				$this->debug('Permlink name: '.$pl_name);
+				$this->debug('Permlink id: '.$id);
+				$this->debug('Preview: '.$pl_preview);
 
-			// URI components
-			$uri_components = $uri;
+				$pl_components = $pl['components'];
 
-			$this->debug('PL component count: '.count($pl_components));
-			$this->debug('URL component count: '.count($uri_components));
+				// URI components
+				$uri_components = $uri;
 
-			// Are we expecting a date component? If so the number of pl and uri components won't match
-			$date = false; $title_page_feed = false;
-			foreach($pl_components as $pl_c)
-				if ($pl_c['type'] == 'date')
-				 	$date = true;
-				else if (in_array($pl_c['type'], array('title', 'page', 'feed')))
-					$title_page_feed = true;
+				$this->debug('PL component count: '.count($pl_components));
+				$this->debug('URL component count: '.count($uri_components));
 
-			if (!$title_page_feed)
-				// If there isn't a title component then append on to the end.
-				$pl_components[] = array('type' => 'title_page_feed', 'prefix' => '', 'suffix' => '', 'regex' => '', 'text' => '');
+				$date = false; $title_page_feed = false;
+				foreach($pl_components as $pl_c)
+					// Are we expecting a date component? If so the number of pl and uri components won't match
+					if ($pl_c['type'] == 'date')
+					 	$date = true;
+					// Do we have either a title, page or a feed component? 
+					else if (in_array($pl_c['type'], array('title', 'page', 'feed')))
+						$title_page_feed = true;
 
-			// Exit early if there are more URL components than PL components,
-			// taking into account whether there is a data component
-			if (!$uri_components[0] || count($uri_components) > count($pl_components) + ($date ? 2 : 0)) {
-				$this->debug('More URL components than PL components');
-				continue;
-			}
+				if (!$title_page_feed)
+					// If there isn't a title, page or feed component then append a special type for cleaver partial matching
+					$pl_components[] = array('type' => 'title_page_feed', 'prefix' => '', 'suffix' => '', 'regex' => '', 'text' => '');
 
-			// Reset pretext_replacement as we are about to start another comparison
-			$pretext_replacement = array('permlink_id' => $id);
-
-			// Reset the article context string
-			$context = array();
-			unset($context_str);
-			if (!empty($des_section))
-				$context[] = "`Section` = '$des_section'";
-			if (!empty($des_category))
-				$context[] = "(`Category1` = '$des_category' OR `Category2` = '$des_category')";
-			$context_str = (count($context) > 0 ? 'and '.join(' and ', $context) : '');
-
-			// Loop through the permlink components
-			foreach ($pl_components as $pl_c_index => $pl_c) {
-				// Assume there is no match
-				$match = false;
-
-				// Check to see if there are still URI components to be checked.
-				if (count($uri_components))
-					// Get the next component.
-					$uri_c = array_shift($uri_components);
-
-				else if (!$title_page_feed && count($pl_components) - 1 == $uri_component_count) {
-					// If we appended a title_page_feed component earlier and permlink and URI components
-					// counts are equal, we must of finished checking this permlink, and it matches so break.
-					$match = true;
-					break;
-				} else {
-					// If there are no more URI components then we have a partial match.
-					$this->debug('We have a partial match (No more URI components)');
-
-					// Store the partial match data unless there has been a preceding permlink with the
-					// same number of components, as permlink have already been sorted by precedence.
-					if (!array_key_exists($uri_component_count, $this->partial_matches))
-						$this->partial_matches[$uri_component_count] = $pretext_replacement;
-
-					// Unset pretext_replacement as changes could of been made in a preceding component
-					unset($pretext_replacement);
-
-					// Break early form the foreach permlink components loop.
-					$match = true;
-					break;
-				}
-
-				// Extract the permlink components.
-				extract($pl_c);
-
-				// If it's a date, grab and combine the next two URI components.
-				if ($type == 'date')
-					$uri_c .= '/'.array_shift($uri_components).'/'.array_shift($uri_components);
-
-				$uri_c = urldecode($uri_c);
-
-				// Always check the type unless the prefix or suffix aren't there
-				$check_type = true;
-
-				// Check prefix
-				if ($prefix && $this->pref('show_prefix')) {
-					if (($pos = strpos($uri_c, $prefix)) === false || $pos != 0) {
-						$check_type = false;
-						$this->debug('Can\'t find prefix: '.$prefix);
-					} else
-						// Check passed, remove prefix ready for the next check
-						$uri_c = substr_replace($uri_c, '', 0, strlen($prefix));
-				}
-
-				// Check suffix
-				if ($check_type && $suffix && $this->pref('show_suffix')) {
-					if (($pos = strrpos($uri_c, $suffix)) === false) {
-						$check_type = false;
-						$this->debug('Can\'t find suffix: '.$suffix);
-					} else
-						// Check passed, remove suffix ready for the next check
-						$uri_c = substr_replace($uri_c, '', $pos, strlen($suffix));
-				}
-
-				if ($check_type) {
-					$this->debug('Checking if "'.$uri_c.'" is of type "'.$type.'"');
-					$uri_c = doSlash($uri_c);
-
-					if ($prefs['permalink_title_format']) {
-						$mt_search = array('/_/', '/\.html$/');
-						$mt_replace = array('-', '');
-					} else {
-						$mt_search = array('/(?:^|_)(.)/e', '/\.html$/');
-						$mt_replace = array("strtoupper('\\1')", '');
-					}
-					$mt_uri_c = $this->pref('redirect_mt_style_links')
-						? preg_replace($mt_search, $mt_replace, $uri_c)
-						: '';
-
-					// Compare based on type
-					switch ($type) {
-						case 'section':
-							if ($rs = safe_row('name', 'txp_section', "(`name` like '$uri_c' or `name` like '$mt_uri_c') limit 1")) {
-								$this->debug('Section name: '.$rs['name']);
-								$pretext_replacement['s'] = $rs['name'];
-								$context[] = "`Section` = '{$rs['name']}'";
-								$match = true;
-							}
-						break;
-						case 'category':
-							if ($rs = safe_row('name', 'txp_category', "(`name` like '$uri_c' or `name` like '$mt_uri_c') and `type` = 'article' limit 1")) {
-								$this->debug('Category name: '.$rs['name']);
-								$pretext_replacement['c'] = $rs['name'];
-								$context[] = "(`Category1` = '{$rs['name']}' OR `Category2` = '$uri_c')";
-								$match = true;
-							}
-						break;
-						case 'title':
-							if ($rs = safe_row('ID, Posted', 'textpattern', "(`url_title` like '$uri_c' or `url_title` like '$mt_uri_c') $context_str and `Status` >= 4 limit 1")) {
-								$this->debug('Article id: '.$rs['ID']);
-								$mt_redirect = ($uri_c != $mt_uri_c);
-								$pretext_replacement['id'] = $rs['ID'];
-								$pretext_replacement['Posted'] = $rs['Posted'];
-								$pretext['numPages'] = 1;
-								$pretext['is_article_list'] = false;
-								$match = true;
-							}
-						break;
-						case 'id':
-							if ($rs = safe_row('ID', 'textpattern', "`ID` = '$uri_c' $context_str and `Status` >= 4 limit 1")) {
-								$pretext_replacement['id'] = $rs['ID'];
-								$pretext_replacement['Posted'] = $rs['Posted'];
-								$pretext['numPages'] = 1;
-								$pretext['is_article_list'] = false;
-								$match = true;
-							}
-						break;
-						case 'author':
-							if ($author = safe_field('name', 'txp_users', "RealName like '$uri_c' limit 1")) {
-								$pretext_replacement['author'] = $author;
-								$context[] = "`AuthorID` = '$author'";
-								$match = true;
-							}
-						break;
-						case 'login':
-							if ($author = safe_field('name', 'txp_users', "name like '$uri_c' limit 1")) {
-								$pretext_replacement['author'] = $author;
-								$context[] = "`AuthorID` = '$author'";
-								$match = true;
-							}
-						break;
-						case 'custom':
-							if (safe_field("custom_$custom", 'textpattern', "custom_$custom like '$uri_c' limit 1") !== false) {
-								$match = true;
-							}
-						break;
-						case 'date':
-							if (preg_match('/\d{4}\/\d{2}\/\d{2}/', $uri_c)) {
-								$pretext_replacement['date'] = str_replace('/', '-', $uri_c);
-								$match = true;
-							}
-						break;
-						case 'year':
-							if (preg_match('/\d{4}/', $uri_c)) {
-								$pretext_replacement['year'] = $uri_c;
-								$match = true;
-							}
-						break;
-						case 'month':
-						case 'day':
-							if (preg_match('/\d{2}/', $uri_c)) {
-								$pretext_replacement[$type] = $uri_c;
-								$match = true;
-							}
-						break;
-						case 'page':
-							if (is_numeric($uri_c)) {
-								$pretext_replacement['pg'] = $uri_c;
-								$match = true;
-							}
-						break;
-						case 'feed':
-							if (in_array($uri_c, array('rss', 'atom'))) {
-								$pretext_replacement[$uri_c] = 1;
-								$match = true;
-							}
-						break;
-						case 'search':
-								$pretext_replacement['q'] = $uri_c;
-								$match = true;
-						break;
-						case 'text':
-							if ($text == $uri_c) {
-								$match = true;
-								$pretext_replacement["permlink_text_{$name}"] = $uri_c;
-							}
-						break;
-						case 'regex':
-							// Check to see if regex is valid without outputting error messages.
-							ob_start();
-							preg_match($regex, $uri_c, $regex_matches);
-							$is_valid_regex = !(ob_get_clean());
-							if ($is_valid_regex && @$regex_matches[0]) {
-								$match = true;
-								$pretext_replacement["permlink_regex_{$name}"] = $regex_matches[0];
-							}
-						break;
-					} // switch type end
-
-					// Update the article context string
-					$context_str = (count($context) > 0 ? 'and '.join(' and ', $context) : '');
-
-					$this->debug(($match == true) ? 'YES' : 'NO');
-
-					if (!$match && !@$cleaver_partial_match) {
-						// There hasn't been a match. Lets try to be cleaver and check to see if this
-						// component is either a title, page or a feed. This makes it more probable a
-						// successful match for a given permlink rule occurs.
-						$this->debug('Checking if "'.$uri_c.'" is of type "title_page_feed"');
-						if ($type != 'title' && $ID = safe_field('ID', 'textpattern', "`url_title` like '$uri_c' $context_str and `Status` >= 4 limit 1")) {
-							$pretext_replacement['id'] = $ID;
-							$pretext['numPages'] = 1;
-							$pretext['is_article_list'] = false;
-							$match = true;
-						} else if ($this->pref('clean_page_archive_links') && $type != 'page' && is_numeric($uri_c)) {
-							$pretext_replacement['pg'] = $uri_c;
-							$match = true;
-						} else if ($type != 'feed' && in_array($uri_c, array('rss', 'atom'))) {
-							$pretext_replacement[$uri_c] = 1;
-							$match = true;
-						}
-						$this->debug(($match == true) ? 'YES' : 'NO');
-						if ($match) {
-							$cleaver_partial_match = true;
-							$match = false;
-							break;
-						}
-					} else {
-						$cleaver_partial_match = false;
-					}
-				}
-
-				// Break early if it's not a match, as there is no point continuing
-				if ($match == false) {
-					// Unset pretext_replacement as changes could of been made in a preceding component
-					unset($pretext_replacement);
-					break;
-				}
-			} // foreach permlink component end
-
-			if ($match || @$cleaver_partial_match) {
-				if (!@$cleaver_partial_match && isset($pretext_replacement))
-					$this->debug('We have a match!');
-
-				else if (@$cleaver_partial_match && isset($pretext_replacement))
-					$this->debug('We have a \'cleaver partial match\'');
-
-				else if (count($this->partial_matches)) {
-					$this->debug('We have a \'partial match\'');
-					// Restore the partial match. Sorted by number of components and then precedence
-					$pretext_replacement = array_shift(array_slice($this->partial_matches, -1));
-				} else {
-					$this->debug('Error: Can\'t determine the correct type match');
-
-					$match = false;
-					unset($pretext_replacement);
+				// Exit early if there are more URL components than PL components,
+				// taking into account whether there is a data component
+				if (!$uri_components[0] || count($uri_components) > count($pl_components) + ($date ? 2 : 0)) {
+					$this->debug('More URL components than PL components');
 					continue;
+				}
+
+				// Reset pretext_replacement as we are about to start another comparison
+				$pretext_replacement = array('permlink_id' => $id);
+
+				// Reset the article context string
+				$context = array();
+				unset($context_str);
+				if (!empty($des_section))
+					$context[] = "`Section` = '$des_section'";
+				if (!empty($des_category))
+					$context[] = "(`Category1` = '$des_category' OR `Category2` = '$des_category')";
+				$context_str = (count($context) > 0 ? 'and '.join(' and ', $context) : '');
+
+				// Assume there is no match
+				$partial_match = false;
+				$cleaver_partial_match = false;
+
+				// Loop through the permlink components
+				foreach ($pl_components as $pl_c_index => $pl_c) {
+					// Assume there is no match
+					$match = false;
+
+					// Check to see if there are still URI components to be checked.
+					if (count($uri_components))
+						// Get the next component.
+						$uri_c = array_shift($uri_components);
+
+					else if (!$title_page_feed && count($pl_components) - 1 == $uri_component_count) {
+						// If we appended a title_page_feed component earlier and permlink and URI components
+						// counts are equal, we must of finished checking this permlink, and it matches so break.
+						$match = true;
+						break;
+
+					} else {
+						// If there are no more URI components then we have a partial match.
+						// Store the partial match data unless there has been a preceding permlink with the
+						// same number of components, as permlink have already been sorted by precedence.
+						if (!array_key_exists($uri_component_count, $this->partial_matches))
+							$this->partial_matches[$uri_component_count] = $pretext_replacement;
+
+						// Unset pretext_replacement as changes could of been made in a preceding component
+						unset($pretext_replacement);
+
+						// Break early form the foreach permlink components loop.
+						$partial_match = true;
+						break;
+					}
+
+					// Extract the permlink components.
+					extract($pl_c);
+
+					// If it's a date, grab and combine the next two URI components.
+					if ($type == 'date')
+						$uri_c .= '/'.array_shift($uri_components).'/'.array_shift($uri_components);
+
+					// Decode the URL
+					$uri_c = urldecode($uri_c);
+
+					// Always check the type unless the prefix or suffix aren't there
+					$check_type = true;
+
+					// Check prefix
+					if ($prefix && $this->pref('show_prefix')) {
+						if (($pos = strpos($uri_c, $prefix)) === false || $pos != 0) {
+							$check_type = false;
+							$this->debug('Can\'t find prefix: '.$prefix);
+						} else
+							// Check passed, remove prefix ready for the next check
+							$uri_c = substr_replace($uri_c, '', 0, strlen($prefix));
+					}
+
+					// Check suffix
+					if ($check_type && $suffix && $this->pref('show_suffix')) {
+						if (($pos = strrpos($uri_c, $suffix)) === false) {
+							$check_type = false;
+							$this->debug('Can\'t find suffix: '.$suffix);
+						} else
+							// Check passed, remove suffix ready for the next check
+							$uri_c = substr_replace($uri_c, '', $pos, strlen($suffix));
+					}
+
+					// Both the prefix and suffix settings have passed
+					if ($check_type) {
+						$this->debug('Checking if "'.$uri_c.'" is of type "'.$type.'"');
+						$uri_c = doSlash($uri_c);
+
+						// 
+						if ($prefs['permalink_title_format']) {
+							$mt_search = array('/_/', '/\.html$/');
+							$mt_replace = array('-', '');
+						} else {
+							$mt_search = array('/(?:^|_)(.)/e', '/\.html$/');
+							$mt_replace = array("strtoupper('\\1')", '');
+						}
+						$mt_uri_c = $this->pref('redirect_mt_style_links')
+							? preg_replace($mt_search, $mt_replace, $uri_c)
+							: '';
+
+						// Compare based on type
+						switch ($type) {
+							case 'section':
+								if ($rs = safe_row('name', 'txp_section', "(`name` like '$uri_c' or `name` like '$mt_uri_c') limit 1")) {
+									$this->debug('Section name: '.$rs['name']);
+									$pretext_replacement['s'] = $rs['name'];
+									$context[] = "`Section` = '{$rs['name']}'";
+									$match = true;
+								}
+							break;
+							case 'category':
+								if ($rs = safe_row('name', 'txp_category', "(`name` like '$uri_c' or `name` like '$mt_uri_c') and `type` = 'article' limit 1")) {
+									$this->debug('Category name: '.$rs['name']);
+									$pretext_replacement['c'] = $rs['name'];
+									$context[] = "(`Category1` = '{$rs['name']}' OR `Category2` = '$uri_c')";
+									$match = true;
+								}
+							break;
+							case 'title':
+								if ($rs = safe_row('ID, Posted', 'textpattern', "(`url_title` like '$uri_c' or `url_title` like '$mt_uri_c') $context_str and `Status` >= 4 limit 1")) {
+									$this->debug('Article id: '.$rs['ID']);
+									$mt_redirect = ($uri_c != $mt_uri_c);
+									$pretext_replacement['id'] = $rs['ID'];
+									$pretext_replacement['Posted'] = $rs['Posted'];
+									$pretext['numPages'] = 1;
+									$pretext['is_article_list'] = false;
+									$match = true;
+								}
+							break;
+							case 'id':
+								if ($rs = safe_row('ID', 'textpattern', "`ID` = '$uri_c' $context_str and `Status` >= 4 limit 1")) {
+									$pretext_replacement['id'] = $rs['ID'];
+									$pretext_replacement['Posted'] = $rs['Posted'];
+									$pretext['numPages'] = 1;
+									$pretext['is_article_list'] = false;
+									$match = true;
+								}
+							break;
+							case 'author':
+								if ($author = safe_field('name', 'txp_users', "RealName like '$uri_c' limit 1")) {
+									$pretext_replacement['author'] = $author;
+									$context[] = "`AuthorID` = '$author'";
+									$match = true;
+								}
+							break;
+							case 'login':
+								if ($author = safe_field('name', 'txp_users', "name like '$uri_c' limit 1")) {
+									$pretext_replacement['author'] = $author;
+									$context[] = "`AuthorID` = '$author'";
+									$match = true;
+								}
+							break;
+							case 'custom':
+								if (safe_field("custom_$custom", 'textpattern', "custom_$custom like '$uri_c' limit 1") !== false) {
+									$match = true;
+								}
+							break;
+							case 'date':
+								if (preg_match('/\d{4}\/\d{2}\/\d{2}/', $uri_c)) {
+									$pretext_replacement['date'] = str_replace('/', '-', $uri_c);
+									$match = true;
+								}
+							break;
+							case 'year':
+								if (preg_match('/\d{4}/', $uri_c)) {
+									$pretext_replacement['year'] = $uri_c;
+									$match = true;
+								}
+							break;
+							case 'month':
+							case 'day':
+								if (preg_match('/\d{2}/', $uri_c)) {
+									$pretext_replacement[$type] = $uri_c;
+									$match = true;
+								}
+							break;
+							case 'page':
+								if (is_numeric($uri_c)) {
+									$pretext_replacement['pg'] = $uri_c;
+									$match = true;
+								}
+							break;
+							case 'feed':
+								if (in_array($uri_c, array('rss', 'atom'))) {
+									$pretext_replacement[$uri_c] = 1;
+									$match = true;
+								}
+							break;
+							case 'search':
+									$pretext_replacement['q'] = $uri_c;
+									$match = true;
+							break;
+							case 'text':
+								if ($text == $uri_c) {
+									$match = true;
+									$pretext_replacement["permlink_text_{$name}"] = $uri_c;
+								}
+							break;
+							case 'regex':
+								// Check to see if regex is valid without outputting error messages.
+								ob_start();
+								preg_match($regex, $uri_c, $regex_matches);
+								$is_valid_regex = !(ob_get_clean());
+								if ($is_valid_regex && @$regex_matches[0]) {
+									$match = true;
+									$pretext_replacement["permlink_regex_{$name}"] = $regex_matches[0];
+								}
+							break;
+						} // switch type end
+
+						// Update the article context string
+						$context_str = (count($context) > 0 ? 'and '.join(' and ', $context) : '');
+
+						$this->debug(($match == true) ? 'YES' : 'NO');
+
+						if (!$match && !$cleaver_partial_match) {
+							// There hasn't been a match or a complete cleaver partial match. Lets try to be cleaver and
+							// check to see if this component is either a title, page or a feed. This makes it more probable
+							// a successful match for a given permlink rule occurs.
+							$this->debug('Checking if "'.$uri_c.'" is of type "title_page_feed"');
+
+							if ($type != 'title' && $ID = safe_field('ID', 'textpattern', "`url_title` like '$uri_c' $context_str and `Status` >= 4 limit 1")) {
+								$pretext_replacement['id'] = $ID;
+								$pretext['numPages'] = 1;
+								$pretext['is_article_list'] = false;
+								$cleaver_partial_match = true;
+							} else if ($this->pref('clean_page_archive_links') && $type != 'page' && is_numeric($uri_c)) {
+								$pretext_replacement['pg'] = $uri_c;
+								$cleaver_partial_match = true;
+							} else if ($type != 'feed' && in_array($uri_c, array('rss', 'atom'))) {
+								$pretext_replacement[$uri_c] = 1;
+								$cleaver_partial_match = true;
+							}
+
+							$this->debug(($cleaver_partial_match == true) ? 'YES' : 'NO');
+
+							if ($cleaver_partial_match) {
+								$this->cleaver_partial_match = $pretext_replacement;
+
+								// Unset pretext_replacement as changes could of been made in a preceding component
+								unset($pretext_replacement);
+							
+								$cleaver_partial_match = true;
+								continue 2;
+							}
+						}
+					} // check type end
+
+					// Break early if the component doesn't match, as there is no point continuing
+					if ($match == false) {
+						// Unset pretext_replacement as changes could of been made in a preceding component
+						unset($pretext_replacement);
+						break;
+					}
+				} // foreach permlink component end
+
+				if ($match || $partial_match || $cleaver_partial_match) {
+					if ($match && isset($pretext_replacement))
+						$this->debug('We have a match!');
+
+					else if ($partial_match && count($this->partial_matches))
+						$this->debug('We have a \'partial match\'');
+
+					else if ($cleaver_partial_match && isset($cleaver_partial_match)) {
+						$this->debug('We have a \'cleaver partial match\'');
+
+					} else {
+						$this->debug('Error: Can\'t determine the correct type match');
+						// This permlink has failed, continue execution of the foreach permlinks loop 
+						unset($pretext_replacement);
 					}
 				}
-			if (@$pretext_replacement)
-				$this->debug('Pretext Replacement '.print_r($pretext_replacement, 1));
 
-			if ((!empty($con_section)  && $con_section  != @$pretext_replacement['s']) ||
+				// We have a match
+				if (@$pretext_replacement)
+					break;
+
+			} // foreach permlinks end
+
+			// If there is no match restore the most likely partial match. Sorted by number of components and then precedence
+			if (!@$pretext_replacement && count($this->partial_matches))
+				$pretext_replacement = array_shift(array_slice($this->partial_matches, -1));
+			unset($this->partial_matches);
+
+			// Restore the cleaver_partial_match if there is no other matches
+			if (!@$pretext_replacement && $this->cleaver_partial_match)
+				$pretext_replacement = $this->cleaver_partial_match;
+			unset($this->cleaver_partial_match);
+
+			// Extract the settings for this permlink
+			@extract($permlinks[$pretext_replacement['permlink_id']]['settings']);
+
+			// Check the permlink section and category conditions
+			if ((!empty($con_section) && $con_section != @$pretext_replacement['s']) ||
 			(!empty($con_category) && $con_category != @$pretext_replacement['c'])) {
 				$this->debug('Permlink conditions failed');
 				if (@$con_section) $this->debug('con_section = '. $con_section);
 				if (@$con_category) $this->debug('con_category = '. $con_category);
 
-				$match = false;
 				unset($pretext_replacement);
-				continue;
 			}
 
 			// If pretext_replacement is still set here then we have a match
-			if ($match) {
+			if (@$pretext_replacement) {
+				$this->debug('Pretext Replacement '.print_r($pretext_replacement, 1));
+
 				if (!empty($des_section))
 					$pretext_replacement['s'] = $des_section;
 				if (!empty($des_category))
@@ -492,8 +525,6 @@ class PermanentLinks extends GBPPlugin
 						$pretext_replacement = array_merge($pretext_replacement, $np);
 				}
 				unset($pretext_replacement['Posted']);
-
-				$this->matched_permlink = $pretext_replacement;
 
 				// If there is a match then we most set the http status correctly as txp's pretext might set it to 404
 				$pretext_replacement['status'] = '200';
@@ -524,27 +555,17 @@ class PermanentLinks extends GBPPlugin
 
 				// Set the page template, otherwise we get an unknown section error
 				$page = (@$des_page)
-				? $des_page
-				: safe_field('page', 'txp_section', "name = '{$pretext_replacement['s']}' limit 1");
+					? $des_page
+					: safe_field('page', 'txp_section', "name = '{$pretext_replacement['s']}' limit 1");
 				$pretext_replacement['page'] = $page;
 
-				if (count($this->matched_permlink))
-					// We're done - no point checking the other permlinks
-					break;
-			}
+				$this->matched_permlink = $pretext_replacement;
 
-		} // foreach permlinks end
+				// Force Textpattern and tags to use messy URLs - these are easier to
+				// find in regex
+				$this->set_permlink_mode();
 
-		if (count($permlinks) > 1) {
-			// Force Textpattern and tags to use messy URLs - these are easier to
-			// find in regex
-			$this->set_permlink_mode();
-
-			if (isset($pretext_replacement) || count($this->partial_matches)) {
 				global $permlink_mode;
-
-				if (!isset($pretext_replacement))
-					$pretext_replacement = array_shift(array_slice($this->partial_matches, -1));
 
 				if (in_array($prefs['permlink_mode'], array('id_title', 'section_id_title')) && @$pretext_replacement['pg'] && !@$pretext_replacement['id']) {
 					$pretext_replacement['id'] = '';
@@ -606,7 +627,7 @@ class PermanentLinks extends GBPPlugin
 					exit(atom());
 				}
 
-				$this->debug('Pretext Replacement '.print_r($pretext, 1));
+				$this->debug('Pretext '.print_r($pretext, 1));
 			} else {
 				$this->debug('NO CHANGES MADE');
 			}
@@ -666,7 +687,7 @@ class PermanentLinks extends GBPPlugin
 		if (empty($article_array['section'])) $article_array['section'] = @$article_array['Section'];
 		if (empty($article_array['category1'])) $article_array['category1'] = @$article_array['Category1'];
 		if (empty($article_array['category2'])) $article_array['category2'] = @$article_array['Category2'];
-	
+
 		if (@$pl['settings']['con_category'] && ($pl['settings']['con_category'] != $article_array['category1'] || $pl['settings']['con_category'] != $article_array['category2']))
 			return false;
 		if (@$pl['settings']['con_section'] && $pl['settings']['con_section'] != $article_array['section'])
@@ -697,7 +718,7 @@ class PermanentLinks extends GBPPlugin
 						break;
 					}
 			}
-			
+
 			if (!isset($pl)) {
 				// We have no permlink id so grab the permlink with the highest precedence.
 				$permlinks = $this->get_all_permlinks(1, array('feed', 'page'));
@@ -912,7 +933,7 @@ class PermanentLinks extends GBPPlugin
 				if (count($pl) > 0) $permlinks[] = $pl;
 			}
 		}
-		
+
 		if (empty($permlinks)) {
 			$permlinks = $this->get_all_permlinks(1);
 
