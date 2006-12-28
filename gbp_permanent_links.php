@@ -1,15 +1,23 @@
 <?php
 
+$plugin['url'] = '$HeadURL$';
+$plugin['date'] = '$LastChangedDate$';
+$plugin['revision'] = '$LastChangedRevision$';
+
+$revision = @$plugin['revision'];
+if(!empty($revision)) {
+	$parts = explode(' ', trim($revision, '$'));
+	$revision = $parts[1];
+	if(!empty($revision))
+		$revision = '.' . $revision;
+}
+
 $plugin['name'] = 'gbp_permanent_links';
-$plugin['version'] = '0.12b';
+$plugin['version'] = '0.11' . $revision;
 $plugin['author'] = 'Graeme Porteous';
 $plugin['author_uri'] = 'http://porteo.us/projects/textpattern/gbp_permanent_links/';
 $plugin['description'] = 'Custom permanent links rules';
 $plugin['type'] = '1';
-
-$plugin['url'] = '$HeadURL$';
-$plugin['date'] = '$LastChangedDate$';
-$plugin['revision'] = '$LastChangedRevision$';
 
 @include_once('../zem_tpl.php');
 
