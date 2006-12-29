@@ -173,6 +173,10 @@ class PermanentLinks extends GBPPlugin
 
 		// Permanent links
 		$permlinks = $this->get_all_permlinks(1);
+
+		// Force Textpattern and tags to use messy URLs - these are easier to
+		// find in regex
+		$this->set_permlink_mode();
 		
 		if (count($permlinks)) {
 
@@ -581,10 +585,6 @@ class PermanentLinks extends GBPPlugin
 
 				$this->matched_permlink = $pretext_replacement;
 
-				// Force Textpattern and tags to use messy URLs - these are easier to
-				// find in regex
-				$this->set_permlink_mode();
-
 				global $permlink_mode;
 
 				if (in_array($prefs['permlink_mode'], array('id_title', 'section_id_title')) && @$pretext_replacement['pg'] && !@$pretext_replacement['id']) {
@@ -653,7 +653,7 @@ class PermanentLinks extends GBPPlugin
 			}
 
 			// Log this page hit
-			if ($orginial_status == 404)
+			if (@$orginial_status == 404)
 				log_hit($pretext['status']);
 
 			// Start output buffering and pseudo callback to textpattern_end
@@ -731,7 +731,7 @@ class PermanentLinks extends GBPPlugin
 			// Get the matched pretext replacement array.
 			$matched = (count($this->matched_permlink))
 			? $this->matched_permlink
-			: array_shift(array_slice($this->partial_matches, -1));
+			: @array_shift(array_slice($this->partial_matches, -1));
 
 			if (!isset($pl) && $matched && array_key_exists('id', $matched)) {
 				// The permlink id is stored in the pretext replacement array, so we can find the permlink. 
