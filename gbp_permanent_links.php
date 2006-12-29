@@ -545,6 +545,10 @@ class PermanentLinks extends GBPPlugin
 				// If there is a match then we most set the http status correctly as txp's pretext might set it to 404
 				$pretext_replacement['status'] = '200';
 
+				// Store the orginial HTTP status code
+				// We might need to log the page hit if it equals 404
+				$orginial_status = $pretext['status'];
+
 				// Txp only looks at the month, but due to how we phase the month we can manipulate the sql to our needs
 				if (array_key_exists('date', $pretext_replacement)) {
 					$pretext_replacement['month'] = $pretext_replacement['date'];
@@ -647,6 +651,10 @@ class PermanentLinks extends GBPPlugin
 			} else {
 				$this->debug('NO CHANGES MADE');
 			}
+
+			// Log this page hit
+			if ($orginial_status == 404)
+				log_hit($pretext['status']);
 
 			// Start output buffering and pseudo callback to textpattern_end
 			ob_start(array(&$this, '_textpattern_end'));
