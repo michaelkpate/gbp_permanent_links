@@ -541,7 +541,7 @@ class PermanentLinks extends GBPPlugin
 					$pretext_replacement[$des_feed] = 1;
 
 				if (@$pretext_replacement['id'] && @$pretext_replacement['Posted']) {
-				 	if ($np = getNextPrev($pretext_replacement['id'], $pretext_replacement['Posted'], $pretext_replacement['s']))
+				 	if ($np = getNextPrev($pretext_replacement['id'], $pretext_replacement['Posted'], @$pretext_replacement['s']))
 						$pretext_replacement = array_merge($pretext_replacement, $np);
 				}
 				unset($pretext_replacement['Posted']);
@@ -575,7 +575,12 @@ class PermanentLinks extends GBPPlugin
 
 				// Section needs to be defined so we can always get a page template.
 				if (!array_key_exists('s', $pretext_replacement))
-					$pretext_replacement['s'] = 'default';
+				{
+					if (!@$pretext_replacement['id'])
+						$pretext_replacement['s'] = 'default';
+					else
+						$pretext_replacement['s'] = safe_field('Section', 'textpattern', 'ID = '.$pretext_replacement['id']);
+				}
 
 				// Set the page template, otherwise we get an unknown section error
 				$page = (@$des_page)
