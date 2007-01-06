@@ -385,20 +385,20 @@ class PermanentLinks extends GBPPlugin
 								}
 							break;
 							case 'date':
-								if (preg_match('/\d{4}\/\d{2}\/\d{2}/', $uri_c)) {
+								if (preg_match('/\d{4}\/\d{2}\/\d{2}/', $uri_c) === true) {
 									$pretext_replacement['date'] = str_replace('/', '-', $uri_c);
 									$match = true;
 								}
 							break;
 							case 'year':
-								if (preg_match('/\d{4}/', $uri_c)) {
+								if (preg_match('/\d{4}/', $uri_c) === true) {
 									$pretext_replacement['year'] = $uri_c;
 									$match = true;
 								}
 							break;
 							case 'month':
 							case 'day':
-								if (preg_match('/\d{2}/', $uri_c)) {
+								if (preg_match('/\d{2}/', $uri_c) === true) {
 									$pretext_replacement[$type] = $uri_c;
 									$match = true;
 								}
