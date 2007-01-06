@@ -682,6 +682,15 @@ class PermanentLinks extends GBPPlugin
 			// Re-call textpattern
 			textpattern();
 
+			// Redirect to a 404 if the page number is greater than the max number of pages
+			// Has to be after textpattern() as $thispage is set during <txp:article />
+			global $thispage;
+			if ((@$pretext['pg'] && isset($thispage)) &&
+			($thispage['numPages'] < $pretext['pg'])) {
+				ob_end_clean();
+				txp_die(gTxt('404_not_found'), '404');
+			}
+
 			// Stop output buffering, this sends the buffer to _textpattern_end()
 			ob_end_flush();
 
