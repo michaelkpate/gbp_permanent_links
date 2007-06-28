@@ -75,6 +75,7 @@ class PermanentLinks extends GBPPlugin
 		'redirect_mt_style_links' => array('value' => 1 , 'type' => 'yesnoradio'),
 		'clean_page_archive_links' => array('value' => 1 , 'type' => 'yesnoradio'),
 		'join_pretext_to_pagelinks' => array('value' => 1 , 'type' => 'yesnoradio'),
+		'force_lowercase_urls' => array('value' => 1 , 'type' => 'yesnoradio'),
 		'permlink_redirect_http_status' => array('value' => '301' , 'type' => 'text_input'),
 		'url_redirect_http_status' => array('value' => '302' , 'type' => 'text_input'),
 		'debug' => array('value' => 0, 'type' => 'yesnoradio'),
@@ -292,22 +293,24 @@ class PermanentLinks extends GBPPlugin
 
 					// Check prefix
 					if ($prefix && $this->pref('show_prefix')) {
-						if (($pos = strpos($uri_c, $prefix)) === false || $pos != 0) {
+						$sanitized_prefix = sanitizeForUrl($prefix);
+						if (($pos = strpos($uri_c, $sanitized_prefix)) === false || $pos != 0) {
 							$check_type = false;
 							$this->debug('Can\'t find prefix: '.$prefix);
 						} else
 							// Check passed, remove prefix ready for the next check
-							$uri_c = substr_replace($uri_c, '', 0, strlen($prefix));
+							$uri_c = substr_replace($uri_c, '', 0, strlen($sanitized_prefix));
 					}
 
 					// Check suffix
 					if ($check_type && $suffix && $this->pref('show_suffix')) {
-						if (($pos = strrpos($uri_c, $suffix)) === false) {
+						$sanitized_suffix = sanitizeForUrl($suffix);
+						if (($pos = strrpos($uri_c, $sanitized_suffix)) === false) {
 							$check_type = false;
 							$this->debug('Can\'t find suffix: '.$suffix);
 						} else
 							// Check passed, remove suffix ready for the next check
-							$uri_c = substr_replace($uri_c, '', $pos, strlen($suffix));
+							$uri_c = substr_replace($uri_c, '', $pos, strlen($sanitized_suffix));
 					}
 
 					// Both the prefix and suffix settings have passed
@@ -380,7 +383,7 @@ class PermanentLinks extends GBPPlugin
 								}
 							break;
 							case 'custom':
-								if (safe_field("custom_$custom", 'textpattern', "custom_$custom like '$uri_c' limit 1") !== false) {
+								if (sanitizeForUrl(safe_field("custom_$custom", 'textpattern', "1=1 limit 1")) == $uri_c) {
 									$match = true;
 								}
 							break;
@@ -420,7 +423,7 @@ class PermanentLinks extends GBPPlugin
 									$match = true;
 							break;
 							case 'text':
-								if ($text == $uri_c) {
+								if (sanitizeForUrl($text) == $uri_c) {
 									$match = true;
 									$pretext_replacement["permlink_text_{$name}"] = $uri_c;
 								}
@@ -854,17 +857,17 @@ class PermanentLinks extends GBPPlugin
 					}
 
 				if (@$pl_c['prefix'])
-					$uri .= urlencode($pl_c['prefix']);
+					$uri .= sanitizeForUrl($pl_c['prefix']);
 
 				if (is_array($uri_c)) {
 					foreach ($uri_c as $uri_c2)
-						$uri .= urlencode($uri_c2) . '/';
+						$uri .= sanitizeForUrl($uri_c2) . '/';
 					$uri = rtrim($uri, '/');
 				} else
-					$uri .= urlencode($uri_c);
+					$uri .= sanitizeForUrl($uri_c);
 
 				if (@$pl_c['suffix'])
-					$uri .= urlencode($pl_c['suffix']);
+					$uri .= sanitizeForUrl($pl_c['suffix']);
 
 				unset($uri_c);
 			}
