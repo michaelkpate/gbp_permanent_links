@@ -76,6 +76,7 @@ class PermanentLinks extends GBPPlugin
 		'clean_page_archive_links' => array('value' => 1 , 'type' => 'yesnoradio'),
 		'join_pretext_to_pagelinks' => array('value' => 1 , 'type' => 'yesnoradio'),
 		'force_lowercase_urls' => array('value' => 1 , 'type' => 'yesnoradio'),
+		'automatically_append_title' => array('value' => 1 , 'type' => 'yesnoradio'),
 		'permlink_redirect_http_status' => array('value' => '301' , 'type' => 'text_input'),
 		'url_redirect_http_status' => array('value' => '302' , 'type' => 'text_input'),
 		'debug' => array('value' => 0, 'type' => 'yesnoradio'),
@@ -796,7 +797,7 @@ class PermanentLinks extends GBPPlugin
 					$title = true;
 
 			// If there isn't a title component then we need to append one to the end of the URI
-			if (!$title)
+			if (!$title && $this->pref('automatically_append_title'))
 				$pl_components[] = array('type' => 'title', 'prefix' => '', 'suffix' => '', 'regex' => '', 'text' => '');
 
 			$uri = rtrim(doStrip(@$pretext['subpath']), '/');
