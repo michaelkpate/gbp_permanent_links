@@ -383,7 +383,8 @@ class PermanentLinks extends GBPPlugin
 								}
 							break;
 							case 'custom':
-								if (sanitizeForUrl(safe_field("custom_$custom", 'textpattern', "1=1 limit 1")) == $uri_c) {
+								$custom_options = array_values(array_map("sanitizeForUrl", safe_column("custom_$custom", 'textpattern', "custom_$custom != ''")));
+								if (in_array($uri_c, $custom_options)) {
 									$match = true;
 								}
 							break;
