@@ -384,6 +384,8 @@ class PermanentLinks extends GBPPlugin
 							break;
 							case 'custom':
 								$custom_options = array_values(array_map("sanitizeForUrl", safe_column("custom_$custom", 'textpattern', "custom_$custom != ''")));
+								if ($this->pref('force_lowercase_urls'))
+									$custom_options = array_map("strtolower", $custom_options);
 								if (in_array($uri_c, $custom_options)) {
 									$match = true;
 								}
@@ -891,7 +893,7 @@ class PermanentLinks extends GBPPlugin
 			$uri = $host . $uri;
 		}
 
-		return $uri;
+		return ($this->pref('force_lowercase_urls')) ? strtolower($uri) : $uri;
 	}
 
 	function _pagelinkurl ($parts) {
@@ -1091,7 +1093,7 @@ class PermanentLinks extends GBPPlugin
 		2 = id, s, section, c, category, rss, atom, pg, q, (n, p, month, author)
 		*/
 
-		return $parts[0];
+		return ($this->pref('force_lowercase_urls')) ? strtolower($parts[0]) : $parts[0];
 	}
 
 	function set_permlink_mode ($reset_function = false) {
