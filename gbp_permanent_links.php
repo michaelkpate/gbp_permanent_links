@@ -782,7 +782,7 @@ class PermanentLinks extends GBPPlugin
 			if (empty($url_title)) $url_title = stripSpace($title);
 			if (empty($section)) $section = $Section;
 			if (empty($posted)) $posted = $Posted;
-			if (empty($authorid)) $authorid = $AuthorID;
+			if (empty($authorid)) $authorid = @$AuthorID;
 			if (empty($category1)) $category1 = @$Category1;
 			if (empty($category2)) $category2 = @$Category2;
 			if (empty($thisid)) $thisid = $ID;
