@@ -1052,7 +1052,7 @@ class PermanentLinks extends GBPPlugin
 			}
 		}
 
-		if (empty($match) && !(@$pg && $this->pref('clean_page_archive_links'))) {
+		if (empty($match) && (!(@$pg && $this->pref('clean_page_archive_links')) || (@$pg && @$q))) {
 			global $prefs, $pretext, $permlink_mode;
 			$this->buffer_debug[] = 'No match';
 			$this->buffer_debug[] = '----';
