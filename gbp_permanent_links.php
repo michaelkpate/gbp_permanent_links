@@ -708,7 +708,7 @@ class PermanentLinks extends GBPPlugin
 	{
 		// Redirect to a 404 if the page number is greater than the max number of pages
 		// Has to be after textpattern() as $thispage is set during <txp:article />
-		global $thispage;
+		global $thispage, $pretext;
 		if ((@$pretext['pg'] && isset($thispage)) &&
 		($thispage['numPages'] < $pretext['pg'])) {
 			ob_end_clean();
