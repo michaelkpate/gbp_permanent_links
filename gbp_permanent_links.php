@@ -916,7 +916,7 @@ class PermanentLinks extends GBPPlugin
 			'query'		=> '',
 			'fragment'	=> '',
 		), parse_url(html_entity_decode(str_replace('&#38;', '&', $parts[2])))));
-	$this->buffer_debug[] = $query;
+
 		// Tidy up links back to the site homepage
 		if ($path == 'index.php' && empty($query))
 			return 'href="' .hu. '"';
