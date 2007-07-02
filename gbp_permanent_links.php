@@ -669,7 +669,14 @@ class PermanentLinks extends GBPPlugin
 				log_hit($pretext['status']);
 
 			// Start output buffering and pseudo callback to textpattern_end
-			ob_start(array(&$this, '_textpattern_end'));
+			ob_start(array(&$this, '_textpattern_end_callback'));
+
+			// TxP 4.0.5 (r2436) introduced the textpattern_end callback making the following redundant
+			$version = array_sum(array_map(
+				create_function('$line', 'if (preg_match(\'/^\$LastChangedRevision: (\w+) \$/\', $line, $match)) return $match[1];'),
+				@file(txpath . '/publish.php')
+			));
+			if ($version >= '2436') return;
 
 			// Remove the plugin callbacks which have already been called
 			function filter_callbacks($c) {
@@ -688,25 +695,32 @@ class PermanentLinks extends GBPPlugin
 			// Re-call textpattern
 			textpattern();
 
-			// Redirect to a 404 if the page number is greater than the max number of pages
-			// Has to be after textpattern() as $thispage is set during <txp:article />
-			global $thispage;
-			if ((@$pretext['pg'] && isset($thispage)) &&
-			($thispage['numPages'] < $pretext['pg'])) {
-				ob_end_clean();
-				txp_die(gTxt('404_not_found'), '404');
-			}
-
-			// Stop output buffering, this sends the buffer to _textpattern_end()
-			ob_end_flush();
+			// Call custom textpattern_end callback 
+			$this->_textpattern_end();
 
 			// textpattern() has run, kill the connection
-		    die();
+			die();
 		}
 
 	} // function _textpattern end
 
-	function _textpattern_end ($html, $override = '') {
+	function _textpattern_end ()
+	{
+		// Redirect to a 404 if the page number is greater than the max number of pages
+		// Has to be after textpattern() as $thispage is set during <txp:article />
+		global $thispage;
+		if ((@$pretext['pg'] && isset($thispage)) &&
+		($thispage['numPages'] < $pretext['pg'])) {
+			ob_end_clean();
+			txp_die(gTxt('404_not_found'), '404');
+		}	
+	
+		// Stop output buffering, this sends the buffer to _textpattern_end_callback()
+		while (@ob_end_flush());
+	
+	} // function _textpattern_end end
+
+	function _textpattern_end_callback ($html, $override = '') {
 		global $pretext, $production_status;
 
 		if ($override) $pretext['permlink_override'] = $override;
@@ -725,7 +739,7 @@ class PermanentLinks extends GBPPlugin
 		}
 
 		return $html;
-	}
+	} // function _textpattern_end_callback end
 
 	function check_permlink_conditions ($pl, $article_array) {
 		if (empty($article_array['section'])) $article_array['section'] = @$article_array['Section'];
@@ -1898,6 +1912,7 @@ if (@txpinterface == 'public') {
 	register_callback(array(&$gbp_pl, '_feed_entry'), 'rss_entry');
 	register_callback(array(&$gbp_pl, '_feed_entry'), 'atom_entry');
 	register_callback(array(&$gbp_pl, '_textpattern'), 'textpattern');
+	register_callback(array(&$gbp_pl, '_textpattern_end'), 'textpattern_end');
 
 	function gbp_if_regex ($atts, $thing) {
 		global $pretext;
