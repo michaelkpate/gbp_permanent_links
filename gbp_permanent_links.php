@@ -672,19 +672,18 @@ class PermanentLinks extends GBPPlugin
 			ob_start(array(&$this, '_textpattern_end'));
 
 			// Remove the plugin callbacks which have already been called
-			$new_callbacks = array();
-			$found_this = false;
-			foreach ($plugin_callback as $callback) {
-				if ($found_this)
-					$new_callbacks = $callback;
-				if ($callback['event'] == 'textpattern' &&
-				is_array($callback['function']) &&
-				count($callback['function']) &&
-				$callback['function'][0] === $this) {
-					$found_this = true;
+			function filter_callbacks($c) {
+				if ($c['event']!='textpattern') return true;
+				if (@$c['function'][0]->plugin_name == 'gbp_permanent_links' &&
+						@$c['function'][1] == '_textpattern')
+				{
+					$GLOBALS['gbp_found_self'] = true;
+					return false;
 				}
+				return @$GLOBALS['gbp_found_self'];
 			}
-			$plugin_callback = $new_callbacks;
+			$plugin_callback = array_filter($plugin_callback, 'filter_callbacks');
+			unset($GLOBALS['gbp_found_self']);
 
 			// Re-call textpattern
 			textpattern();
