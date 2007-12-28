@@ -1930,7 +1930,14 @@ if (@txpinterface == 'public') {
 			'name' => '',
 			'val'  => '',
 		),$atts));
-		$match = (@$pretext["permlink_text_{$name}"] == $val);
+
+		$match = false;
+		if (!empty($name)) {
+			if (empty($val))
+				$match = (isset($pretext["permlink_text_{$name}"]));
+			else
+				$match = (@$pretext["permlink_text_{$name}"] == $val);
+		}
 		return parse(EvalElse($thing, $match));
 	}
 
