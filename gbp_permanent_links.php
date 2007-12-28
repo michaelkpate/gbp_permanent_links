@@ -673,7 +673,7 @@ class PermanentLinks extends GBPPlugin
 
 			// TxP 4.0.5 (r2436) introduced the textpattern_end callback making the following redundant
 			$version = array_sum(array_map(
-				create_function('$line', 'if (preg_match(\'/^\$LastChangedRevision: (\w+) \$/\', $line, $match)) return $match[1];'),
+				create_function('$line', 'if (preg_match(\'/^\$'.'LastChangedRevision: (\w+) \$/\', $line, $match)) return $match[1];'),
 				@file(txpath . '/publish.php')
 			));
 			if ($version >= '2436') return;
