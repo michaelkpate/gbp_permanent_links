@@ -53,12 +53,9 @@ Provides custom, user defined, permanent links rules.
 # --- BEGIN PLUGIN CODE ---
 
 // Constants
-if (!defined('gbp_save'))
-	define('gbp_save', 'save');
-if (!defined('gbp_post'))
-	define('gbp_post', 'post');
-if (!defined('gbp_separator'))
-	define('gbp_separator', '&~&~&');
+@define('gbp_save', 'save');
+@define('gbp_post', 'post');
+@define('gbp_separator', '&~&~&');
 
 // require_plugin() will reset the $txp_current_plugin global
 global $txp_current_plugin;
