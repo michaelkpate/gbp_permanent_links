@@ -358,7 +358,7 @@ class PermanentLinks extends GBPPlugin
 								}
 							break;
 							case 'id':
-								if ($rs = safe_row('ID', 'textpattern', "`ID` = '$uri_c' $context_str and `Status` >= 4 limit 1")) {
+								if ($rs = safe_row('ID, Posted', 'textpattern', "`ID` = '$uri_c' $context_str and `Status` >= 4 limit 1")) {
 									$pretext_replacement['id'] = $rs['ID'];
 									$pretext_replacement['Posted'] = $rs['Posted'];
 									$pretext['numPages'] = 1;
