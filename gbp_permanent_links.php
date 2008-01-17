@@ -291,7 +291,7 @@ class PermanentLinks extends GBPPlugin
 
 					// Check prefix
 					if ($prefix && $this->pref('show_prefix')) {
-						$sanitized_prefix = sanitizeForUrl($prefix);
+						$sanitized_prefix = urldecode($this->encode_url($prefix));
 						if (($pos = strpos($uri_c, $sanitized_prefix)) === false || $pos != 0) {
 							$check_type = false;
 							$this->debug('Can\'t find prefix: '.$prefix);
@@ -302,7 +302,7 @@ class PermanentLinks extends GBPPlugin
 
 					// Check suffix
 					if ($check_type && $suffix && $this->pref('show_suffix')) {
-						$sanitized_suffix = sanitizeForUrl($suffix);
+						$sanitized_suffix = urldecode($this->encode_url($suffix));
 						if (($pos = strrpos($uri_c, $sanitized_suffix)) === false) {
 							$check_type = false;
 							$this->debug('Can\'t find suffix: '.$suffix);
@@ -381,7 +381,7 @@ class PermanentLinks extends GBPPlugin
 								}
 							break;
 							case 'custom':
-								$custom_options = array_values(array_map("sanitizeForUrl", safe_column("custom_$custom", 'textpattern', "custom_$custom != ''")));
+								$custom_options = array_values(array_map(array($this, "encode_url"), safe_column("custom_$custom", 'textpattern', "custom_$custom != ''")));
 								if ($this->pref('force_lowercase_urls'))
 									$custom_options = array_map("strtolower", $custom_options);
 								if (in_array($uri_c, $custom_options)) {
@@ -424,7 +424,7 @@ class PermanentLinks extends GBPPlugin
 									$match = true;
 							break;
 							case 'text':
-								if (sanitizeForUrl($text) == $uri_c) {
+								if ($this->encode_url($text) == $uri_c) {
 									$match = true;
 									$pretext_replacement["permlink_text_{$name}"] = $uri_c;
 								}
@@ -701,8 +701,7 @@ class PermanentLinks extends GBPPlugin
 
 	} // function _textpattern end
 
-	function _textpattern_end ()
-	{
+	function _textpattern_end () {
 		// Redirect to a 404 if the page number is greater than the max number of pages
 		// Has to be after textpattern() as $thispage is set during <txp:article />
 		global $thispage, $pretext;
@@ -871,17 +870,17 @@ class PermanentLinks extends GBPPlugin
 					}
 
 				if (@$pl_c['prefix'])
-					$uri .= sanitizeForUrl($pl_c['prefix']);
+					$uri .= $this->encode_url($pl_c['prefix']);
 
 				if (is_array($uri_c)) {
 					foreach ($uri_c as $uri_c2)
-						$uri .= sanitizeForUrl($uri_c2) . '/';
+						$uri .= $this->encode_url($uri_c2) . '/';
 					$uri = rtrim($uri, '/');
 				} else
-					$uri .= sanitizeForUrl($uri_c);
+					$uri .= $this->encode_url($uri_c);
 
 				if (@$pl_c['suffix'])
-					$uri .= sanitizeForUrl($pl_c['suffix']);
+					$uri .= $this->encode_url($pl_c['suffix']);
 
 				unset($uri_c);
 			}
@@ -1139,6 +1138,10 @@ class PermanentLinks extends GBPPlugin
 		$pretext['permlink_mode'] = $permlink_mode = $_permlink_mode;
 
 		return $rs;
+	}
+
+	function encode_url ($text) {
+		return urlencode(trim(dumbDown(urldecode($text))));
 	}
 
 	function debug () {
@@ -1723,7 +1726,7 @@ HTML;
 		// Unserialize the components
 		$components = array();
 		foreach ($serialize_components as $c)
-			$components[] = unserialize(urldecode(stripslashes($c)));
+			$components[] = unserialize(stripslashes($c));
 
 		// Complete the permanent link array - this is exactly what needs to be stored in the db
 		$permlink = array('settings' => $settings, 'components' => $components);
