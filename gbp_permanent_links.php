@@ -90,7 +90,7 @@ class PermanentLinks extends GBPPlugin
 	}
 
 	function main () {
-		require_privs('publisher');
+		require_privs($this->event);
 	}
 
 	function get_all_permlinks ($sort = 0, $exclude = array()) {
