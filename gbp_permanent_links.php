@@ -15,7 +15,7 @@ if(!empty($revision)) {
 $plugin['name'] = 'gbp_permanent_links';
 $plugin['version'] = '0.11' . $revision;
 $plugin['author'] = 'Graeme Porteous';
-$plugin['author_uri'] = 'http://porteo.us/projects/textpattern/gbp_permanent_links/';
+$plugin['author_uri'] = 'http://rgbp.co.uk/projects/textpattern/gbp_permanent_links/';
 $plugin['description'] = 'Custom permanent links rules';
 $plugin['type'] = '1';
 
