@@ -28,47 +28,55 @@ There is no plugin documentation. For help please use the "forum thread":http://
 require_plugin('gbp_admin_library');
 
 $GLOBALS['PermanentLinksModels'] = array();
+$GLOBALS['PermanentLinksRules']  = array();
 
 class PermanentLinks extends GBPPlugin {
   function preload () {
     // Register the default route models and fields
     // Articles
-    new PermanentLinksModel('Article',   'textpattern');
-    new PermanentLinksField('ID',        'integer');
-    new PermanentLinksField('Date',      'date',         'Posted');
-    new PermanentLinksField('Author',    'has_one',      array('model' => 'txp_users',    'key' => 'user_id', 'AuthorID'));
-    new PermanentLinksField('Category',  'has_many',     array('model' => 'txp_category', 'key' => 'name',    'Category1', 'Category2'));
-    new PermanentLinksField('Section',   'has_one',      array('model' => 'txp_section',  'key' => 'name',    'Section'));
-    new PermanentLinksField('Keywords',  'csv');
-    new PermanentLinksField('Title',     'string',       'url_title');
+    new PermanentLinksModel('Article',   'textpattern',
+      new PermanentLinksField('ID',        'integer'),
+      new PermanentLinksField('Date',      'date',         'Posted'),
+      new PermanentLinksField('Author',    'has_one',      array('model' => 'txp_users',    'key' => 'user_id'), 'AuthorID'),
+      new PermanentLinksField('Category',  'has_many',     array('model' => 'txp_category', 'key' => 'name'), 'Category1', 'Category2'),
+      new PermanentLinksField('Section',   'has_one',      array('model' => 'txp_section',  'key' => 'name'), 'Section'),
+      new PermanentLinksField('Keywords',  'csv'),
+      new PermanentLinksField('Title',     'string',       'url_title')
+    );
     // Images
-    new PermanentLinksModel('Image',     'txp_image');
-    new PermanentLinksField('ID',        'integer',      'id');
-    new PermanentLinksField('Name',      'string',       'name');
-    new PermanentLinksField('Category',  'has_one',      array('model' => 'txp_category', 'key' => 'name', 'category'));
-    new PermanentLinksField('Uploader',  'has_one',      array('model' => 'txp_users',    'key' => 'name', 'author'));
+    new PermanentLinksModel('Image',     'txp_image',
+      new PermanentLinksField('ID',        'integer',      'id'),
+      new PermanentLinksField('Name',      'string',       'name'),
+      new PermanentLinksField('Category',  'has_one',      array('model' => 'txp_category', 'key' => 'name'), 'category'),
+      new PermanentLinksField('Uploader',  'has_one',      array('model' => 'txp_users',    'key' => 'name'), 'author')
+    );
     // Files
-    new PermanentLinksModel('File',      'txp_file');
-    new PermanentLinksField('ID',        'integer',      'id');
-    new PermanentLinksField('Name',      'string',       'filename');
-    new PermanentLinksField('Category',  'has_one',      array('model' => 'txp_category', 'key' => 'name', 'category'));
-    new PermanentLinksField('Uploader',  'has_one',      array('model' => 'txp_users',    'key' => 'name', 'author'));
+    new PermanentLinksModel('File',      'txp_file',
+      new PermanentLinksField('ID',        'integer',      'id'),
+      new PermanentLinksField('Name',      'string',       'filename'),
+      new PermanentLinksField('Category',  'has_one',      array('model' => 'txp_category', 'key' => 'name'), 'category'),
+      new PermanentLinksField('Uploader',  'has_one',      array('model' => 'txp_users',    'key' => 'name'), 'author')
+    );
     // Links
-    new PermanentLinksModel('Link',      'txp_link');
-    new PermanentLinksField('ID',        'integer',      'id');
-    new PermanentLinksField('Name',      'string',       'linkname');
-    new PermanentLinksField('Category',  'has_one',      array('model' => 'txp_category', 'key' => 'name', 'category'));
-    new PermanentLinksField('Uploader',  'has_one',      array('model' => 'txp_users',    'key' => 'name', 'author'));
-    // Author   (archive)
-    new PermanentLinksModel('Author',    'txp_users');
-    new PermanentLinksField('Login',     'string',       'name');
-    new PermanentLinksField('Full name', 'string',       'RealName');
-    // Category (archive)
-    new PermanentLinksModel('Category',  'txp_category');
-    new PermanentLinksField('Title',     'string',       'name');
-    // Section  (archive)
-    new PermanentLinksModel('Section',   'txp_section');
-    new PermanentLinksField('Title',     'string',       'name');
+    new PermanentLinksModel('Link',      'txp_link',
+      new PermanentLinksField('ID',        'integer',      'id'),
+      new PermanentLinksField('Name',      'string',       'linkname'),
+      new PermanentLinksField('Category',  'has_one',      array('model' => 'txp_category', 'key' => 'name'), 'category'),
+      new PermanentLinksField('Uploader',  'has_one',      array('model' => 'txp_users',    'key' => 'name'), 'author')
+    );
+    // Author
+    new PermanentLinksModel('Author',    'txp_users',
+      new PermanentLinksField('Login',     'string',       'name'),
+      new PermanentLinksField('Full name', 'string',       'RealName')
+    );
+    // Category
+    new PermanentLinksModel('Category',  'txp_category',
+      new PermanentLinksField('Title',     'string',       'name')
+    );
+    // Section
+    new PermanentLinksModel('Section',   'txp_section',
+      new PermanentLinksField('Title',     'string',       'name')
+    );
 
     // TODO: Register custom route models and fields from other plugins
   }
@@ -86,6 +94,14 @@ class PermanentLinksModel {
   function PermanentLinksModel($model, $table) {
     $this->model = $model;
     $this->table = $table;
+
+    $i = 2;
+    $args = func_get_args();
+    do {
+      $field = @$args[$i++];
+      if ($field === null) break;
+      $this->add_field($field);
+    } while (1);
 
     // Store a reference back to the class
     $GLOBALS['PermanentLinksModels'][$table] = &$this;
@@ -106,21 +122,26 @@ class PermanentLinksField {
   var $key;
   var $parent_model;
 
-  function PermanentLinksField($name, $kind, $association = null, $parent = null) {
+  function PermanentLinksField($name, $kind) {
     $this->name = $name;
     $this->kind = $kind;
 
+    $args = func_get_args();
     switch ($kind) {
       case 'has_one':
-        $this->add_field_key($association[0]);
+        $association = $args[2];
+        $field       = $args[3];
+
+        $this->add_field_key($field);
         $this->model = $association['model'];
         $this->key   = $association['key'];
 
         break;
       case 'has_many':
-        $i = 0;
+        $association = $args[2];
+        $i = 3;
         do {
-          $field = @$association[$i++];
+          $field = @$args[$i++];
           if ($field === null) break;
           $this->add_field_key($field);
         } while (1);
@@ -130,18 +151,11 @@ class PermanentLinksField {
 
         break;
       default:
-        $this->add_field_key(($association === null) ? $name : $association);
+        $field = @$args[2];
+        $this->add_field_key(($field === null) ? $name : $field);
 
         break;
     }
-
-    // Check we've got everything we need to continue
-    if (is_string($this->name) and is_string($this->kind) and count($this->fields)) {
-      // Add field to the parent model
-      if ($parent === null) $parent = current($GLOBALS['PermanentLinksModels']);
-      $parent->add_field(&$this);
-    }
-    else die('Something went wrong with a PermanentLinksField constructor');
   }
 
   function add_field_key($key = null) {
