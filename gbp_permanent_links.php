@@ -38,8 +38,8 @@ class PermanentLinks extends GBPPlugin {
       new PermanentLinksField('ID',        'integer'),
       new PermanentLinksField('Date',      'date',         'Posted'),
       new PermanentLinksField('Author',    'has_one',      array('model' => 'txp_users',    'key' => 'user_id'), 'AuthorID'),
-      new PermanentLinksField('Category',  'has_many',     array('model' => 'txp_category', 'key' => 'name'), 'Category1', 'Category2'),
-      new PermanentLinksField('Section',   'has_one',      array('model' => 'txp_section',  'key' => 'name'), 'Section'),
+      new PermanentLinksField('Category',  'has_many',     array('model' => 'txp_category', 'key' => 'name', 'when' => 'type = "article" AND name != "root"'), 'Category1', 'Category2'),
+      new PermanentLinksField('Section',   'has_one',      array('model' => 'txp_section',  'key' => 'name', 'when' => 'name != "default"'), 'Section'),
       new PermanentLinksField('Keywords',  'csv'),
       new PermanentLinksField('Title',     'string',       'url_title')
     );
@@ -47,21 +47,21 @@ class PermanentLinks extends GBPPlugin {
     new PermanentLinksModel('Image',     'txp_image',
       new PermanentLinksField('ID',        'integer',      'id'),
       new PermanentLinksField('Name',      'string',       'name'),
-      new PermanentLinksField('Category',  'has_one',      array('model' => 'txp_category', 'key' => 'name'), 'category'),
+      new PermanentLinksField('Category',  'has_one',      array('model' => 'txp_category', 'key' => 'name', 'when' => 'type = "image" AND name != "root"'), 'category'),
       new PermanentLinksField('Uploader',  'has_one',      array('model' => 'txp_users',    'key' => 'name'), 'author')
     );
     // Files
     new PermanentLinksModel('File',      'txp_file',
       new PermanentLinksField('ID',        'integer',      'id'),
       new PermanentLinksField('Name',      'string',       'filename'),
-      new PermanentLinksField('Category',  'has_one',      array('model' => 'txp_category', 'key' => 'name'), 'category'),
+      new PermanentLinksField('Category',  'has_one',      array('model' => 'txp_category', 'key' => 'name', 'when' => 'type = "file" AND name != "root"'), 'category'),
       new PermanentLinksField('Uploader',  'has_one',      array('model' => 'txp_users',    'key' => 'name'), 'author')
     );
     // Links
     new PermanentLinksModel('Link',      'txp_link',
       new PermanentLinksField('ID',        'integer',      'id'),
       new PermanentLinksField('Name',      'string',       'linkname'),
-      new PermanentLinksField('Category',  'has_one',      array('model' => 'txp_category', 'key' => 'name'), 'category'),
+      new PermanentLinksField('Category',  'has_one',      array('model' => 'txp_category', 'key' => 'name', 'when' => 'type = "link" AND name != "root"'), 'category'),
       new PermanentLinksField('Uploader',  'has_one',      array('model' => 'txp_users',    'key' => 'name'), 'author')
     );
     // Author
@@ -120,6 +120,7 @@ class PermanentLinksField {
   var $fields = array();
   var $model;
   var $key;
+  var $when;
   var $parent_model;
 
   function PermanentLinksField($name, $kind) {
@@ -135,6 +136,7 @@ class PermanentLinksField {
         $this->add_field_key($field);
         $this->model = $association['model'];
         $this->key   = $association['key'];
+        $this->when  = array_key_exists('when', $association) ? $association['when'] : '1 = 1';
 
         break;
       case 'has_many':
@@ -148,6 +150,7 @@ class PermanentLinksField {
 
         $this->model = $association['model'];
         $this->key   = $association['key'];
+        $this->when  = array_key_exists('when', $association) ? $association['when'] : '1 = 1';
 
         break;
       default:
