@@ -104,13 +104,13 @@ class PermanentLinksModel {
     } while (1);
 
     // Store a reference back to the class
-    $GLOBALS['PermanentLinksModels'][$table] = &$this;
+    $GLOBALS['PermanentLinksModels'][strtolower($model)] = &$this;
     end($GLOBALS['PermanentLinksModels']);
   }
 
   function add_field($field) {
     $field->parent_model = $this->table;
-    $this->fields[] = $field;
+    $this->fields[strtolower($field->name)] = $field;
   }
 }
 
@@ -163,7 +163,7 @@ class PermanentLinksField {
 
   function add_field_key($key = null) {
     // check field key is a string
-    if (is_string($key)) $this->fields[] = $key;
+    if (is_string($key)) $this->fields[] = strtolower($key);
   }
 
   function parent() {
