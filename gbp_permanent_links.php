@@ -60,14 +60,14 @@ class PermanentLinks extends GBPPlugin {
     new PermanentLinksField('Category',  'has_one',      array('model' => 'txp_category', 'key' => 'name', 'category'));
     new PermanentLinksField('Uploader',  'has_one',      array('model' => 'txp_users',    'key' => 'name', 'author'));
     // Author   (archive)
-    new PermanentLinksModel('Author',    'txp_users',    'archive');
+    new PermanentLinksModel('Author',    'txp_users');
     new PermanentLinksField('Login',     'string',       'name');
     new PermanentLinksField('Full name', 'string',       'RealName');
     // Category (archive)
-    new PermanentLinksModel('Category',  'txp_category', 'archive');
+    new PermanentLinksModel('Category',  'txp_category');
     new PermanentLinksField('Title',     'string',       'name');
     // Section  (archive)
-    new PermanentLinksModel('Section',   'txp_section',  'archive');
+    new PermanentLinksModel('Section',   'txp_section');
     new PermanentLinksField('Title',     'string',       'name');
 
     // TODO: Register custom route models and fields from other plugins
@@ -81,13 +81,11 @@ class PermanentLinks extends GBPPlugin {
 class PermanentLinksModel {
   var $model;
   var $table;
-  var $type = 'content';
   var $fields = array();
 
-  function PermanentLinksModel($model, $table, $type = null) {
+  function PermanentLinksModel($model, $table) {
     $this->model = $model;
     $this->table = $table;
-    if ($type !== null) $this->type = $type;
 
     // Store a reference back to the class
     $GLOBALS['PermanentLinksModels'][$table] = &$this;
