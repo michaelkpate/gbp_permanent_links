@@ -29,11 +29,8 @@ require_plugin('gbp_admin_library');
 
 $GLOBALS['PermanentLinksModels'] = array();
 
-class PermanentLinks extends GBPPlugin
-{
-	function main () {
-		require_privs($this->event);
-
+class PermanentLinks extends GBPPlugin {
+  function preload () {
     // Register the default route models and fields
     // Articles
     new PermanentLinksModel('Article',   'textpattern');
@@ -74,9 +71,11 @@ class PermanentLinks extends GBPPlugin
     new PermanentLinksField('Title',     'string',       'name');
 
     // TODO: Register custom route models and fields from other plugins
+  }
 
-    dmp($GLOBALS['PermanentLinksModels']);
-	}
+  function main() {
+    require_privs($this->event);
+  }
 }
 
 class PermanentLinksModel {
