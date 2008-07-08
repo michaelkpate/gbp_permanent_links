@@ -90,12 +90,12 @@ class PermanentLinksModel {
     if ($type !== null) $this->type = $type;
 
     // Store a reference back to the class
-    $GLOBALS['PermanentLinksModels'][] = &$this;
+    $GLOBALS['PermanentLinksModels'][$table] = &$this;
     end($GLOBALS['PermanentLinksModels']);
-
   }
 
   function add_field($field) {
+    $field->parent_model = $this->table;
     $this->fields[] = $field;
   }
 }
@@ -106,6 +106,7 @@ class PermanentLinksField {
   var $fields = array();
   var $model;
   var $key;
+  var $parent_model;
 
   function PermanentLinksField($name, $kind, $association = null, $parent = null) {
     $this->name = $name;
@@ -148,6 +149,10 @@ class PermanentLinksField {
   function add_field_key($key = null) {
     // check field key is a string
     if (is_string($key)) $this->fields[] = $key;
+  }
+
+  function parent() {
+    return $GLOBALS['PermanentLinksModels'][$this->parent_model];
   }
 }
 
