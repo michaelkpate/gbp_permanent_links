@@ -169,6 +169,118 @@ class PermanentLinksField {
   function parent() {
     return $GLOBALS['PermanentLinksModels'][$this->parent_model];
   }
+
+  function options_from_db() {
+    return safe_column($this->key, $this->model, $this->when);
+  }
+}
+
+class PermanentLinksRule {
+  var $segments = array();
+
+  function PermanentLinksRule($model) {
+    $i = 1;
+    $model = $GLOBALS['PermanentLinksModels'][strtolower($model)];
+    $args = func_get_args();
+    do {
+      $segment = @$args[$i++];
+      if (is_string($segment) && $field = @$model->fields[strtolower($segment)])
+        $segment = new PermanentLinksRuleSegment($field);
+      else if (!is_a($segment, 'PermanentLinksRuleSegment'))
+        $segment = null;
+
+      if ($segment === null) break;
+      $this->add_segment($segment);
+    } while (1);
+
+    // Store a reference back to the class
+    $GLOBALS['PermanentLinksRules'][] = &$this;
+    end($GLOBALS['PermanentLinksRules']);
+  }
+
+  function add_segment($segment) {
+    $this->segments[] = $segment;
+  }
+  
+  function recognition_pattern() {
+    $pattern = '';
+    $require = false;
+    foreach (array_reverse($this->segments, true) as $index => $segment) {
+      $require = (!$require) ? !$segment->is_optional : $require;
+      $pattern = $segment->build_pattern($pattern, $index, !$require);
+    }
+    return '@^(?i-:' . $pattern . ')@';
+  }
+}
+
+class PermanentLinksRuleSegment {
+  var $model;
+  var $field;
+  var $separator;
+  var $is_optional;
+  var $prefix;
+  var $suffix;
+  var $conditions = array();
+
+  function PermanentLinksRuleSegment($field, $separator = '/', $is_optional = true, $prefix = null, $suffix = null) {
+    $this->model       = $field->parent_model;
+    $this->field       = $field->name;
+    $this->separator   = $separator;
+    $this->is_optional = $is_optional;
+    $this->prefix      = $prefix;
+    $this->suffix      = $suffix;
+  }
+
+  function field() {
+    return @$GLOBALS['PermanentLinksModels'][strtolower($this->model)]->fields[strtolower($this->field)];
+  }
+
+  function regexp() {
+    if ($field = $this->field()) {
+      switch ($field->kind) {
+        case 'has_one':
+        case 'has_many':
+          $regex = join('|', $field->options_from_db());
+        break;
+        case 'string':
+          $regex = '[^' . $this->separator . '?]+';
+        break;
+        case 'integer':
+          $regex = '\d+';
+        break;
+        case 'date':
+          $regex = '\d{4}' . $this->separator . '\d{2}' . $this->separator . '\d{2}';
+        break;
+        case 'csv':
+          $regex = '[^,]+';
+        break;
+      }
+
+      if (isset($regex)) {
+        $regex = '(' . $regex . ')';
+        // Add the prefix and suffix regex as not captured groups
+        $regex = $this->prefix ? '(?:' . preg_quote($this->prefix) . ')' . $regex : $regex;
+        $regex = $this->suffix ? $regex . '(?:' . preg_quote($this->suffix) . ')' : $regex;
+        return '\b' . $regex . '\b';
+      }
+    }
+  }
+
+  function build_pattern($pattern, $index, $optional) {
+    // Build the regex with the given pattern. we're going through the segments in reserve
+    if ($regexp = $this->regexp()) {
+      $is_first = ($index == 0);
+      $is_last  = empty($pattern);
+
+      // Make the last separator optional
+      $pattern = $regexp . ($is_last ? $this->separator . '?' : $pattern);
+      // Don't need to check for the separator before the first segment
+      $pattern = (!$is_first) ? $this->separator . $pattern : $pattern;
+      // Wrap optional segments in an optional not captured group
+      $pattern = ($optional) ? '(?:' . $pattern . ')?' : $pattern;
+    }
+    return $pattern;
+  }
 }
 
 if (@txpinterface == 'admin') {
