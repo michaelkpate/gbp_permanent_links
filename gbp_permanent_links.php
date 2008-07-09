@@ -109,7 +109,7 @@ class PermanentLinksModel {
   }
 
   function add_field($field) {
-    $field->parent_model = $this->table;
+    $field->parent_model = $this->model;
     $this->fields[strtolower($field->name)] = $field;
   }
 }
