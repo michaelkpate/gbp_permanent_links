@@ -37,7 +37,7 @@ class PermanentLinks extends GBPPlugin {
     new PermanentLinksModel('Article',   'textpattern',
       new PermanentLinksField('ID',        'integer'),
       new PermanentLinksField('Date',      'date',         'Posted'),
-      new PermanentLinksField('Author',    'has_one',      array('model' => 'txp_users',    'key' => 'user_id'), 'AuthorID'),
+      new PermanentLinksField('Author',    'has_one',      array('model' => 'txp_users',    'key' => 'name'), 'AuthorID'),
       new PermanentLinksField('Category',  'has_many',     array('model' => 'txp_category', 'key' => 'name', 'when' => 'type = "article" AND name != "root"'), 'Category1', 'Category2'),
       new PermanentLinksField('Section',   'has_one',      array('model' => 'txp_section',  'key' => 'name', 'when' => 'name != "default"'), 'Section'),
       new PermanentLinksField('Keywords',  'csv'),
