@@ -32,6 +32,9 @@ $GLOBALS['PermanentLinksRules']  = array();
 
 class PermanentLinks extends GBPPlugin {
   function preload () {
+    global $PermanentLinks;
+    $PermanentLinks = $this;
+
     // Register the default route models and fields
     // Articles
     new PermanentLinksModel('Article',   'textpattern',
@@ -176,6 +179,7 @@ class PermanentLinksField {
 }
 
 class PermanentLinksRule {
+  var $id = null;
   var $segments = array();
 
   function PermanentLinksRule($model) {
@@ -210,6 +214,50 @@ class PermanentLinksRule {
       $pattern = $segment->build_pattern($pattern, $index, !$require);
     }
     return '@^(?i-:' . $pattern . ')@';
+  }
+
+  function new_record() {
+    return ($this->id == null) ? true : false;
+  }
+
+  function save() {
+    return ($this->new_record()) ? $this->create() : $this->update();
+  }
+
+  function create() {
+    $this->id = sha1(time());
+    $this->update();
+  }
+
+  function update() {
+    global $PermanentLinks;
+    $PermanentLinks->set_preference($this->id, &$this, 'gbp_serialized');
+  }
+
+  function find_by_id($id) {
+    global $PermanentLinks;
+    $rule = $PermanentLinks->pref($id);
+    return is_a($rule, 'PermanentLinksRule') ? $rule : nil;
+  }
+
+  function find_all($model = null) {
+    global $PermanentLinks;
+
+    static $ids;
+    if (!isset($ids))
+      $ids = safe_column(
+        "REPLACE(name, '{$PermanentLinks->plugin_name}_', '') AS id", 'txp_prefs',
+        "`event` = '{$PermanentLinks->event}' AND `name` REGEXP '^{$PermanentLinks->plugin_name}_.{40}$'"
+      );
+
+    $rules = array();
+    foreach ($ids as $id) {
+      $rule = PermanentLinksRule::find_by_id($id);
+      if ($model == null or strtolower(@$rule->segments[0]->model) == strtolower($model))
+        $rules[] = $rule;
+    }
+
+    return $rules;
   }
 }
 
