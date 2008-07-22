@@ -216,6 +216,14 @@ class PermanentLinksRule {
     return '@^(?i-:' . $pattern . ')@';
   }
 
+  function to_s() {
+    $string = '/';
+    foreach ($this->segments as $segment) {
+      $string .= $segment->to_s();
+    }
+    return substr($string, 0, -1);
+  }
+
   function new_record() {
     return ($this->id == null) ? true : false;
   }
@@ -328,6 +336,10 @@ class PermanentLinksRuleSegment {
       $pattern = ($optional) ? '(?:' . $pattern . ')?' : $pattern;
     }
     return $pattern;
+  }
+
+  function to_s() {
+    return $this->prefix.strtolower($this->field).$this->suffix.$this->separator;
   }
 }
 
