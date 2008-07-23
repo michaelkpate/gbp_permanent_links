@@ -35,6 +35,8 @@ class PermanentLinks extends GBPPlugin {
     global $PermanentLinks;
     $PermanentLinks = $this;
 
+    new PermanentLinksRulesTabView('rules', 'rules', $this);
+
     // Register the default route models and fields
     // Articles
     new PermanentLinksModel('Article',   'textpattern',
@@ -86,6 +88,175 @@ class PermanentLinks extends GBPPlugin {
 
   function main() {
     require_privs($this->event);
+  }
+}
+
+class PermanentLinksRulesTabView extends GBPAdminTabView {
+  /* PRELOAD */
+  function preload() {
+    $GLOBALS['PermanentLinksCurrentRules'] = $this->preload_rules();
+
+    # Process AJAX requests
+    if ($xhr = gps('xhr')) {
+      if (serverSet('HTTP_X_REQUESTED_WITH') == 'XMLHttpRequest')
+        exit(@call_user_func(array(&$this, '_ajax_'.$xhr)));
+      else {
+        txp_status_header('403 Forbidden');
+        exit('403 Forbidden');
+      }
+    }
+
+    ob_start(array(&$this, '_css'));
+  }
+
+  function preload_rules() {
+    if ($id = gps('rule'))
+      return array(PermanentLinksRule::find_by_id($id));
+    elseif ($model = gps('model'))
+      return PermanentLinksRule::find_all($model);
+
+    return array();
+  }
+
+  function _css($html) {
+$css = <<<HTML
+HTML;
+    return str_replace('</head>', $css.'</head>', $html);
+  }
+
+  /* MAIN */
+  function main() {
+    echo tag(
+      $this->js().
+      '<noscript><p id="warning">Javascript is required in-order to use '.$this->parent->plugin_name.' </p></noscript>'.
+      '<div id="models"></div>'.
+      '<div id="rules" class="split-view"></div>'.
+      '<div id="current-rule" class="split-view"></div>',
+    'div', ' id="permanent-links-container"');
+  }
+
+  function js() {
+    $event = 'index.php?event='.$this->parent->event.'&tab='.$this->event;
+
+return <<<HTML
+<script type="text/javascript">
+<!--
+  function toggle_view(visible) {
+    $("#permanent-links-container > div.split-view:visible:not(#"+visible+")").hide();
+    $("#permanent-links-container #"+visible).show();
+  }
+
+  function create_new_rule() {
+    $("#current-rule").load('$event', { xhr: "rule_form", model: $("#models").attr('value') }, function () { toggle_view('current-rule'); });
+  }
+
+  function cancel_rule() {
+    toggle_view('rules');
+  }
+
+  function save_rule() {
+    // TODO
+    cancel_rule();
+  }
+
+  $(document).ready(function () {
+    $("#models").load('$event', { xhr: "load_models" }, function () {
+      $("#models select").change(function () {
+        $("#rules").load('$event', { xhr: "load_rules", model: this.value }, function () { toggle_view('rules'); });
+      }).change();
+    });
+  });
+
+  $(document).ajaxComplete(function (request, settings) {
+    $("a.remote").unbind('click').click(function () {
+      var xhr_method = new RegExp("[\\?&]xhr=([^&#]*)").exec(this.href)[1];
+      switch (xhr_method) {
+        case 'rule_form':
+          $("#current-rule").load(this.href, {}, function () { toggle_view('current-rule'); });
+        break;
+        default:
+          $.post(this.href, function (data) { eval(data); });
+        break;
+      }
+      return false;
+    });
+  });
+-->
+</script>
+HTML;
+  }
+
+  /* AJAX */
+  function _ajax_load_models() {
+    foreach ($GLOBALS['PermanentLinksModels'] as $key => $model) {
+      $out[] = '<option value="'.htmlspecialchars($key).'">'.htmlspecialchars($model->model).'</option>';
+    }
+    return '<p align="center">Filter rules by type: <select>'.
+      ( $out ? join('', $out) : '').
+      '</select></p>';
+  }
+
+  function _ajax_load_rules() {
+    if (count($GLOBALS['PermanentLinksCurrentRules']) == 0) {
+      echo '<p id="warning">No <strong>'.gps('model').'</strong> rules have been created</p>'.
+           '<p align="center">'.$this->_create_new_rule().'</p>';
+
+    } else {
+
+      echo startTable('list');
+
+      echo tr(
+        column_head('Rule', 'rule', $event, false).
+        hCell()
+      );
+
+      foreach ($GLOBALS['PermanentLinksCurrentRules'] as $rule) {
+        $attr = array('rule' => $rule->id);
+        echo tr(
+          td($this->link_to_remote($rule->to_s(), 'rule_form', $attr), 400).
+          td($this->link_to_remote(gTxt('edit'),  'rule_form', $attr), 35)
+        );
+      }
+
+      echo tr(tda($this->_create_new_rule(),' colspan="2" style="text-align: right; border: none;"'));
+
+      echo endTable();
+    }
+  }
+
+  function _ajax_rule_form() {
+    $rule = gps('rule')
+      ? $GLOBALS['PermanentLinksCurrentRules'][0]
+      : new PermanentLinksRule(gps('model'));
+
+    echo '<p align="center">'.$this->_cancel_rule().$this->_save_rule().'</p>';
+
+    echo tag(print_r($rule, true), 'pre');
+  }
+
+  /* HELPERS */
+  function link_to_remote($text, $method, $attributes = array()) {
+    return href(
+      gTxt($text),
+      $this->url(array_merge(array('xhr' => $method), $attributes), true),
+      ' class="remote"'
+    );
+  }
+
+  function button_to_function($text, $method, $title = '') {
+    return fInput('button', $method, gTxt($text), 'smallerboxsp', $title, "$method();");
+  }
+
+  function _create_new_rule() {
+    return $this->button_to_function('Create new', 'create_new_rule', 'Create new rule');
+  }
+
+  function _cancel_rule() {
+    return $this->button_to_function('Cancel', 'cancel_rule', 'Go back to list of rules');
+  }
+
+  function _save_rule() {
+    return $this->button_to_function('Save', 'save_rule', 'Save current rule');
   }
 }
 
