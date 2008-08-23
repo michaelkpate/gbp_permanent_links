@@ -25,7 +25,8 @@ There is no plugin documentation. For help please use the "forum thread":http://
 }
 # --- BEGIN PLUGIN CODE ---
 
-require_plugin('gbp_admin_library');
+@require_plugin('gbp_admin_library');
+if (!class_exists('GBPPlugin')) return;
 
 $GLOBALS['PermanentLinksModels'] = array();
 $GLOBALS['PermanentLinksRules']  = array();
