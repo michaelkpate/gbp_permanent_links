@@ -459,8 +459,12 @@ class PermanentLinksRuleSegment {
     $this->suffix      = $suffix;
   }
 
+  function model() {
+    return @$GLOBALS['PermanentLinksModels'][strtolower($this->model)];
+  }
+
   function field() {
-    return @$GLOBALS['PermanentLinksModels'][strtolower($this->model)]->fields[strtolower($this->field)];
+    return $this->model()->fields[strtolower($this->field)];
   }
 
   function regexp() {
