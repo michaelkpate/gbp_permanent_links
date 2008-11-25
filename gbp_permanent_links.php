@@ -122,6 +122,42 @@ class PermanentLinksRulesTabView extends GBPAdminTabView {
 
   function _css($html) {
 $css = <<<HTML
+<style type="text/css" media="screen">
+#rule {
+	margin: 0 auto;
+	padding: 0;
+	width: 600px;
+	background-color: #F3F3F3;
+	display: block;
+	border: 1px solid #999;
+}
+
+#rule ul {
+	list-style: none;
+	border: 4px solid #F3F3F3;
+	border-bottom-width: 6px;
+	height: 3em;
+	margin: 0;
+	padding: 0;
+}
+
+#rule li.segment {
+	float: left;
+	line-height: 3em;
+	margin: 0 5px 0 0;
+	padding: 0 1.5em;
+	background-color: #FFEAB1;
+	border: 1px solid #FFCB2F;
+}
+
+#rule li.segment.selected {
+	background-color: #FFCB2F;
+}
+
+#rule li.segment.hover {
+	cursor: move;
+}
+</style>
 HTML;
     return str_replace('</head>', $css.'</head>', $html);
   }
@@ -167,6 +203,23 @@ return <<<HTML
     cancel_rule();
   }
 
+  function rule_loaded() {
+    $("ul.sortable li").hover(
+      function() { $(this).addClass('hover'); },
+      function() { $(this).removeClass('hover'); }
+    ).click(function() {
+      if ($(this).hasClass('selected')) return;
+      $("ul.sortable li").removeClass('selected');
+      $(this).addClass('selected');
+      $("#current-segment").load('$event', { xhr: "load_segment", rule: $(this).parent("ul").attr('id'), index: this.id.replace('segment-', '') });
+    });
+    $("ul.sortable").sortable();
+    // Trigger the loading to the segment options
+    $("ul.sortable li:first").click();
+    // Hide the rules table and display the current rule form
+    toggle_view('current-rule');
+  }
+
   $(document).ready(function () {
     $("#models").load('$event', { xhr: "load_models" }, function () {
       $("#models select").change(function () {
@@ -180,7 +233,7 @@ return <<<HTML
       var xhr_method = new RegExp("[\\?&]xhr=([^&#]*)").exec(this.href)[1];
       switch (xhr_method) {
         case 'rule_form':
-          $("#current-rule").load(this.href, {}, function () { toggle_view('current-rule'); });
+          $("#current-rule").load(this.href, {}, function () { rule_loaded(); });
         break;
         default:
           $.post(this.href, function (data) { eval(data); });
@@ -239,7 +292,19 @@ HTML;
 
     echo '<p align="center">'.$this->_cancel_rule().$this->_save_rule().'</p>';
 
-    echo tag(print_r($rule, true), 'pre');
+    echo '<div id="rule"><ul id="'. $rule->id .'" class="sortable">';
+
+    foreach ($rule->segments as $index => $segment) {
+      echo '<li id="segment-'. $index .'" class="segment">'. $segment->field .'</li>';
+    }
+
+    echo '</ul></div>';
+    echo '<div id="current-segment"></div>';
+  }
+
+  function _ajax_load_segment() {
+    $rule = $GLOBALS['PermanentLinksCurrentRules'][0];
+    $segment = $rule->segments[gps('index')];
   }
 
   /* HELPERS */
