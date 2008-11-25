@@ -108,6 +108,7 @@ class PermanentLinksRulesTabView extends GBPAdminTabView {
     }
 
     ob_start(array(&$this, '_css'));
+    ob_start(array(&$this, '_jquery_ui'));
   }
 
   function preload_rules() {
@@ -123,6 +124,12 @@ class PermanentLinksRulesTabView extends GBPAdminTabView {
 $css = <<<HTML
 HTML;
     return str_replace('</head>', $css.'</head>', $html);
+  }
+
+  function _jquery_ui($html) {
+    $jq = '<script type="text/javascript" src="jquery.js"></script>';
+    $ui = '<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.5.2/jquery-ui.min.js"></script>';
+    return str_replace($jq, $jq.$ui, $html);
   }
 
   /* MAIN */
