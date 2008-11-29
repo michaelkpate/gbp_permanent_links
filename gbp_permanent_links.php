@@ -1,10 +1,7 @@
 <?php
 
-$plugin['url'] = '$HeadURL$';
-$plugin['date'] = '$LastChangedDate$';
-$plugin['revision'] = '$LastChangedRevision$';
 $plugin['name'] = 'gbp_permanent_links';
-$plugin['version'] = '0.11'.(preg_match('/: (\d+) \$$/', $plugin['revision'], $revision) ? '.'.$revision[1] : '');
+$plugin['version'] = '0.12';
 $plugin['author'] = 'Graeme Porteous';
 $plugin['author_uri'] = 'http://rgbp.co.uk/projects/textpattern/gbp_permanent_links/';
 $plugin['description'] = 'Custom permanent links rules';
