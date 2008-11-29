@@ -577,7 +577,7 @@ class PermanentLinks extends GBPPlugin
 				$pretext = array_merge($pretext, $pretext_replacement);
 
 				if (is_numeric(@$pretext['id'])) {
-					$a = safe_row('*, unix_timestamp(Posted) as uPosted', 'textpattern', 'ID='.intval($pretext['id']).' and Status >= 4');
+					$a = safe_row('*, unix_timestamp(Posted) as uPosted, unix_timestamp(Expires) as uExpires, unix_timestamp(LastMod) as uLastMod', 'textpattern', 'ID='.intval($pretext['id']).' and Status >= 4');
 					populateArticleData($a);
 				}
 
@@ -600,7 +600,7 @@ class PermanentLinks extends GBPPlugin
 							global $siteurl;
 							$rs = safe_row('*, ID as thisid, unix_timestamp(Posted) as posted', 'textpattern', "ID = '{$pretext['id']}'");
 							$host = rtrim(str_replace(rtrim(doStrip($pretext['subpath']), '/'), '', hu), '/');
-							$this->redirect($host.$this->_permlinkurl($rs, $pl_index), $this->pref('permlink_redirect_http_status'));
+							$this->redirect($host.$this->_permlinkurl($rs, PERMLINKURL, $pl_index), $this->pref('permlink_redirect_http_status'));
 						}
 					} else if ($url = @$pl['settings']['des_location']) {
 						ob_clean();
@@ -722,8 +722,11 @@ class PermanentLinks extends GBPPlugin
 		return true;
 	}
 
-	function _permlinkurl ($article_array, $pl_index = NULL) {
+	function _permlinkurl ($article_array, $type = PERMLINKURL, $pl_index = NULL) {
 		global $pretext, $prefs, $production_status;
+
+		if ($type == PAGELINKURL)
+		  return $this->toggle_permlink_mode('pagelinkurl', $article_array);
 
 		if (empty($article_array)) return;
 
@@ -926,7 +929,7 @@ class PermanentLinks extends GBPPlugin
 				$url = $this->toggle_permlink_mode('filedownloadurl', $id);
 			} else {
 				$rs = safe_row('*, ID as thisid, unix_timestamp(Posted) as posted', 'textpattern', "ID = '{$id}'");
-				$url = $this->_permlinkurl($rs) . $fragment;
+				$url = $this->_permlinkurl($rs, PERMLINKURL) . $fragment;
 			}
 			return 'href="'. $url .'"';
 		}
