@@ -15,7 +15,8 @@ if (0) {
 # --- BEGIN PLUGIN HELP ---
 h1. gbp_permanent_links.
 
-There is no plugin documentation. For help please use the "forum thread":http://forum.textpattern.com/viewtopic.php?id=18918.# --- END PLUGIN HELP ---
+There is no plugin documentation. For help please use the "forum thread":http://forum.textpattern.com/viewtopic.php?id=18918.
+# --- END PLUGIN HELP ---
 -->
 <?php
 }
