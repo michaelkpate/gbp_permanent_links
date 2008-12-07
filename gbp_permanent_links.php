@@ -93,6 +93,12 @@ class PermanentLinks extends GBPPlugin {
 }
 
 class PermanentLinksRulesTabView extends GBPAdminTabView {
+  var $assets = array(
+    'segment-arrow' => array('type' => 'image/gif', 'data' =>
+      'R0lGODlhIAAQAJEAAP/MM//////fgP/ssiH5BAAHAP8ALAAAAAAgABAAAAI5jI85ku1/BgAMWicn
+       vdxkvXXQB4aiUpbV6aXpKpKuBl/yTHc3nls738MAgbXWkIg6Dlc/5SvQdL4KADs='),
+  );
+
   /* PRELOAD */
   function preload() {
     $GLOBALS['PermanentLinksCurrentRules'] = $this->preload_rules();
@@ -105,6 +111,13 @@ class PermanentLinksRulesTabView extends GBPAdminTabView {
         txp_status_header('403 Forbidden');
         exit('403 Forbidden');
       }
+    }
+
+    # Process requests for embedded assets
+    if ($asset = @$this->assets[gps('assets')]) {
+      header('Content-type: '. $asset['type']);
+      header('Content-Disposition: attachment; filename='. gps('assets'));
+      exit(base64_decode($asset['data']));
     }
 
     # Inject JS and CSS into the page head
@@ -149,6 +162,14 @@ return <<<HTML
     $("#current-rule").load('$event', { xhr: "rule_form", model: $("#models").attr('value') }, function () { toggle_view('current-rule'); });
   }
 
+  function align_segment_arraw() {
+    $("#current-segment .arrow").css({ left:
+      $('#rule .selected').offset().left -
+      $("#segment").offset().left +
+      $('#rule .selected').width() / 2
+    });
+  }
+
   function cancel_rule() {
     toggle_view('rules');
   }
@@ -166,9 +187,9 @@ return <<<HTML
       if ($(this).hasClass('selected')) return;
       $("ul.sortable li").removeClass('selected');
       $(this).addClass('selected');
-      $("#current-segment").load('$event', { xhr: "load_segment", rule: $(this).parent("ul").attr('id'), index: this.id.replace('segment-', '') });
+      $("#segment").load('$event', { xhr: "load_segment", rule: $(this).parent("ul").attr('id'), index: this.id.replace('segment-', '') }, function () { align_segment_arraw(); });
     });
-    $("ul.sortable").sortable();
+    $("ul.sortable").sortable({ update: function () { align_segment_arraw(); } });
     // Trigger the loading to the segment options
     $("ul.sortable li:first").click();
     // Hide the rules table and display the current rule form
@@ -205,10 +226,13 @@ HTML;
   function css($event) {
 return <<<HTML
 <style type="text/css" media="screen">
-#rule {
+#current-rule {
 	margin: 0 auto;
-	padding: 0;
 	width: 600px;
+}
+
+#rule {
+	padding: 0;
 	background-color: #F3F3F3;
 	display: block;
 	border: 1px solid #999;
@@ -238,6 +262,20 @@ return <<<HTML
 
 #rule li.segment.hover {
 	cursor: move;
+}
+
+#current-segment .arrow {
+	position: relative;
+	margin-top: 10px;
+	background-image: url($event&assets=segment-arrow);
+	width: 32px;
+	height: 16px;
+}
+
+#segment {
+	border: 2px solid #FFCB2F;
+	background-color: #FFEAB1;
+	padding: 10px;
 }
 </style>
 HTML;
@@ -295,7 +333,13 @@ HTML;
     }
 
     echo '</ul></div>';
-    echo '<div id="current-segment"></div>';
+
+    echo '<div id="current-segment">';
+
+    echo '<div class="arrow" />';
+    echo '<div id="segment"></div>';
+
+    echo '</div>';
   }
 
   function _ajax_load_segment() {
