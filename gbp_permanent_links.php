@@ -159,7 +159,7 @@ return <<<HTML
   }
 
   function create_new_rule() {
-    $("#current-rule").load('$event', { xhr: "rule_form", model: $("#models").attr('value') }, function () { toggle_view('current-rule'); });
+    $("#current-rule").load('$event', { xhr: "rule_form", model: $("#models select").attr('value') }, function () { toggle_view('current-rule'); });
   }
 
   function align_segment_arraw() {
