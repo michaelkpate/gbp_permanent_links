@@ -121,7 +121,8 @@ class PermanentLinksRulesTabView extends GBPAdminTabView {
   }
 
   function _head_end($event, $step) {
-    echo $this->js() . $this->css();
+    $this_event = 'index.php?event='.$this->parent->event.'&tab='.$this->event;
+    echo $this->js($this_event) . $this->css($this_event);
   }
 
   /* MAIN */
@@ -134,9 +135,7 @@ class PermanentLinksRulesTabView extends GBPAdminTabView {
     'div', ' id="permanent-links-container"');
   }
 
-  function js() {
-    $event = 'index.php?event='.$this->parent->event.'&tab='.$this->event;
-
+  function js($event) {
 return <<<HTML
 <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.5.2/jquery-ui.min.js"></script>
 <script type="text/javascript">
@@ -203,7 +202,7 @@ return <<<HTML
 HTML;
   }
 
-  function css() {
+  function css($event) {
 return <<<HTML
 <style type="text/css" media="screen">
 #rule {
