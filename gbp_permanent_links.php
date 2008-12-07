@@ -107,8 +107,8 @@ class PermanentLinksRulesTabView extends GBPAdminTabView {
       }
     }
 
-    ob_start(array(&$this, '_css'));
-    ob_start(array(&$this, '_jquery_ui'));
+    # Inject JS and CSS into the page head
+    register_callback(array(&$this, '_head_end'), 'admin_side', 'head_end');
   }
 
   function preload_rules() {
@@ -120,58 +120,13 @@ class PermanentLinksRulesTabView extends GBPAdminTabView {
     return array();
   }
 
-  function _css($html) {
-$css = <<<HTML
-<style type="text/css" media="screen">
-#rule {
-	margin: 0 auto;
-	padding: 0;
-	width: 600px;
-	background-color: #F3F3F3;
-	display: block;
-	border: 1px solid #999;
-}
-
-#rule ul {
-	list-style: none;
-	border: 4px solid #F3F3F3;
-	border-bottom-width: 6px;
-	height: 3em;
-	margin: 0;
-	padding: 0;
-}
-
-#rule li.segment {
-	float: left;
-	line-height: 3em;
-	margin: 0 5px 0 0;
-	padding: 0 1.5em;
-	background-color: #FFEAB1;
-	border: 1px solid #FFCB2F;
-}
-
-#rule li.segment.selected {
-	background-color: #FFCB2F;
-}
-
-#rule li.segment.hover {
-	cursor: move;
-}
-</style>
-HTML;
-    return str_replace('</head>', $css.'</head>', $html);
-  }
-
-  function _jquery_ui($html) {
-    $jq = '<script type="text/javascript" src="jquery.js"></script>';
-    $ui = '<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.5.2/jquery-ui.min.js"></script>';
-    return str_replace($jq, $jq.$ui, $html);
+  function _head_end($event, $step) {
+    echo $this->js() . $this->css();
   }
 
   /* MAIN */
   function main() {
     echo tag(
-      $this->js().
       '<noscript><p id="warning">Javascript is required in-order to use '.$this->parent->plugin_name.' </p></noscript>'.
       '<div id="models"></div>'.
       '<div id="rules" class="split-view"></div>'.
@@ -183,6 +138,7 @@ HTML;
     $event = 'index.php?event='.$this->parent->event.'&tab='.$this->event;
 
 return <<<HTML
+<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.5.2/jquery-ui.min.js"></script>
 <script type="text/javascript">
 <!--
   function toggle_view(visible) {
@@ -244,6 +200,47 @@ return <<<HTML
   });
 -->
 </script>
+HTML;
+  }
+
+  function css() {
+return <<<HTML
+<style type="text/css" media="screen">
+#rule {
+	margin: 0 auto;
+	padding: 0;
+	width: 600px;
+	background-color: #F3F3F3;
+	display: block;
+	border: 1px solid #999;
+}
+
+#rule ul {
+	list-style: none;
+	border: 4px solid #F3F3F3;
+	border-bottom-width: 6px;
+	height: 3em;
+	margin: 0;
+	padding: 0;
+}
+
+#rule li.segment {
+	float: left;
+	line-height: 3em;
+	margin: 0 5px 0 0;
+	padding: 0 1.5em;
+	background-color: #FFEAB1;
+	border: 1px solid #FFCB2F;
+}
+
+#rule li.segment.selected {
+	background-color: #FFCB2F;
+}
+
+#rule li.segment.hover {
+	cursor: move;
+}
+</style>
 HTML;
   }
 
