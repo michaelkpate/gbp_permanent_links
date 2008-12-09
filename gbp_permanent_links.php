@@ -284,7 +284,7 @@ HTML;
   /* AJAX */
   function _ajax_load_models() {
     foreach ($GLOBALS['PermanentLinksModels'] as $key => $model) {
-      $out[] = '<option value="'.htmlspecialchars($key).'">'.htmlspecialchars($model->model).'</option>';
+      $out[] = '<option value="'.htmlspecialchars($key).'">'.htmlspecialchars($model->name).'</option>';
     }
     return '<p align="center">Filter rules by type: <select>'.
       ( $out ? join('', $out) : '').
@@ -374,12 +374,12 @@ HTML;
 }
 
 class PermanentLinksModel {
-  var $model;
+  var $name;
   var $table;
   var $fields = array();
 
-  function PermanentLinksModel($model, $table) {
-    $this->model = $model;
+  function PermanentLinksModel($name, $table) {
+    $this->name = $name;
     $this->table = $table;
 
     $i = 2;
@@ -391,12 +391,12 @@ class PermanentLinksModel {
     } while (1);
 
     // Store a reference back to the class
-    $GLOBALS['PermanentLinksModels'][strtolower($model)] = &$this;
+    $GLOBALS['PermanentLinksModels'][$table] = &$this;
     end($GLOBALS['PermanentLinksModels']);
   }
 
   function add_field($field) {
-    $field->parent_model = $this->model;
+    $field->parent_model = $this->table;
     $this->fields[strtolower($field->name)] = $field;
   }
 }
