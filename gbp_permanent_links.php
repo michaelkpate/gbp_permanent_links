@@ -464,15 +464,17 @@ class PermanentLinksField {
 
 class PermanentLinksRule {
   var $id = null;
+  var $model;
   var $segments = array();
 
   function PermanentLinksRule($model) {
+    $this->model = $model;
+
     $i = 1;
-    $model = $GLOBALS['PermanentLinksModels'][strtolower($model)];
     $args = func_get_args();
     do {
       $segment = @$args[$i++];
-      if (is_string($segment) && $field = @$model->fields[strtolower($segment)])
+      if (is_string($segment) && $field = @$this->model()->fields[strtolower($segment)])
         $segment = new PermanentLinksRuleSegment($field);
       else if (!is_a($segment, 'PermanentLinksRuleSegment'))
         $segment = null;
@@ -484,6 +486,10 @@ class PermanentLinksRule {
     // Store a reference back to the class
     $GLOBALS['PermanentLinksRules'][] = &$this;
     end($GLOBALS['PermanentLinksRules']);
+  }
+
+  function model () {
+    return $GLOBALS['PermanentLinksModels'][strtolower($this->model)];
   }
 
   function add_segment($segment) {
