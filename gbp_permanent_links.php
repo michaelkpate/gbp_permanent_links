@@ -101,6 +101,7 @@ class PermanentLinksRulesTabView extends GBPAdminTabView {
 
   /* PRELOAD */
   function preload() {
+    $GLOBALS['PermanentLinksCurrentModel'] = $this->preload_model();
     $GLOBALS['PermanentLinksCurrentRules'] = $this->preload_rules();
 
     # Process AJAX requests
@@ -122,6 +123,16 @@ class PermanentLinksRulesTabView extends GBPAdminTabView {
 
     # Inject JS and CSS into the page head
     register_callback(array(&$this, '_head_end'), 'admin_side', 'head_end');
+  }
+
+  function preload_model() {
+    if ($table = gps('model'))
+      $model = $GLOBALS['PermanentLinksModels'][$table];
+
+    if (!isset($model))
+      $model = $GLOBALS['PermanentLinksModels']['textpattern'];
+
+    return $model;
   }
 
   function preload_rules() {
@@ -283,17 +294,14 @@ HTML;
 
   /* AJAX */
   function _ajax_load_models() {
-    foreach ($GLOBALS['PermanentLinksModels'] as $key => $model) {
-      $out[] = '<option value="'.htmlspecialchars($key).'">'.htmlspecialchars($model->name).'</option>';
-    }
     return '<p align="center">Filter rules by type: <select>'.
-      ( $out ? join('', $out) : '').
+      $this->options_for_select($GLOBALS['PermanentLinksModels']).
       '</select></p>';
   }
 
   function _ajax_load_rules() {
     if (count($GLOBALS['PermanentLinksCurrentRules']) == 0) {
-      echo '<p id="warning">No <strong>'.gps('model').'</strong> rules have been created</p>'.
+      echo '<p id="warning">No <strong>'.$GLOBALS['PermanentLinksCurrentModel']->name.'</strong> rules have been created</p>'.
            '<p align="center">'.$this->_create_new_rule().'</p>';
 
     } else {
