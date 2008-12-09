@@ -459,15 +459,6 @@ class PermanentLinksField {
     $args = func_get_args();
     switch ($kind) {
       case 'has_one':
-        $association = $args[2];
-        $column      = $args[3];
-
-        $this->add_column($column);
-        $this->model = $association['model'];
-        $this->key   = $association['key'];
-        $this->when  = array_key_exists('when', $association) ? $association['when'] : '1 = 1';
-
-        break;
       case 'has_many':
         $association = $args[2];
         $i = 3;
