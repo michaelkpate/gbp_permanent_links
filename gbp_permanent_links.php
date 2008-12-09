@@ -529,7 +529,7 @@ class PermanentLinksRule {
   }
 
   function model () {
-    return $GLOBALS['PermanentLinksModels'][strtolower($this->model)];
+    return $GLOBALS['PermanentLinksModels'][$this->model];
   }
 
   function add_segment($segment) {
@@ -618,7 +618,7 @@ class PermanentLinksRuleSegment {
   }
 
   function model() {
-    return @$GLOBALS['PermanentLinksModels'][strtolower($this->model)];
+    return $GLOBALS['PermanentLinksModels'][$this->model];
   }
 
   function field() {
