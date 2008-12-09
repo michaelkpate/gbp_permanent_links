@@ -404,7 +404,7 @@ class PermanentLinksModel {
 class PermanentLinksField {
   var $name;
   var $kind;
-  var $fields = array();
+  var $columns = array();
   var $model;
   var $key;
   var $when;
@@ -418,9 +418,9 @@ class PermanentLinksField {
     switch ($kind) {
       case 'has_one':
         $association = $args[2];
-        $field       = $args[3];
+        $column      = $args[3];
 
-        $this->add_field_key($field);
+        $this->add_column($column);
         $this->model = $association['model'];
         $this->key   = $association['key'];
         $this->when  = array_key_exists('when', $association) ? $association['when'] : '1 = 1';
@@ -430,9 +430,9 @@ class PermanentLinksField {
         $association = $args[2];
         $i = 3;
         do {
-          $field = @$args[$i++];
-          if ($field === null) break;
-          $this->add_field_key($field);
+          $column = @$args[$i++];
+          if ($column === null) break;
+          $this->add_column($column);
         } while (1);
 
         $this->model = $association['model'];
@@ -441,16 +441,15 @@ class PermanentLinksField {
 
         break;
       default:
-        $field = @$args[2];
-        $this->add_field_key(($field === null) ? $name : $field);
+        $column = @$args[2];
+        $this->add_column(($column === null) ? $name : $column);
 
         break;
     }
   }
 
-  function add_field_key($key = null) {
-    // check field key is a string
-    if (is_string($key)) $this->fields[] = strtolower($key);
+  function add_column($column = null) {
+    if (is_string($column)) $this->columns[] = $column;
   }
 
   function parent() {
