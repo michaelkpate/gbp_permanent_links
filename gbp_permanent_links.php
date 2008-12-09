@@ -345,9 +345,43 @@ HTML;
   function _ajax_load_segment() {
     $rule = $GLOBALS['PermanentLinksCurrentRules'][0];
     $segment = $rule->segments[gps('index')];
+
+    $model = $rule->model();
+    $field = $segment->field();
+
+    echo '<p>';
+
+    echo 'Field: <select>'. $this->options_for_select($model->fields, $field) .'</select> ';
+
+    if (count($field->columns) > 1)
+      echo 'Column: <select>'. $this->options_for_select($field->columns) .'</select> ';
+
+    if (count($field->formats()) > 1)
+      echo 'Format: <select>'. $this->options_for_select($field->formats()) .'</select> ';
+
+    echo '</p>';
   }
 
   /* HELPERS */
+  function options_for_select($collection, $selected_item = null, $title_method = null) {
+    $out = array();
+    foreach ($collection as $key => $item) {
+      $vars = get_object_vars($item);
+      if (isset($title_method)) {
+        $title = $vars[$title_method];
+      } elseif ($vars['name']) {
+        $title = $item->name;
+      } else {
+        $title = $item;
+      }
+
+      $selected = ($item === $selected_item || $key === $selected_item) ? ' selected="selected"' : '';
+
+      $out[] = '<option value="'.htmlspecialchars($key).'"'.$selected.'>'.htmlspecialchars($title).'</option>';
+    }
+    return join('', $out);
+  }
+
   function link_to_remote($text, $method, $attributes = array()) {
     return href(
       gTxt($text),
@@ -452,8 +486,16 @@ class PermanentLinksField {
     if (is_string($column)) $this->columns[] = $column;
   }
 
+  function model() {
+    return $GLOBALS['PermanentLinksModels'][$this->model];
+  }
+
   function parent() {
     return $GLOBALS['PermanentLinksModels'][$this->parent_model];
+  }
+
+  function formats() {
+    return ($this->model() === null) ? array() : $this->model()->fields;
   }
 
   function options_from_db() {
