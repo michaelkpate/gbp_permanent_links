@@ -164,6 +164,12 @@ return <<<HTML
 <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.5.2/jquery-ui.min.js"></script>
 <script type="text/javascript">
 <!--
+  var ajax_vars = {
+    rule: null,
+    segment: null,
+    field: null
+  }
+
   function toggle_view(visible) {
     $("#permanent-links-container > div.split-view:visible:not(#"+visible+")").hide();
     $("#permanent-links-container #"+visible).show();
@@ -191,6 +197,8 @@ return <<<HTML
   }
 
   function rule_loaded() {
+    ajax_vars.rule = $("#rule ul").attr('id');
+
     $("ul.sortable li").hover(
       function() { $(this).addClass('hover'); },
       function() { $(this).removeClass('hover'); }
@@ -198,13 +206,22 @@ return <<<HTML
       if ($(this).hasClass('selected')) return;
       $("ul.sortable li").removeClass('selected');
       $(this).addClass('selected');
-      $("#segment").load('$event', { xhr: "load_segment", rule: $(this).parent("ul").attr('id'), index: this.id.replace('segment-', '') }, function () { align_segment_arraw(); });
+      ajax_vars.segment = this.id;
+      $("#segment").load('$event', $.extend({ xhr: "load_segment" }, ajax_vars), function () { segment_loaded(); });
     });
     $("ul.sortable").sortable({ update: function () { align_segment_arraw(); } });
     // Trigger the loading to the segment options
     $("ul.sortable li:first").click();
     // Hide the rules table and display the current rule form
     toggle_view('current-rule');
+  }
+
+  function segment_loaded() {
+    align_segment_arraw();
+    $("#segment-field").change(function() {
+      ajax_vars.field = this.value;
+      $("#segment-field-options").load('$event', $.extend({ xhr: "change_segment_type" }, ajax_vars));
+    });
   }
 
   $(document).ready(function () {
@@ -352,22 +369,37 @@ HTML;
 
   function _ajax_load_segment() {
     $rule = $GLOBALS['PermanentLinksCurrentRules'][0];
-    $segment = $rule->segments[gps('index')];
+    $segment = $rule->segments[str_replace('segment-', '', gps('segment'))];
 
     $model = $rule->model();
     $field = $segment->field();
 
     echo '<p>';
 
-    echo 'Field: <select>'. $this->options_for_select($model->fields, $field) .'</select> ';
+    echo 'Field: <select id="segment-field">'. $this->options_for_select($model->fields, $field) .'</select>';
+
+    echo '<span id="segment-field-options">';
+
+    $this->_ajax_change_segment_type($field);
+
+    echo '</span>';
+    echo '</p>';
+  }
+
+  function _ajax_change_segment_type($field = null) {
+    if ($field === null) {
+      $rule = $GLOBALS['PermanentLinksCurrentRules'][0];
+      $segment = $rule->segments[str_replace('segment-', '', gps('segment'))];
+
+      $segment->field = gps('field');
+      $field = $segment->field();
+    }
 
     if (count($field->columns) > 1)
-      echo 'Column: <select>'. $this->options_for_select($field->columns) .'</select> ';
+      echo ' Column: <select>'. $this->options_for_select($field->columns) .'</select> ';
 
     if (count($field->formats()) > 1)
-      echo 'Format: <select>'. $this->options_for_select($field->formats()) .'</select> ';
-
-    echo '</p>';
+      echo ' Format: <select>'. $this->options_for_select($field->formats()) .'</select> ';
   }
 
   /* HELPERS */
