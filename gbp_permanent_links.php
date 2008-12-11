@@ -575,7 +575,7 @@ class PermanentLinksRule {
   function find_by_id($id) {
     global $PermanentLinks;
     $rule = $PermanentLinks->pref($id);
-    return is_a($rule, 'PermanentLinksRule') ? $rule : nil;
+    return is_a($rule, 'PermanentLinksRule') ? $rule : null;
   }
 
   function find_all($model = null) {
