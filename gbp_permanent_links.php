@@ -99,11 +99,56 @@ class PermanentLinksRulesTabView extends GBPAdminTabView {
        vdxkvXXQB4aiUpbV6aXpKpKuBl/yTHc3nls738MAgbXWkIg6Dlc/5SvQdL4KADs='),
   );
 
+  function current($object) {
+    static $memorised_data = array();
+    if (!array_key_exists($object, $memorised_data)) {
+      $data = null;
+      switch ($object) {
+        case 'model':
+          $data = ($table = gps('model')) ?
+            $GLOBALS['PermanentLinksModels'][$table] :
+            $GLOBALS['PermanentLinksModels']['textpattern'];
+          break;
+
+        case 'rules':
+          $data = PermanentLinksRule::find_all(gps('model'));
+          break;
+
+        case 'rule':
+          $data = ($id = gps('rule')) ?
+            PermanentLinksRule::find_by_id($id) :
+            new PermanentLinksRule(gps('model'));
+          break;
+
+        case 'segments':
+          $data = $this->current('rule')->segments;
+          break;
+
+        case 'segment':
+          $segments = $this->current('segments');
+          $data = $segments[str_replace('segment-', '', gps('segment'))];
+          break;
+
+        case 'model':
+          $data = $this->current('rule')->model();
+          break;
+
+        case 'field':
+          if (gps('field') && gps('field') != 'null')
+            $this->current('segment')->field = gps('field'); // FIXME: Should we really be doing this here?
+          $data = $this->current('segment')->field();
+          break;
+      }
+
+      if ($data)
+        $memorised_data[$object] = $data;
+    }
+
+    return @$memorised_data[$object];
+  }
+
   /* PRELOAD */
   function preload() {
-    $GLOBALS['PermanentLinksCurrentModel'] = $this->preload_model();
-    $GLOBALS['PermanentLinksCurrentRules'] = $this->preload_rules();
-
     # Process AJAX requests
     if ($xhr = gps('xhr')) {
       if (serverSet('HTTP_X_REQUESTED_WITH') == 'XMLHttpRequest')
@@ -123,25 +168,6 @@ class PermanentLinksRulesTabView extends GBPAdminTabView {
 
     # Inject JS and CSS into the page head
     register_callback(array(&$this, '_head_end'), 'admin_side', 'head_end');
-  }
-
-  function preload_model() {
-    if ($table = gps('model'))
-      $model = $GLOBALS['PermanentLinksModels'][$table];
-
-    if (!isset($model))
-      $model = $GLOBALS['PermanentLinksModels']['textpattern'];
-
-    return $model;
-  }
-
-  function preload_rules() {
-    if ($id = gps('rule'))
-      return array(PermanentLinksRule::find_by_id($id));
-    elseif ($model = gps('model'))
-      return PermanentLinksRule::find_all($model);
-
-    return array();
   }
 
   function _head_end($event, $step) {
@@ -317,8 +343,8 @@ HTML;
   }
 
   function _ajax_load_rules() {
-    if (count($GLOBALS['PermanentLinksCurrentRules']) == 0) {
-      echo '<p id="warning">No <strong>'.$GLOBALS['PermanentLinksCurrentModel']->name.'</strong> rules have been created</p>'.
+    if (count($this->current('rules')) == 0) {
+      echo '<p id="warning">No <strong>'.$this->current('model')->name.'</strong> rules have been created</p>'.
            '<p align="center">'.$this->_create_new_rule().'</p>';
 
     } else {
@@ -330,7 +356,7 @@ HTML;
         hCell()
       );
 
-      foreach ($GLOBALS['PermanentLinksCurrentRules'] as $rule) {
+      foreach ($this->current('rules') as $rule) {
         $attr = array('rule' => $rule->id);
         echo tr(
           td($this->link_to_remote($rule->to_s(), 'rule_form', $attr), 400).
@@ -345,15 +371,11 @@ HTML;
   }
 
   function _ajax_rule_form() {
-    $rule = gps('rule')
-      ? $GLOBALS['PermanentLinksCurrentRules'][0]
-      : new PermanentLinksRule(gps('model'));
-
     echo '<p align="center">'.$this->_cancel_rule().$this->_save_rule().'</p>';
 
-    echo '<div id="rule"><ul id="'. $rule->id .'" class="sortable">';
+    echo '<div id="rule"><ul id="'. $this->current('rule')->id .'" class="sortable">';
 
-    foreach ($rule->segments as $index => $segment) {
+    foreach ($this->current('segments') as $index => $segment) {
       echo '<li id="segment-'. $index .'" class="segment">'. $segment->field .'</li>';
     }
 
@@ -368,38 +390,24 @@ HTML;
   }
 
   function _ajax_load_segment() {
-    $rule = $GLOBALS['PermanentLinksCurrentRules'][0];
-    $segment = $rule->segments[str_replace('segment-', '', gps('segment'))];
-
-    $model = $rule->model();
-    $field = $segment->field();
-
     echo '<p>';
 
-    echo 'Field: <select id="segment-field">'. $this->options_for_select($model->fields, $field) .'</select>';
+    echo 'Field: <select id="segment-field">'. $this->options_for_select($this->current('model')->fields, $this->current('field')) .'</select>';
 
     echo '<span id="segment-field-options">';
 
-    $this->_ajax_change_segment_type($field);
+    $this->_ajax_change_segment_type();
 
     echo '</span>';
     echo '</p>';
   }
 
-  function _ajax_change_segment_type($field = null) {
-    if ($field === null) {
-      $rule = $GLOBALS['PermanentLinksCurrentRules'][0];
-      $segment = $rule->segments[str_replace('segment-', '', gps('segment'))];
+  function _ajax_change_segment_type() {
+    if (count($this->current('field')->columns) > 1)
+      echo ' Column: <select>'. $this->options_for_select($this->current('field')->columns) .'</select> ';
 
-      $segment->field = gps('field');
-      $field = $segment->field();
-    }
-
-    if (count($field->columns) > 1)
-      echo ' Column: <select>'. $this->options_for_select($field->columns) .'</select> ';
-
-    if (count($field->formats()) > 1)
-      echo ' Format: <select>'. $this->options_for_select($field->formats()) .'</select> ';
+    if (count($this->current('field')->formats()) > 1)
+      echo ' Format: <select>'. $this->options_for_select($this->current('field')->formats()) .'</select> ';
   }
 
   /* HELPERS */
