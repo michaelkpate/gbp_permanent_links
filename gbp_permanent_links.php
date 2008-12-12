@@ -458,16 +458,28 @@ class PermanentLinks extends GBPPlugin
 				} // foreach permlink component end
 
 				if ($match || $partial_match || $cleaver_partial_match) {
-					if ($match && isset($pretext_replacement))
+					// Extract the settings for this permlink
+					@extract($permlinks[$pretext_replacement['permlink_id']]['settings']);
+
+					// Check the permlink section and category conditions
+					if ((!empty($con_section) && $con_section != @$pretext_replacement['s']) ||
+					(!empty($con_category) && $con_category != @$pretext_replacement['c'])) {
+						$this->debug('Permlink conditions failed');
+						if (@$con_section)  $this->debug('con_section = '. $con_section);
+						if (@$con_category) $this->debug('con_category = '. $con_category);
+
+						unset($pretext_replacement);
+					}
+					else if ($match && isset($pretext_replacement))
 						$this->debug('We have a match!');
 
 					else if ($partial_match && count($this->partial_matches))
 						$this->debug('We have a \'partial match\'');
 
-					else if ($cleaver_partial_match && isset($cleaver_partial_match)) {
+					else if ($cleaver_partial_match && isset($cleaver_partial_match))
 						$this->debug('We have a \'cleaver partial match\'');
 
-					} else {
+					else {
 						$this->debug('Error: Can\'t determine the correct type match');
 						// This permlink has failed, continue execution of the foreach permlinks loop 
 						unset($pretext_replacement);
@@ -492,16 +504,6 @@ class PermanentLinks extends GBPPlugin
 
 			// Extract the settings for this permlink
 			@extract($permlinks[$pretext_replacement['permlink_id']]['settings']);
-
-			// Check the permlink section and category conditions
-			if ((!empty($con_section) && $con_section != @$pretext_replacement['s']) ||
-			(!empty($con_category) && $con_category != @$pretext_replacement['c'])) {
-				$this->debug('Permlink conditions failed');
-				if (@$con_section) $this->debug('con_section = '. $con_section);
-				if (@$con_category) $this->debug('con_category = '. $con_category);
-
-				unset($pretext_replacement);
-			}
 
 			// If pretext_replacement is still set here then we have a match
 			if (@$pretext_replacement) {
