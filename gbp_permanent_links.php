@@ -239,6 +239,7 @@ return <<<HTML
       $("ul.sortable li").removeClass('selected');
       $(this).addClass('selected');
       ajax_vars.segment = this.id;
+      ajax_vars.field = null;
       $("#segment").load('$event', $.extend({ xhr: "load_segment" }, ajax_vars), function () { segment_loaded(); });
     });
     $("ul.sortable").sortable({ update: function () { align_segment_arraw(); } });
