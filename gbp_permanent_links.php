@@ -134,7 +134,7 @@ class PermanentLinksRulesTabView extends GBPAdminTabView {
           break;
 
         case 'field':
-          if (gps('field') && gps('field') != 'null')
+          if (gps('field'))
             $this->current('segment')->field = gps('field'); // FIXME: Should we really be doing this here?
           $data = $this->current('segment')->field();
           break;
@@ -151,9 +151,15 @@ class PermanentLinksRulesTabView extends GBPAdminTabView {
   function preload() {
     # Process AJAX requests
     if ($xhr = gps('xhr')) {
-      if (serverSet('HTTP_X_REQUESTED_WITH') == 'XMLHttpRequest')
+      if (serverSet('HTTP_X_REQUESTED_WITH') == 'XMLHttpRequest') {
+        # Unset null POST data sent
+        foreach ($_POST as $key => $value) {
+          if ($value == 'null')
+            unset($_POST[$key]);
+        }
         exit(@call_user_func(array(&$this, '_ajax_'.$xhr)));
-      else {
+
+      } else {
         txp_status_header('403 Forbidden');
         exit('403 Forbidden');
       }
