@@ -556,11 +556,10 @@ class PermanentLinks extends GBPPlugin
 						$pretext_replacement['s'] = safe_field('Section', 'textpattern', 'ID = '.$pretext_replacement['id']);
 				}
 
-				// Set the page template, otherwise we get an unknown section error
-				$page = (@$des_page)
-					? $des_page
-					: safe_field('page', 'txp_section', "name = '{$pretext_replacement['s']}' limit 1");
-				$pretext_replacement['page'] = $page;
+				// Set the css and page template, otherwise we get an unknown section
+				$section_settings = safe_row('css, page', 'txp_section', "name = '{$pretext_replacement['s']}' limit 1");
+				$pretext_replacement['page'] = (@$des_page) ? $des_page : $section_settings['page'];
+				$pretext_replacement['css']  = $section_settings['css'];
 
 				$this->matched_permlink = $pretext_replacement;
 
