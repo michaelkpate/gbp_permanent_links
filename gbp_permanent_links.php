@@ -723,7 +723,7 @@ class PermanentLinks extends GBPPlugin
 		global $pretext, $prefs, $production_status;
 
 		if ($type == PAGELINKURL)
-		  return $this->toggle_permlink_mode('pagelinkurl', $article_array);
+			return $this->toggle_custom_url_func('pagelinkurl', $article_array);
 
 		if (empty($article_array)) return;
 
@@ -1094,22 +1094,33 @@ class PermanentLinks extends GBPPlugin
 		$pretext['permlink_mode'] = $permlink_mode = $prefs['permlink_mode'];
 	}
 
-	function toggle_permlink_mode ($func, $atts = NULL) {
-		global $prefs, $pretext, $permlink_mode;
+	function toggle_custom_url_func ($func, $atts = NULL, $toogle_permlink_mode = false) {
+		global $prefs, $pretext;
+
+		if ($toogle_permlink_mode) {
+			global $permlink_mode;
+			$_permlink_mode = $permlink_mode;
+		}
 
 		$_call_user_func = @$prefs['custom_url_func'];
-		$_permlink_mode = $permlink_mode;
 
 		unset($prefs['custom_url_func']);
-		$pretext['permlink_mode'] = $permlink_mode = $prefs['permlink_mode'];
+		if ($toogle_permlink_mode)
+			$pretext['permlink_mode'] = $permlink_mode = $prefs['permlink_mode'];
 
 		if (is_callable($func))
 			$rs = call_user_func($func, $atts);
 
 		$prefs['custom_url_func'] = $_call_user_func;
-		$pretext['permlink_mode'] = $permlink_mode = $_permlink_mode;
+
+		if ($toogle_permlink_mode)
+			$pretext['permlink_mode'] = $permlink_mode = $_permlink_mode;
 
 		return $rs;
+	}
+
+	function toggle_permlink_mode ($func, $atts = NULL) {
+		return $this->toggle_custom_url_func($func, $atts, true);
 	}
 
 	function encode_url ($text) {
