@@ -155,7 +155,7 @@ class PermanentLinks extends GBPPlugin
 				'settings' => array(
 					'pl_name' => 'gbp_permanent_links_default', 'pl_precedence' => '', 'pl_preview' => '/',
 					'con_section' => '', 'con_category' => '', 'des_section' => '', 'des_category' => '',
-					'des_permlink' => '', 'des_feed' => '', 'des_location' => '',
+					'des_permlink' => '', 'des_feed' => '', 'des_location' => '', 'des_page' => ''
 			));
 
 			// Extend the pretext_replacement scope outside the foreach permlink loop 
