@@ -115,9 +115,15 @@ class PermanentLinksRulesTabView extends GBPAdminTabView {
           break;
 
         case 'rule':
-          $data = ($id = gps('rule')) ?
-            PermanentLinksRule::find_by_id($id) :
-            new PermanentLinksRule(gps('model'));
+          if ($id = gps('rule')) {
+            if (array_key_exists($id, $_SESSION['PermanentLinksRules'])) {
+              $data = $_SESSION['PermanentLinksRules'][$id];
+            } else {
+              $data = PermanentLinksRule::find_by_id($id);
+            }
+          } else {
+            $data = new PermanentLinksRule(gps('model'));
+          }
           break;
 
         case 'segments':
@@ -134,8 +140,6 @@ class PermanentLinksRulesTabView extends GBPAdminTabView {
           break;
 
         case 'field':
-          if (gps('field'))
-            $this->current('segment')->field = gps('field'); // FIXME: Should we really be doing this here?
           $data = $this->current('segment')->field();
           break;
       }
@@ -149,6 +153,11 @@ class PermanentLinksRulesTabView extends GBPAdminTabView {
 
   /* PRELOAD */
   function preload() {
+    if (session_id() == "") {
+      session_name("GBPPermanentLinks");
+      session_start();
+    }
+
     # Process AJAX requests
     if ($xhr = gps('xhr')) {
       if (serverSet('HTTP_X_REQUESTED_WITH') == 'XMLHttpRequest') {
@@ -157,7 +166,10 @@ class PermanentLinksRulesTabView extends GBPAdminTabView {
           if ($value == 'null')
             unset($_POST[$key]);
         }
-        exit(@call_user_func(array(&$this, '_ajax_'.$xhr)));
+
+        $rs = @call_user_func(array(&$this, '_ajax_'.$xhr));
+        $this->store_modified_rules();
+        exit($rs);
 
       } else {
         txp_status_header('403 Forbidden');
@@ -342,6 +354,17 @@ return <<<HTML
 HTML;
   }
 
+  function store_modified_rules() {
+    if (!isset($_SESSION['PermanentLinksRules']))
+      $_SESSION['PermanentLinksRules'] = array();
+
+    # Store dirty rules in a sessions variable
+    if ($rule = $this->current('rule')) {
+      if ($rule->is_dirty)
+        $_SESSION['PermanentLinksRules'][gps('rule')] = $rule;
+    }
+  }
+
   /* AJAX */
   function _ajax_load_models() {
     return '<p align="center">Filter rules by type: <select>'.
@@ -410,6 +433,12 @@ HTML;
   }
 
   function _ajax_change_segment_type() {
+    if (gps('field')) {
+      $this->current('segment')->update_attributes(array(
+        'field' => gps('field')
+      ));
+    }
+
     if (count($this->current('field')->columns) > 1)
       echo ' Column: <select>'. $this->options_for_select($this->current('field')->columns) .'</select> ';
 
@@ -553,6 +582,7 @@ class PermanentLinksRule {
   var $id = null;
   var $model;
   var $segments = array();
+  var $is_dirty = false;
 
   function PermanentLinksRule($model) {
     $this->model = $model;
@@ -611,6 +641,8 @@ class PermanentLinksRule {
 
   function create() {
     $this->id = sha1(time());
+    foreach ($this->segments as $segment)
+      $segment->rule_id = $id;
     $this->update();
   }
 
@@ -647,6 +679,7 @@ class PermanentLinksRule {
 }
 
 class PermanentLinksRuleSegment {
+  var $rule_id;
   var $model;
   var $field;
   var $separator;
@@ -662,6 +695,10 @@ class PermanentLinksRuleSegment {
     $this->is_optional = $is_optional;
     $this->prefix      = $prefix;
     $this->suffix      = $suffix;
+  }
+
+  function rule() {
+    return PermanentLinksRule::find_by_id($this->rule_id);
   }
 
   function model() {
@@ -717,6 +754,16 @@ class PermanentLinksRuleSegment {
       $pattern = ($optional) ? '(?:' . $pattern . ')?' : $pattern;
     }
     return $pattern;
+  }
+
+  function update_attributes($attributes = array()) {
+    if (is_array($attributes)) {
+      foreach ($attributes as $key => $value) {
+        if ($this->$key != $value)
+          $this->rule()->is_dirty = true;
+        $this->$key = $value;
+      }
+    }
   }
 
   function to_s() {
