@@ -46,6 +46,7 @@ class PermanentLinks extends GBPPlugin
 		'automatically_append_title' => array('value' => 1 , 'type' => 'yesnoradio'),
 		'permlink_redirect_http_status' => array('value' => '301' , 'type' => 'text_input'),
 		'url_redirect_http_status' => array('value' => '302' , 'type' => 'text_input'),
+		'text_and_regex_segment_scores' => array('value' => '0' , 'type' => 'text_input'),
 		'debug' => array('value' => 0, 'type' => 'yesnoradio'),
 	);
 	var $matched_permlink = array();
@@ -991,11 +992,9 @@ class PermanentLinks extends GBPPlugin
 				switch ($pl_c['type']) {
 					case 'text':
 						$out[] = $pl_c['text'];
-						$match_count--;
 					break;
 					case 'regex':
 						$out[] = $pretext['permlink_regex_'.$pl_c['name']];
-						$match_count--;
 					break;
 					case 'section':
 						if (@$s) $out[] = $s;
@@ -1023,9 +1022,11 @@ class PermanentLinks extends GBPPlugin
 					break;
 					default: break 2;
 				}
-					if (!in_array($pl_c['type'], array('title', 'id')))
-						$match_count++;
-					else break;
+				if (in_array($pl_c['type'], array('text', 'regex')))
+					$match_count += $this->pref('text_and_regex_segment_scores');
+				elseif (!in_array($pl_c['type'], array('title', 'id')))
+					$match_count++;
+				else break;
 			}
 
 			$this->buffer_debug[] = 'Match count: '. $match_count;
