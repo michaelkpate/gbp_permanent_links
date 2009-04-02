@@ -986,7 +986,7 @@ class PermanentLinks extends GBPPlugin
 		foreach ($permlinks as $key => $pl) {
 			$this->buffer_debug[] = 'Testing permlink: '. $pl['settings']['pl_name'] .' - '. $key;
 			$this->buffer_debug[] = 'Preview: '. $pl['settings']['pl_preview'];
-			$out = array(); $match_count = 0;
+			$out = array(); $keys = array(); $match_count = 0;
 			foreach ($pl['components'] as $pl_c) {
 				switch ($pl_c['type']) {
 					case 'text':
@@ -1015,7 +1015,10 @@ class PermanentLinks extends GBPPlugin
 						else break 2;
 					break;
 					case 'page':
-						if (@$pg) $out['pg'] = $pg;
+						if (@$pg) {
+							$out[] = $pg;
+							$keys[] = 'pg';
+						}
 						else break 2;
 					break;
 					default: break 2;
@@ -1037,6 +1040,7 @@ class PermanentLinks extends GBPPlugin
 					$this->buffer_debug[] = 'New highest match! '. implode('/', $out);
 					$highest_match_count = $match_count;
 					$match = $out;
+					$match_keys = $keys;
 				}
 			}
 		}
@@ -1060,7 +1064,7 @@ class PermanentLinks extends GBPPlugin
 			$url .= 'rss';
 		else if ($atom)
 			$url .= 'atom';
-		else if ($pg && !array_key_exists('pg', $match)) {
+		else if ($pg && !in_array('pg', $match_keys)) {
 			if ($this->pref('clean_page_archive_links'))
 				$url .= $pg;
 			else {
