@@ -1014,6 +1014,10 @@ class PermanentLinks extends GBPPlugin
 						if (@$q) $out[] = $q;
 						else break 2;
 					break;
+					case 'page':
+						if (@$pg) $out['pg'] = $pg;
+						else break 2;
+					break;
 					default: break 2;
 				}
 					if (!in_array($pl_c['type'], array('title', 'id')))
@@ -1056,11 +1060,13 @@ class PermanentLinks extends GBPPlugin
 			$url .= 'rss';
 		else if ($atom)
 			$url .= 'atom';
-		else if ($this->pref('clean_page_archive_links') && $pg)
-			$url .= $pg;
-		else if ($pg) {
-			$url .= '?pg='. $pg;
-			$omit_trailing_slash = true;
+		else if ($pg && !array_key_exists('pg', $match)) {
+			if ($this->pref('clean_page_archive_links'))
+				$url .= $pg;
+			else {
+				$url .= '?pg='. $pg;
+				$omit_trailing_slash = true;
+			}
 		}
 
 		$url = rtrim($url, '/') . '/';
