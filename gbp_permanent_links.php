@@ -89,9 +89,6 @@ class PermanentLinks extends GBPPlugin
 
 			$permlinks[$id] = $pl;
 
-			if (@txpinterface == 'public')
-				$this->debug(++$i.': '.$pl['settings']['pl_name'].' ('.$pl['settings']['pl_preview'].')');
-
 			if ($sort)
 				$precedence[$id] = $permlinks[$id]['settings']['pl_precedence'];
 		}
@@ -99,6 +96,11 @@ class PermanentLinks extends GBPPlugin
 		// If more than one permanent link, sort by their precedence value.
 		if ($sort && count($permlinks) > 1)
 			array_multisort($precedence, SORT_DESC, $permlinks);
+
+		if (@txpinterface == 'public') {
+			foreach ($permlinks as $pl)
+				$this->debug($pl['settings']['pl_precedence'].': '.$pl['settings']['pl_name'].' ('.$pl['settings']['pl_preview'].')');
+		}
 
 		return $permlinks;
 	}
