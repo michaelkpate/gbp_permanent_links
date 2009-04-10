@@ -42,6 +42,8 @@ class PermanentLinks extends GBPPlugin
 		'redirect_mt_style_links' => array('value' => 1 , 'type' => 'yesnoradio'),
 		'clean_page_archive_links' => array('value' => 1 , 'type' => 'yesnoradio'),
 		'join_pretext_to_pagelinks' => array('value' => 1 , 'type' => 'yesnoradio'),
+		'check_pretext_category_context' => array('value' => 0 , 'type' => 'yesnoradio'),
+		'check_pretext_section_context' => array('value' => 0 , 'type' => 'yesnoradio'),
 		'force_lowercase_urls' => array('value' => 1 , 'type' => 'yesnoradio'),
 		'automatically_append_title' => array('value' => 1 , 'type' => 'yesnoradio'),
 		'permlink_redirect_http_status' => array('value' => '301' , 'type' => 'text_input'),
@@ -796,8 +798,11 @@ class PermanentLinks extends GBPPlugin
 						if (!@$pl_c['category']) $pl_c['category'] = 1;
 						$primary = 'category'. $pl_c['category'];
 						$secondary = 'category'. (3-(int)$pl_c['category']);
-						if ($uri_c = $$primary);
-						else if ($uri_c = $$secondary);
+						$check_context = ($this->pref('join_pretext_to_pagelinks') && $this->pref('check_pretext_category_context'));
+						if (!$check_context || $$primary == $pretext['c'])
+							$uri_c = $$primary;
+						else if (!$check_context || $$secondary == $pretext['c'])
+							$uri_c = $$secondary;
 						else if ($this->pref('debug') && in_array($production_status, array('debug', 'testing')))
 							$uri_c = '--INVALID_CATEGORY--';
 						else {
@@ -805,7 +810,15 @@ class PermanentLinks extends GBPPlugin
 							break 2;
 						}
 					break;
-					case 'section': $uri_c = $section; break;
+					case 'section':
+						$check_context = ($this->pref('join_pretext_to_pagelinks') && $this->pref('check_pretext_section_context'));
+						if (!$check_context || $section == $pretext['s'])
+							$uri_c = $section;
+						else {
+							unset($uri);
+							break 2;
+						}
+					break;
 					case 'title': $uri_c = $url_title; break;
 					case 'id': $uri_c = $thisid; break;
 					case 'author': $uri_c = safe_field('RealName', 'txp_users', "name like '{$authorid}'"); break;
