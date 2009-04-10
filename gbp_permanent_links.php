@@ -983,12 +983,14 @@ class PermanentLinks extends GBPPlugin
 			));
 		}
 
+		$current_segments = explode('/', ltrim($pretext['request_uri'], '/'));
+
 		$highest_match_count = null;
 		foreach ($permlinks as $key => $pl) {
 			$this->buffer_debug[] = 'Testing permlink: '. $pl['settings']['pl_name'] .' - '. $key;
 			$this->buffer_debug[] = 'Preview: '. $pl['settings']['pl_preview'];
 			$out = array(); $keys = array(); $match_count = 0;
-			foreach ($pl['components'] as $pl_c) {
+			foreach ($pl['components'] as $i => $pl_c) {
 				switch ($pl_c['type']) {
 					case 'text':
 						$out[] = $pl_c['text'];
@@ -1022,8 +1024,10 @@ class PermanentLinks extends GBPPlugin
 					break;
 					default: break 2;
 				}
-				if (in_array($pl_c['type'], array('text', 'regex')))
-					$match_count += $this->pref('text_and_regex_segment_scores');
+				if (in_array($pl_c['type'], array('text', 'regex'))) {
+					if ($current_segments[$i] == end($out) && strlen(end($out)) > 0)
+						$match_count += $this->pref('text_and_regex_segment_scores');
+				}
 				elseif (!in_array($pl_c['type'], array('title', 'id')))
 					$match_count++;
 				else break;
