@@ -1007,8 +1007,8 @@ class PermanentLinks extends GBPPlugin
 						else break 2;
 					break;
 					case 'feed':
-						if (@$rss) $out[] = 'rss';
-						else if (@$atom) $out[] = 'atom';
+						if (@$rss) $keys[] = $out[] = 'rss';
+						else if (@$atom) $keys[] = $out[] = 'atom';
 						else break 2;
 					break;
 					case 'search':
@@ -1060,14 +1060,15 @@ class PermanentLinks extends GBPPlugin
 			return 'href="'. $url .'"';
 		}
 
-		$this->buffer_debug[] = serialize($match);
+		$this->buffer_debug[] = 'match: '.      serialize($match);
+		$this->buffer_debug[] = 'match_keys: '. serialize($match_keys);
 
 		$url = '/'.join('/', $match);
 		$url = rtrim(hu, '/').rtrim($url, '/').'/';
 
-		if ($rss)
+		if ($rss && !in_array('rss', $match_keys))
 			$url .= 'rss';
-		else if ($atom)
+		else if ($atom && !in_array('atom', $match_keys))
 			$url .= 'atom';
 		else if ($pg && !in_array('pg', $match_keys)) {
 			if ($this->pref('clean_page_archive_links'))
