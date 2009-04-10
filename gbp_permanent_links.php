@@ -954,10 +954,8 @@ class PermanentLinks extends GBPPlugin
 
 		// Some TxP tags, e.g. <txp:feed_link /> use 'section' or 'category' inconsistent
 		// with most other tags. Process these now so we only have to check $s and $c.
-		if (@$section && !$s)
-			$s = $section;
-		if (@$category && !$c)
-			$c = $category;
+		if (@$section)  $s = $section;
+		if (@$category) $c = $category;
 
 		// Debugging for buffers
 		$this->buffer_debug[] = 'url: '.str_replace('&amp;', '&', $parts[1].$parts[2]);
