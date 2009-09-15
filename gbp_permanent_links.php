@@ -498,8 +498,10 @@ class PermanentLinks extends GBPPlugin
 			} // foreach permlinks end
 
 			// If there is no match restore the most likely partial match. Sorted by number of components and then precedence
-			if (!@$pretext_replacement && count($this->partial_matches))
-				$pretext_replacement = array_shift(array_slice($this->partial_matches, -1));
+			if (!@$pretext_replacement && count($this->partial_matches)) {
+				$pt_slice = array_slice($this->partial_matches, -1);
+				$pretext_replacement = array_shift($pt_slice);
+			}
 			unset($this->partial_matches);
 
 			// Restore the cleaver_partial_match if there is no other matches
