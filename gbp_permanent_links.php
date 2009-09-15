@@ -648,7 +648,7 @@ class PermanentLinksRule {
 
   function update() {
     global $PermanentLinks;
-    $PermanentLinks->set_preference($this->id, &$this, 'gbp_serialized');
+    $PermanentLinks->set_preference($this->id, $this, 'gbp_serialized');
   }
 
   function find_by_id($id) {
