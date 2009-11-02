@@ -943,7 +943,8 @@ class PermanentLinks extends GBPPlugin
 		// We have a id, pass to permlinkurl()
 		if ($id) {
 			if (@$s == 'file_download') {
-				$url = $this->toggle_permlink_mode('filedownloadurl', $id);
+				$title = (version_compare($dbversion, '4.2', '>=')) ? NULL : safe_field('filename', 'txp_file', "id = '{$id}'");
+				$url = $this->toggle_permlink_mode('filedownloadurl', array($id, $title), true);
 			} else {
 				$rs = safe_row('*, ID as thisid, unix_timestamp(Posted) as posted', 'textpattern', "ID = '{$id}'");
 				$url = $this->_permlinkurl($rs, PERMLINKURL) . $fragment;
@@ -1127,7 +1128,7 @@ class PermanentLinks extends GBPPlugin
 		$pretext['permlink_mode'] = $permlink_mode = $prefs['permlink_mode'];
 	}
 
-	function toggle_custom_url_func ($func, $atts = NULL, $toogle_permlink_mode = false) {
+	function toggle_custom_url_func ($func, $atts = NULL, $toogle_permlink_mode = false, $expand_arguments = false) {
 		global $prefs, $pretext;
 
 		if ($toogle_permlink_mode) {
@@ -1141,8 +1142,12 @@ class PermanentLinks extends GBPPlugin
 		if ($toogle_permlink_mode)
 			$pretext['permlink_mode'] = $permlink_mode = $prefs['permlink_mode'];
 
-		if (is_callable($func))
-			$rs = call_user_func($func, $atts);
+		if (is_callable($func)) {
+			if (is_array($atts) and $expand_arguments)
+				$rs = call_user_func_array($func, $atts);
+			else
+				$rs = call_user_func($func, $atts);
+		}
 
 		$prefs['custom_url_func'] = $_call_user_func;
 
@@ -1152,8 +1157,8 @@ class PermanentLinks extends GBPPlugin
 		return $rs;
 	}
 
-	function toggle_permlink_mode ($func, $atts = NULL) {
-		return $this->toggle_custom_url_func($func, $atts, true);
+	function toggle_permlink_mode ($func, $atts = NULL, $expand_arguments = false) {
+		return $this->toggle_custom_url_func($func, $atts, true, $expand_arguments);
 	}
 
 	function encode_url ($text) {
