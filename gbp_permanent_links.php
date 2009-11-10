@@ -256,8 +256,9 @@ class PermanentLinksRulesTabView extends GBPAdminTabView {
 
       foreach ($this->current('rules') as $rule) {
         $attr = array('rule' => $rule->id);
+        $unsaved = (isset($_SESSION['PermanentLinksRules'][$rule->id])) ? '&bull; ' : '';
         echo tr(
-          td($this->link_to_remote($rule->to_s(), 'rule_form', $attr), 400).
+          td($unsaved.$this->link_to_remote($rule->to_s(), 'rule_form', $attr), 400).
           td($this->link_to_remote(gTxt('edit'),  'rule_form', $attr), 35)
         );
       }

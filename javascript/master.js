@@ -22,7 +22,7 @@ function align_segment_arraw() {
 }
 
 function cancel_rule() {
-  toggle_view('rules');
+  $("#rules").load('{{URL}}', { xhr: "load_rules", model: $("#models select").attr('value') }, function () { toggle_view('rules'); });
 }
 
 function save_rule() {
