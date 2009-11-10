@@ -56,7 +56,19 @@ function segment_loaded() {
   $("#segment-field").change(function() {
     ajax_vars.field = this.value;
     $("#rule .segment.selected").text(this.value);
-    $("#segment-field-options").load('{{URL}}', $.extend({ xhr: "change_segment_type" }, ajax_vars));
+    $("#segment-field-options").load('{{URL}}', $.extend({ xhr: "change_segment_type" }, ajax_vars), function () { segment_options_loaded(); });
+  });
+  segment_options_loaded();
+}
+
+function segment_options_loaded() {
+  $("#segment-column").change(function () {
+    ajax_vars.column = this.value;
+    $.post('{{URL}}', $.extend({ xhr: "change_segment_options" }, ajax_vars ));
+  });
+  $("#segment-format").change(function () {
+    ajax_vars.format = this.value;
+    $.post('{{URL}}', $.extend({ xhr: "change_segment_options" }, ajax_vars ));
   });
 }
 

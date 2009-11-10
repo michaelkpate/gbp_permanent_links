@@ -309,10 +309,14 @@ class PermanentLinksRulesTabView extends GBPAdminTabView {
     }
 
     if (count($this->current('field')->columns) > 1)
-      echo ' Column: <select>'. $this->options_for_select($this->current('field')->columns) .'</select> ';
+      echo ' Column: <select id="segment-column">'. $this->options_for_select($this->current('field')->columns, $this->current('segment')->column) .'</select> ';
 
     if (count($this->current('field')->formats()) > 1)
-      echo ' Format: <select>'. $this->options_for_select($this->current('field')->formats()) .'</select> ';
+      echo ' Format: <select id="segment-format">'. $this->options_for_select($this->current('field')->formats(), $this->current('segment')->format) .'</select> ';
+  }
+
+  function _ajax_change_segment_options() {
+    $this->current('segment')->update_attributes(gpsa(array('column', 'format')));
   }
 
   /* HELPERS */
@@ -427,7 +431,7 @@ class PermanentLinksField {
   }
 
   function add_column($column = null) {
-    if (is_string($column)) $this->columns[] = $column;
+    if (is_string($column)) $this->columns[$column] = $column;
   }
 
   function model() {
@@ -556,6 +560,8 @@ class PermanentLinksRuleSegment {
   var $prefix;
   var $suffix;
   var $conditions = array();
+  var $column = '';
+  var $format = '';
 
   function PermanentLinksRuleSegment($field, $separator = '/', $is_optional = true, $prefix = null, $suffix = null) {
     $this->model       = $field->parent_model;
