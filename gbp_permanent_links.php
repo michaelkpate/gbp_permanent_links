@@ -550,7 +550,7 @@ class PermanentLinksRule {
     $rules = array();
     foreach ($ids as $id) {
       $rule = PermanentLinksRule::find_by_id($id);
-      if ($model == null or strtolower(@$rule->segments[0]->model) == strtolower($model))
+      if ($model == null or $rule->model == $model)
         $rules[] = $rule;
     }
 
