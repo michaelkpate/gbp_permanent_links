@@ -165,6 +165,11 @@ class PermanentLinksRulesTabView extends GBPAdminTabView {
             unset($_POST[$key]);
         }
 
+        if (serverSet('REMOTE_ADDR') == '127.0.0.1') {
+          echo '<!-- '.print_r($_POST, true).' -->';
+          echo '<!-- '.print_r(@$_SESSION['PermanentLinksRules'], true).' -->';
+        }
+
         $rs = @call_user_func(array(&$this, '_ajax_'.$xhr));
         $this->store_modified_rules();
         exit($rs);
