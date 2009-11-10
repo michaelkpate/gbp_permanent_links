@@ -55,6 +55,7 @@ function segment_loaded() {
   align_segment_arraw();
   $("#segment-field").change(function() {
     ajax_vars.field = this.value;
+    $("#rule .segment.selected").text(this.value);
     $("#segment-field-options").load('{{URL}}', $.extend({ xhr: "change_segment_type" }, ajax_vars));
   });
 }
