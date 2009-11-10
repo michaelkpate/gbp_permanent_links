@@ -45,7 +45,7 @@ function rule_loaded() {
     ajax_vars.field = null;
     $("#segment").load('{{URL}}', $.extend({ xhr: "load_segment" }, ajax_vars), function () { segment_loaded(); });
   });
-  $("ul.sortable").sortable({ update: function () { align_segment_arraw(); } });
+  $("ul.sortable").sortable({ update: function () { segments_reordered(); } });
   // Trigger the loading to the segment options
   $("ul.sortable li:first").click();
   // Hide the rules table and display the current rule form
@@ -71,6 +71,12 @@ function segment_options_loaded() {
     ajax_vars.format = this.value;
     $.post('{{URL}}', $.extend({ xhr: "change_segment_options" }, ajax_vars ));
   });
+}
+
+function segments_reordered() {
+  align_segment_arraw();
+  order = $("#rule li").map(function () { return $(this).attr('id'); }).get().join(":");
+  $.post('{{URL}}', $.extend({ xhr: "reorder_segments", order: order }, ajax_vars ));
 }
 
 $(document).ready(function () {

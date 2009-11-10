@@ -336,6 +336,10 @@ class PermanentLinksRulesTabView extends GBPAdminTabView {
     $this->current('segment')->update_attributes(gpsa(array('column', 'format')));
   }
 
+  function _ajax_reorder_segments() {
+    $this->current('rule')->reorder_segments(explode(':', gps('order')));
+  }
+
   /* HELPERS */
   function options_for_select($collection, $selected_item = null, $title_method = null) {
     $out = array();
@@ -537,6 +541,17 @@ class PermanentLinksRule {
     global $PermanentLinks;
     $this->is_dirty = false;
     $PermanentLinks->set_preference($this->id, $this, 'gbp_serialized');
+  }
+
+  function reorder_segments($segment_keys = array()) {
+    if (is_array($segment_keys)) {
+      $new_segments = array();
+      foreach ($segment_keys as $key) {
+        $new_segments[$key] = $this->segments[$key];
+      }
+      $this->segments = $new_segments;
+      $this->is_dirty = true;
+    }
   }
 
   function find_by_id($id) {
