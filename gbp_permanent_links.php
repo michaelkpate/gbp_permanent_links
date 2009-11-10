@@ -238,7 +238,7 @@ class PermanentLinksRulesTabView extends GBPAdminTabView {
     # Store dirty rules in a sessions variable
     if ($rule = $this->current('rule')) {
       if ($rule->is_dirty)
-        $_SESSION['PermanentLinksRules'][gps('rule')] = $rule;
+        $_SESSION['PermanentLinksRules'][$rule->id] = $rule;
     }
   }
 
@@ -461,12 +461,14 @@ class PermanentLinksField {
 }
 
 class PermanentLinksRule {
-  var $id = null;
+  var $id;
   var $model;
   var $segments = array();
-  var $is_dirty = false;
+  var $is_dirty = true;
+  var $new_record = true;
 
   function PermanentLinksRule($model) {
+    $this->id    = 'rule_'.substr(sha1(time() + rand()), 0, 6);
     $this->model = $model;
 
     $i = 1;
@@ -492,6 +494,7 @@ class PermanentLinksRule {
   }
 
   function add_segment($segment) {
+    $segment->rule_id = $this->id;
     $this->segments[$segment->id] = $segment;
   }
   
@@ -513,23 +516,18 @@ class PermanentLinksRule {
     return substr($string, 0, -1);
   }
 
-  function new_record() {
-    return ($this->id == null) ? true : false;
-  }
-
   function save() {
-    return ($this->new_record()) ? $this->create() : $this->update();
+    return ($this->new_record) ? $this->create() : $this->update();
   }
 
   function create() {
-    $this->id = sha1(time());
-    foreach ($this->segments as $segment)
-      $segment->rule_id = $id;
+    $this->new_record = false;
     $this->update();
   }
 
   function update() {
     global $PermanentLinks;
+    $this->is_dirty = false;
     $PermanentLinks->set_preference($this->id, $this, 'gbp_serialized');
   }
 
@@ -546,7 +544,7 @@ class PermanentLinksRule {
     if (!isset($ids))
       $ids = safe_column(
         "REPLACE(name, '{$PermanentLinks->plugin_name}_', '') AS id", 'txp_prefs',
-        "`event` = '{$PermanentLinks->event}' AND `name` REGEXP '^{$PermanentLinks->plugin_name}_.{40}$'"
+        "`event` = '{$PermanentLinks->event}' AND `name` REGEXP '^{$PermanentLinks->plugin_name}_rule_.{6}$'"
       );
 
     $rules = array();
