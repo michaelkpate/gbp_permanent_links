@@ -84,6 +84,14 @@ class PermanentLinks extends GBPPlugin {
       new PermanentLinksField('Title',     'string',       'name')
     );
 
+    if (serverSet('REMOTE_ADDR') == '127.0.0.1' and count(PermanentLinksRule::find_all()) == 0) {
+      $rules = array(
+        new PermanentLinksRule('textpattern', 'Author', 'Date', 'Title'),
+        new PermanentLinksRule('textpattern', 'Section', 'Category', 'Title'),
+      );
+      foreach ($rules as $rule) $rule->create();
+    }
+
     // TODO: Register custom route models and fields from other plugins
   }
 
