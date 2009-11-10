@@ -104,6 +104,10 @@ class PermanentLinksRulesTabView extends GBPAdminTabView {
             $GLOBALS['PermanentLinksModels']['textpattern'];
           break;
 
+        case 'fields':
+          $data = $this->current('model')->fields;
+          break;
+
         case 'rules':
           $data = PermanentLinksRule::find_all(gps('model'));
           break;
@@ -116,7 +120,7 @@ class PermanentLinksRulesTabView extends GBPAdminTabView {
               $data = PermanentLinksRule::find_by_id($id);
             }
           } else {
-            $data = new PermanentLinksRule(gps('model'), current($this->current('model')->fields)->name);
+            $data = new PermanentLinksRule(gps('model'), current($this->current('fields'))->name);
           }
           break;
 
@@ -291,7 +295,7 @@ class PermanentLinksRulesTabView extends GBPAdminTabView {
   function _ajax_load_segment() {
     echo '<p>';
 
-    echo 'Field: <select id="segment-field">'. $this->options_for_select($this->current('model')->fields, $this->current('field')) .'</select>';
+    echo 'Field: <select id="segment-field">'. $this->options_for_select($this->current('fields'), $this->current('field')) .'</select>';
 
     echo '<span id="segment-field-options">';
 
