@@ -11,7 +11,8 @@ function toggle_view(visible) {
 }
 
 function create_new_rule() {
-  $("#current-rule").load('{{URL}}', { xhr: "rule_form", model: $("#models select").attr('value') }, function () { rule_loaded(); });
+  ajax_vars.rule = 'new';
+  $("#current-rule").load('{{URL}}', $.extend({ xhr: "rule_form" }, ajax_vars), function () { rule_loaded(); });
 }
 
 function align_segment_arraw() {
@@ -23,7 +24,7 @@ function align_segment_arraw() {
 }
 
 function cancel_rule() {
-  $("#rules").load('{{URL}}', { xhr: "load_rules", model: $("#models select").attr('value') }, function () { toggle_view('rules'); });
+  $("#rules").load('{{URL}}', $.extend({ xhr: "load_rules" }, ajax_vars), function () { toggle_view('rules'); });
 }
 
 function save_rule() {

@@ -122,13 +122,13 @@ class PermanentLinksRulesTabView extends GBPAdminTabView {
 
         case 'rule':
           if ($id = gps('rule')) {
-            if (array_key_exists($id, $_SESSION['PermanentLinksRules'])) {
+            if ($id == 'new') {
+              $data = new PermanentLinksRule(gps('model'), current($this->current('fields'))->name);
+            } elseif (array_key_exists($id, $_SESSION['PermanentLinksRules'])) {
               $data = $_SESSION['PermanentLinksRules'][$id];
             } else {
               $data = PermanentLinksRule::find_by_id($id);
             }
-          } else {
-            $data = new PermanentLinksRule(gps('model'), current($this->current('fields'))->name);
           }
           break;
 
