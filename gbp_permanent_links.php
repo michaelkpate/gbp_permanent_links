@@ -130,7 +130,7 @@ class PermanentLinksRulesTabView extends GBPAdminTabView {
 
         case 'segment':
           $segments = $this->current('segments');
-          $data = $segments[str_replace('segment-', '', gps('segment'))];
+          $data = $segments[gps('segment')];
           break;
 
         case 'model':
@@ -283,8 +283,8 @@ class PermanentLinksRulesTabView extends GBPAdminTabView {
 
     echo '<div id="rule"><ul id="'. $this->current('rule')->id .'" class="sortable">';
 
-    foreach ($this->current('segments') as $index => $segment) {
-      echo '<li id="segment-'. $index .'" class="segment">'. $segment->field .'</li>';
+    foreach ($this->current('segments') as $segment) {
+      echo '<li id="'. $segment->id .'" class="segment">'. $segment->field .'</li>';
     }
 
     echo '</ul></div>';
@@ -492,7 +492,7 @@ class PermanentLinksRule {
   }
 
   function add_segment($segment) {
-    $this->segments[] = $segment;
+    $this->segments[$segment->id] = $segment;
   }
   
   function recognition_pattern() {
@@ -561,6 +561,7 @@ class PermanentLinksRule {
 }
 
 class PermanentLinksRuleSegment {
+  var $id;
   var $rule_id;
   var $model;
   var $field;
@@ -573,6 +574,7 @@ class PermanentLinksRuleSegment {
   var $format = '';
 
   function PermanentLinksRuleSegment($field, $separator = '/', $is_optional = true, $prefix = null, $suffix = null) {
+    $this->id          = 'segment_'.substr(sha1(time() + rand()), 0, 6);
     $this->model       = $field->parent_model;
     $this->field       = $field->name;
     $this->separator   = $separator;
