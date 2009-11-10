@@ -383,7 +383,7 @@ class PermanentLinksModel {
 
   function add_field($field) {
     $field->parent_model = $this->table;
-    $this->fields[strtolower($field->name)] = $field;
+    $this->fields[$field->name] = $field;
   }
 }
 
@@ -459,7 +459,7 @@ class PermanentLinksRule {
     $args = func_get_args();
     do {
       $segment = @$args[$i++];
-      if (is_string($segment) && $field = @$this->model()->fields[strtolower($segment)])
+      if (is_string($segment) && $field = @$this->model()->fields[$segment])
         $segment = new PermanentLinksRuleSegment($field);
       else if (!is_a($segment, 'PermanentLinksRuleSegment'))
         $segment = null;
@@ -574,7 +574,7 @@ class PermanentLinksRuleSegment {
   }
 
   function field() {
-    return $this->model()->fields[strtolower($this->field)];
+    return $this->model()->fields[$this->field];
   }
 
   function regexp() {
