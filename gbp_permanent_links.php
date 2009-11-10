@@ -116,7 +116,7 @@ class PermanentLinksRulesTabView extends GBPAdminTabView {
               $data = PermanentLinksRule::find_by_id($id);
             }
           } else {
-            $data = new PermanentLinksRule(gps('model'));
+            $data = new PermanentLinksRule(gps('model'), current($this->current('model')->fields)->name);
           }
           break;
 

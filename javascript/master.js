@@ -1,4 +1,5 @@
 var ajax_vars = {
+  model: null,
   rule: null,
   segment: null,
   field: null
@@ -10,7 +11,7 @@ function toggle_view(visible) {
 }
 
 function create_new_rule() {
-  $("#current-rule").load('{{URL}}', { xhr: "rule_form", model: $("#models select").attr('value') }, function () { toggle_view('current-rule'); });
+  $("#current-rule").load('{{URL}}', { xhr: "rule_form", model: $("#models select").attr('value') }, function () { rule_loaded(); });
 }
 
 function align_segment_arraw() {
@@ -75,7 +76,8 @@ function segment_options_loaded() {
 $(document).ready(function () {
   $("#models").load('{{URL}}', { xhr: "load_models" }, function () {
     $("#models select").change(function () {
-      $("#rules").load('{{URL}}', { xhr: "load_rules", model: this.value }, function () { toggle_view('rules'); });
+      ajax_vars.model = this.value;
+      $("#rules").load('{{URL}}', $.extend({ xhr: "load_rules" }, ajax_vars), function () { toggle_view('rules'); });
     }).change();
   });
 });
