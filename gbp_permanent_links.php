@@ -93,12 +93,6 @@ class PermanentLinks extends GBPPlugin {
 }
 
 class PermanentLinksRulesTabView extends GBPAdminTabView {
-  var $assets = array(
-    'segment-arrow' => array('type' => 'image/gif', 'data' =>
-      'R0lGODlhIAAQAJEAAP/MM//////fgP/ssiH5BAAHAP8ALAAAAAAgABAAAAI5jI85ku1/BgAMWicn
-       vdxkvXXQB4aiUpbV6aXpKpKuBl/yTHc3nls738MAgbXWkIg6Dlc/5SvQdL4KADs='),
-  );
-
   function current($object) {
     static $memorised_data = array();
     if (!array_key_exists($object, $memorised_data)) {
@@ -178,10 +172,14 @@ class PermanentLinksRulesTabView extends GBPAdminTabView {
     }
 
     # Process requests for embedded assets
-    if ($asset = @$this->assets[gps('assets')]) {
+    if ($asset = @$this->assets[gps('asset')]) {
       header('Content-type: '. $asset['type']);
-      header('Content-Disposition: attachment; filename='. gps('assets'));
-      exit(base64_decode($asset['data']));
+      header('Content-Disposition: attachment; filename='. gps('asset'));
+      if ($asset['embed'])
+        $asset['data'] = implode('', file(dirname(__FILE__).'/'.$asset['embed']));
+      else
+        $asset['data'] = base64_decode($asset['data']);
+      exit(str_replace('{{URL}}', $this->url(), $asset['data']));
     }
 
     # Inject JS and CSS into the page head
@@ -189,8 +187,7 @@ class PermanentLinksRulesTabView extends GBPAdminTabView {
   }
 
   function _head_end($event, $step) {
-    $this_event = 'index.php?event='.$this->parent->event.'&tab='.$this->event;
-    echo $this->js($this_event) . $this->css($this_event);
+    echo $this->js() . $this->css();
   }
 
   /* MAIN */
@@ -203,157 +200,28 @@ class PermanentLinksRulesTabView extends GBPAdminTabView {
     'div', ' id="permanent-links-container"');
   }
 
-  function js($event) {
-return <<<HTML
-<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.5.2/jquery-ui.min.js"></script>
-<script type="text/javascript">
-<!--
-  var ajax_vars = {
-    rule: null,
-    segment: null,
-    field: null
+  function js() {
+    return '<script type="text/javascript" src="'.$this->asset('jquery-ui.js').'"></script>'.
+           '<script type="text/javascript" src="'.$this->asset('master.js').'"></script>';
   }
 
-  function toggle_view(visible) {
-    $("#permanent-links-container > div.split-view:visible:not(#"+visible+")").hide();
-    $("#permanent-links-container #"+visible).show();
+  function css() {
+    return '<link rel="stylesheet" href="'.$this->asset('master.css').'" type="text/css" charset="utf-8">';
   }
 
-  function create_new_rule() {
-    $("#current-rule").load('$event', { xhr: "rule_form", model: $("#models select").attr('value') }, function () { toggle_view('current-rule'); });
+  /* ASSETS */
+  var $assets = array(
+    'master.css'        => array('type' => 'text/css',               'embed' => 'style/master.css'),
+    'master.js'         => array('type' => 'application/javascript', 'embed' => 'javascript/master.js'),
+    'jquery-ui.js'      => array('type' => 'application/javascript', 'embed' => 'javascript/jquery-ui.js'),
+    'segment-arrow.gif' => array('type' => 'image/gif',              'embed' => 'images/segment-arrow.gif'),
+  );
+
+  function asset($asset) {
+    return $this->url(array('asset' => $asset), true);
   }
 
-  function align_segment_arraw() {
-    $("#current-segment .arrow").css({ left:
-      $('#rule .selected').offset().left -
-      $("#segment").offset().left +
-      $('#rule .selected').width() / 2
-    });
-  }
-
-  function cancel_rule() {
-    toggle_view('rules');
-  }
-
-  function save_rule() {
-    // TODO
-    cancel_rule();
-  }
-
-  function rule_loaded() {
-    ajax_vars.rule = $("#rule ul").attr('id');
-
-    $("ul.sortable li").hover(
-      function() { $(this).addClass('hover'); },
-      function() { $(this).removeClass('hover'); }
-    ).click(function() {
-      if ($(this).hasClass('selected')) return;
-      $("ul.sortable li").removeClass('selected');
-      $(this).addClass('selected');
-      ajax_vars.segment = this.id;
-      ajax_vars.field = null;
-      $("#segment").load('$event', $.extend({ xhr: "load_segment" }, ajax_vars), function () { segment_loaded(); });
-    });
-    $("ul.sortable").sortable({ update: function () { align_segment_arraw(); } });
-    // Trigger the loading to the segment options
-    $("ul.sortable li:first").click();
-    // Hide the rules table and display the current rule form
-    toggle_view('current-rule');
-  }
-
-  function segment_loaded() {
-    align_segment_arraw();
-    $("#segment-field").change(function() {
-      ajax_vars.field = this.value;
-      $("#segment-field-options").load('$event', $.extend({ xhr: "change_segment_type" }, ajax_vars));
-    });
-  }
-
-  $(document).ready(function () {
-    $("#models").load('$event', { xhr: "load_models" }, function () {
-      $("#models select").change(function () {
-        $("#rules").load('$event', { xhr: "load_rules", model: this.value }, function () { toggle_view('rules'); });
-      }).change();
-    });
-  });
-
-  $(document).ajaxComplete(function (request, settings) {
-    $("a.remote").unbind('click').click(function () {
-      var xhr_method = new RegExp("[\\?&]xhr=([^&#]*)").exec(this.href)[1];
-      switch (xhr_method) {
-        case 'rule_form':
-          $("#current-rule").load(this.href, {}, function () { rule_loaded(); });
-        break;
-        default:
-          $.post(this.href, function (data) { eval(data); });
-        break;
-      }
-      return false;
-    });
-  });
--->
-</script>
-HTML;
-  }
-
-  function css($event) {
-return <<<HTML
-<style type="text/css" media="screen">
-#current-rule {
-	margin: 0 auto;
-	width: 600px;
-}
-
-#rule {
-	padding: 0;
-	background-color: #F3F3F3;
-	display: block;
-	border: 1px solid #999;
-}
-
-#rule ul {
-	list-style: none;
-	border: 4px solid #F3F3F3;
-	border-bottom-width: 6px;
-	height: 3em;
-	margin: 0;
-	padding: 0;
-}
-
-#rule li.segment {
-	float: left;
-	line-height: 3em;
-	margin: 0 5px 0 0;
-	padding: 0 1.5em;
-	background-color: #FFEAB1;
-	border: 1px solid #FFCB2F;
-}
-
-#rule li.segment.selected {
-	background-color: #FFCB2F;
-}
-
-#rule li.segment.hover {
-	cursor: move;
-}
-
-#current-segment .arrow {
-	position: relative;
-	margin-top: 10px;
-	background-image: url($event&assets=segment-arrow);
-	width: 32px;
-	height: 16px;
-}
-
-#segment {
-	border: 2px solid #FFCB2F;
-	background-color: #FFEAB1;
-	padding: 10px;
-}
-</style>
-HTML;
-  }
-
+  /* SESSION */
   function store_modified_rules() {
     if (!isset($_SESSION['PermanentLinksRules']))
       $_SESSION['PermanentLinksRules'] = array();
