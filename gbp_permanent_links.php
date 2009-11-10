@@ -118,6 +118,9 @@ class PermanentLinksRulesTabView extends GBPAdminTabView {
 
         case 'rules':
           $data = PermanentLinksRule::find_all(gps('model'));
+          foreach ($_SESSION['PermanentLinksRules'] as $id => $rule) {
+            if ($rule->model() === $this->current('model')) $data[$id] = $rule;
+          }
           break;
 
         case 'rule':
@@ -574,7 +577,7 @@ class PermanentLinksRule {
     foreach ($ids as $id) {
       $rule = PermanentLinksRule::find_by_id($id);
       if ($model == null or $rule->model == $model)
-        $rules[] = $rule;
+        $rules[$id] = $rule;
     }
 
     return $rules;
