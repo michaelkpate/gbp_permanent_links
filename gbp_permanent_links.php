@@ -532,9 +532,10 @@ class PermanentLinksRule {
   function recognition_pattern() {
     $pattern = '';
     $require = false;
-    foreach (array_reverse($this->segments, true) as $index => $segment) {
+    $i = count($this->segments);
+    foreach (array_reverse($this->segments, true) as $segment) {
       $require = (!$require) ? !$segment->is_optional : $require;
-      $pattern = $segment->build_pattern($pattern, $index, !$require);
+      $pattern = $segment->build_pattern($pattern, --$i, !$require);
     }
     return '@^(?i-:' . $pattern . ')@';
   }
