@@ -104,9 +104,12 @@ class PermanentLinksRulesTabView extends GBPAdminTabView {
       $data = null;
       switch ($object) {
         case 'model':
-          $data = ($table = gps('model')) ?
-            PermanentLinksModel::find_by_table($table) :
-            PermanentLinksModel::find_by_table('textpattern');
+          $table = gps('model');
+          if (!$table) $table = $_SESSION['PermanentLinksModel'];
+          $_SESSION['PermanentLinksModel'] = $table;
+
+          $data = PermanentLinksModel::find_by_table($table);
+          if (!isset($data)) $data = PermanentLinksModel::find_by_table('textpattern');
           break;
 
         case 'fields':
@@ -242,7 +245,7 @@ class PermanentLinksRulesTabView extends GBPAdminTabView {
   /* AJAX */
   function _ajax_load_models() {
     return '<p align="center">Filter rules by type: <select>'.
-      $this->options_for_select(PermanentLinksModel::find_all()).
+      $this->options_for_select(PermanentLinksModel::find_all(), $this->current('model')).
       '</select></p>';
   }
 
@@ -256,7 +259,7 @@ class PermanentLinksRulesTabView extends GBPAdminTabView {
       echo startTable('list');
 
       echo tr(
-        column_head('Rule', 'rule', $event, false).
+        column_head($this->current('model')->name.' rules', 'rule', $event, false).
         hCell()
       );
 
