@@ -281,6 +281,8 @@ class PermanentLinksRulesTabView extends GBPAdminTabView {
 
     echo '<div id="current-segment">';
 
+    echo '<div id="segment-actions">'.$this->_add_segment().$this->_remove_segment().'</div>';
+
     echo '<div class="arrow" />';
     echo '<div id="segment"></div>';
 
@@ -320,6 +322,23 @@ class PermanentLinksRulesTabView extends GBPAdminTabView {
 
   function _ajax_reorder_segments() {
     $this->current('rule')->reorder_segments(explode(':', gps('order')));
+  }
+
+  function _ajax_add_segment() {
+    $unused_fields = $this->current('fields');
+    foreach ($this->current('segments') as $segmnet) {
+      unset($unused_fields[$segmnet->field]);
+    }
+
+    if ($field = current($unused_fields)) {
+      $segment = new PermanentLinksRuleSegment($field);
+      $this->current('rule')->add_segment($segment);
+      echo '<li id="'. $segment->id .'" class="segment">'. $segment->field .'</li>';
+    }
+  }
+
+  function _ajax_remove_segment() {
+    $this->current('rule')->remove_segment($this->current('segment'));
   }
 
   /* HELPERS */
@@ -364,6 +383,14 @@ class PermanentLinksRulesTabView extends GBPAdminTabView {
 
   function _save_rule() {
     return $this->button_to_function('Save', 'save_rule', 'Save current rule');
+  }
+
+  function _add_segment() {
+    return $this->button_to_function('Add', 'add_segment', 'Add a segment');
+  }
+
+  function _remove_segment() {
+    return $this->button_to_function('Remove', 'remove_segment', 'Remove selected segment');
   }
 }
 
@@ -527,8 +554,13 @@ class PermanentLinksRule {
   function add_segment($segment) {
     $segment->rule_id = $this->id;
     $this->segments[$segment->id] = $segment;
+    $this->set_dirty();
   }
-  
+
+  function remove_segment($segment) {
+    unset($this->segments[$segment->id]);
+  }
+
   function recognition_pattern() {
     $pattern = '';
     $require = false;

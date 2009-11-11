@@ -32,7 +32,7 @@ function save_rule() {
   cancel_rule();
 }
 
-function rule_loaded() {
+function rule_loaded(selected) {
   ajax_vars.rule = $("#rule ul").attr('id');
 
   $("ul.sortable li").hover(
@@ -48,7 +48,8 @@ function rule_loaded() {
   });
   $("ul.sortable").sortable({ update: function () { segments_reordered(); } });
   // Trigger the loading to the segment options
-  $("ul.sortable li:first").click();
+  if ($(selected).is("*")) selected.click();
+  else $("ul.sortable li:first").click();
   // Hide the rules table and display the current rule form
   toggle_view('current-rule');
 }
@@ -78,6 +79,23 @@ function segments_reordered() {
   align_segment_arraw();
   order = $("#rule li").map(function () { return $(this).attr('id'); }).get().join(":");
   $.post('{{URL}}', $.extend({ xhr: "reorder_segments", order: order }, ajax_vars ));
+}
+
+function add_segment() {
+  $.post('{{URL}}', $.extend({ xhr: "add_segment" }, ajax_vars), function (data) {
+    $("#rule ul").append(data);
+    rule_loaded($("#rule li:last"));
+  });
+}
+
+function remove_segment() {
+  $.post('{{URL}}', $.extend({ xhr: "remove_segment" }, ajax_vars), function () {
+    to_be_selected = $("#rule .segment.selected").next();
+    if (!to_be_selected.is("*")) to_be_selected = $("#rule .segment.selected").prev();
+
+    $("#rule .segment.selected").remove();
+    to_be_selected.click();
+  });
 }
 
 $(document).ready(function () {

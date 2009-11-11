@@ -49,3 +49,8 @@
   background-color: #FFEAB1;
   padding: 10px;
 }
+
+#segment-actions {
+  margin: -10px -10px;
+  float: right;
+}
