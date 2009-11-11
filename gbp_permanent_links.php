@@ -254,21 +254,7 @@ class PermanentLinksRulesTabView extends GBPAdminTabView {
       );
 
       foreach ($this->current('rules') as $rule) {
-        $attr = array('rule' => $rule->id);
-        $unsaved = '';
-        $actions = array($this->link_to_remote('Edit', 'edit_rule', $attr));
-        if (!$rule->new_record)
-          $actions[] = $this->link_to_remote('Delete', 'delete_rule', $attr);
-        if ($rule->is_dirty) {
-          $unsaved = '&bull; ';
-          $actions[] = $this->link_to_remote($rule->new_record ? 'Discard' : 'Revert', 'revert_rule', $attr);
-          $actions[] = $this->link_to_remote('Save', 'save_rule', $attr);
-        }
-
-        echo tr(
-          td($unsaved.$this->link_to_remote($rule->to_s(), 'edit_rule', $attr), "100%").
-          tda(join('&nbsp;&nbsp;', array_reverse($actions)), ' width="150" style="text-align: right;"'),
-        ' id="'.$rule->id.'"');
+        echo tr($this->_rule_list_row($rule), ' id="'.$rule->id.'"');
       }
 
       echo endTable();
@@ -281,7 +267,7 @@ class PermanentLinksRulesTabView extends GBPAdminTabView {
     echo '<div id="rule"><ul id="'. $this->current('rule')->id .'" class="sortable">';
 
     foreach ($this->current('segments') as $segment) {
-      echo '<li id="'. $segment->id .'" class="segment">'. $segment->field .'</li>';
+      echo $this->_rule_segment($segment);
     }
 
     echo '</ul></div>';
@@ -302,40 +288,13 @@ class PermanentLinksRulesTabView extends GBPAdminTabView {
 
   function _ajax_revert_rule() {
     $this->current('rule')->revert();
-
-    $attr = array('rule' => $this->current('rule')->id);
-    $unsaved = '';
-    $actions = array($this->link_to_remote('Edit', 'edit_rule', $attr));
     if (!$this->current('rule')->new_record)
-      $actions[] = $this->link_to_remote('Delete', 'delete_rule', $attr);
-    if ($this->current('rule')->is_dirty) {
-      $unsaved = '&bull; ';
-      $actions[] = $this->link_to_remote($this->current('rule')->new_record ? 'Discard' : 'Revert', 'revert_rule', $attr);
-      $actions[] = $this->link_to_remote('Save', 'save_rule', $attr);
-    }
-
-    echo
-      td($unsaved.$this->link_to_remote($this->current('rule')->to_s(), 'edit_rule', $attr), "100%").
-      tda(join('&nbsp;&nbsp;', array_reverse($actions)), ' width="150" style="text-align: right;"');
+      echo $this->_rule_list_row($this->current('rule'));
   }
 
   function _ajax_save_rule() {
     $this->current('rule')->save();
-
-    $attr = array('rule' => $this->current('rule')->id);
-    $unsaved = '';
-    $actions = array($this->link_to_remote('Edit', 'edit_rule', $attr));
-    if (!$this->current('rule')->new_record)
-      $actions[] = $this->link_to_remote('Delete', 'delete_rule', $attr);
-    if ($this->current('rule')->is_dirty) {
-      $unsaved = '&bull; ';
-      $actions[] = $this->link_to_remote($this->current('rule')->new_record ? 'Discard' : 'Revert', 'revert_rule', $attr);
-      $actions[] = $this->link_to_remote('Save', 'save_rule', $attr);
-    }
-
-    echo
-      td($unsaved.$this->link_to_remote($this->current('rule')->to_s(), 'edit_rule', $attr), "100%").
-      tda(join('&nbsp;&nbsp;', array_reverse($actions)), ' width="150" style="text-align: right;"');
+    echo $this->_rule_list_row($this->current('rule'));
   }
 
   function _ajax_load_segment() {
@@ -382,7 +341,7 @@ class PermanentLinksRulesTabView extends GBPAdminTabView {
     if ($field = current($unused_fields)) {
       $segment = new PermanentLinksRuleSegment($field);
       $this->current('rule')->add_segment($segment);
-      echo '<li id="'. $segment->id .'" class="segment">'. $segment->field .'</li>';
+      echo $this->_rule_segment($segment);
     }
   }
 
@@ -436,6 +395,29 @@ class PermanentLinksRulesTabView extends GBPAdminTabView {
 
   function _remove_segment() {
     return $this->button_to_function('Remove', 'remove_segment', 'Remove selected segment');
+  }
+
+  function _rule_list_row($rule) {
+    $attr = array('rule' => $rule->id);
+    $unsaved = '';
+    $actions = array($this->link_to_remote('Edit', 'edit_rule', $attr));
+
+    if (!$rule->new_record)
+      $actions[] = $this->link_to_remote('Delete', 'delete_rule', $attr);
+
+    if ($rule->is_dirty) {
+      $unsaved = '&bull; ';
+      $actions[] = $this->link_to_remote($rule->new_record ? 'Discard' : 'Revert', 'revert_rule', $attr);
+      $actions[] = $this->link_to_remote('Save', 'save_rule', $attr);
+    }
+
+    return
+      td($unsaved.$this->link_to_remote($rule->to_s(), 'edit_rule', $attr), "100%").
+      tda(join('&nbsp;&nbsp;', array_reverse($actions)), ' width="150" style="text-align: right;"');
+  }
+
+  function _rule_segment($segment) {
+    return '<li id="'. $segment->id .'" class="segment">'. $segment->field .'</li>';
   }
 }
 
