@@ -100,7 +100,7 @@ class PermanentLinks extends GBPPlugin {
 class PermanentLinksRulesTabView extends GBPAdminTabView {
   function current($object) {
     static $memorised_data = array();
-    if (!array_key_exists($object, $memorised_data)) {
+    if (!array_key_exists($object, $memorised_data) or array_key_exists($object, $this->reload)) {
       $data = null;
       switch ($object) {
         case 'model':
@@ -145,11 +145,18 @@ class PermanentLinksRulesTabView extends GBPAdminTabView {
           break;
       }
 
-      if ($data)
+      if ($data) {
+        unset($this->reload[$object]);
         $memorised_data[$object] = $data;
+      }
     }
 
     return @$memorised_data[$object];
+  }
+
+  var $reload = array();
+  function reload($object) {
+    $this->reload[$object] = true;
   }
 
   /* PRELOAD */
@@ -288,6 +295,7 @@ class PermanentLinksRulesTabView extends GBPAdminTabView {
 
   function _ajax_revert_rule() {
     $this->current('rule')->revert();
+    $this->reload('rule');
     if (!$this->current('rule')->new_record)
       echo $this->_rule_list_row($this->current('rule'));
   }
