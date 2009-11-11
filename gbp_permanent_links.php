@@ -255,11 +255,20 @@ class PermanentLinksRulesTabView extends GBPAdminTabView {
 
       foreach ($this->current('rules') as $rule) {
         $attr = array('rule' => $rule->id);
-        $unsaved = ($rule->is_dirty) ? '&bull; ' : '';
+        $unsaved = '';
+        $actions = array($this->link_to_remote('Edit', 'edit_rule', $attr));
+        if (!$rule->new_record)
+          $actions[] = $this->link_to_remote('Delete', 'delete_rule', $attr);
+        if ($rule->is_dirty) {
+          $unsaved = '&bull; ';
+          $actions[] = $this->link_to_remote($rule->new_record ? 'Discard' : 'Revert', 'revert_rule', $attr);
+          $actions[] = $this->link_to_remote('Save', 'save_rule', $attr);
+        }
+
         echo tr(
-          td($unsaved.$this->link_to_remote($rule->to_s(), 'rule_form', $attr), 400).
-          td($this->link_to_remote(gTxt('edit'),  'rule_form', $attr), 35)
-        );
+          td($unsaved.$this->link_to_remote($rule->to_s(), 'edit_rule', $attr), 350).
+          tda(join('&nbsp;&nbsp;', array_reverse($actions)), ' width="150" style="text-align: right;"'),
+        ' id="'.$rule->id.'"');
       }
 
       echo tr(tda($this->_create_new_rule(),' colspan="2" style="text-align: right; border: none;"'));
@@ -268,8 +277,8 @@ class PermanentLinksRulesTabView extends GBPAdminTabView {
     }
   }
 
-  function _ajax_rule_form() {
-    echo '<p align="center">'.$this->_cancel_rule().$this->_save_rule().'</p>';
+  function _ajax_edit_rule() {
+    echo '<p align="center">'.$this->_back_to_rules().'</p>';
 
     echo '<div id="rule"><ul id="'. $this->current('rule')->id .'" class="sortable">';
 
@@ -287,6 +296,48 @@ class PermanentLinksRulesTabView extends GBPAdminTabView {
     echo '<div id="segment"></div>';
 
     echo '</div>';
+  }
+
+  function _ajax_delete_rule() {
+    $this->current('rule')->delete();
+  }
+
+  function _ajax_revert_rule() {
+    $this->current('rule')->revert();
+
+    $attr = array('rule' => $this->current('rule')->id);
+    $unsaved = '';
+    $actions = array($this->link_to_remote('Edit', 'edit_rule', $attr));
+    if (!$this->current('rule')->new_record)
+      $actions[] = $this->link_to_remote('Delete', 'delete_rule', $attr);
+    if ($this->current('rule')->is_dirty) {
+      $unsaved = '&bull; ';
+      $actions[] = $this->link_to_remote($this->current('rule')->new_record ? 'Discard' : 'Revert', 'revert_rule', $attr);
+      $actions[] = $this->link_to_remote('Save', 'save_rule', $attr);
+    }
+
+    echo
+      td($unsaved.$this->link_to_remote($this->current('rule')->to_s(), 'edit_rule', $attr), "100%").
+      tda(join('&nbsp;&nbsp;', array_reverse($actions)), ' width="150" style="text-align: right;"');
+  }
+
+  function _ajax_save_rule() {
+    $this->current('rule')->save();
+
+    $attr = array('rule' => $this->current('rule')->id);
+    $unsaved = '';
+    $actions = array($this->link_to_remote('Edit', 'edit_rule', $attr));
+    if (!$this->current('rule')->new_record)
+      $actions[] = $this->link_to_remote('Delete', 'delete_rule', $attr);
+    if ($this->current('rule')->is_dirty) {
+      $unsaved = '&bull; ';
+      $actions[] = $this->link_to_remote($this->current('rule')->new_record ? 'Discard' : 'Revert', 'revert_rule', $attr);
+      $actions[] = $this->link_to_remote('Save', 'save_rule', $attr);
+    }
+
+    echo
+      td($unsaved.$this->link_to_remote($this->current('rule')->to_s(), 'edit_rule', $attr), "100%").
+      tda(join('&nbsp;&nbsp;', array_reverse($actions)), ' width="150" style="text-align: right;"');
   }
 
   function _ajax_load_segment() {
@@ -377,12 +428,8 @@ class PermanentLinksRulesTabView extends GBPAdminTabView {
     return $this->button_to_function('Create new', 'create_new_rule', 'Create new rule');
   }
 
-  function _cancel_rule() {
-    return $this->button_to_function('Cancel', 'cancel_rule', 'Go back to list of rules');
-  }
-
-  function _save_rule() {
-    return $this->button_to_function('Save', 'save_rule', 'Save current rule');
+  function _back_to_rules() {
+    return $this->button_to_function('Back', 'back_to_rules', 'Go back to list of rules');
   }
 
   function _add_segment() {
@@ -397,8 +444,11 @@ class PermanentLinksRulesTabView extends GBPAdminTabView {
 class PermanentLinksRuleSession {
   const NAME = 'PermanentLinksRules';
 
-  function reset() {
-    $_SESSION[PermanentLinksRuleSession::NAME] = array();
+  function reset($rule = null) {
+    if ($rule)
+      unset($_SESSION[PermanentLinksRuleSession::NAME][$rule->id]);
+    else
+      $_SESSION[PermanentLinksRuleSession::NAME] = array();
   }
 
   function prepare() {
@@ -593,6 +643,17 @@ class PermanentLinksRule {
     global $PermanentLinks;
     $this->is_dirty = false;
     $PermanentLinks->set_preference($this->id, $this, 'gbp_serialized');
+  }
+
+  function revert() {
+    $this->is_dirty = false;
+    PermanentLinksRuleSession::reset($this);
+  }
+
+  function delete() {
+    global $PermanentLinks;
+    safe_delete('txp_prefs', "`event` = '{$PermanentLinks->event}' AND `name` LIKE '{$PermanentLinks->plugin_name}_{$this->id}%'");
+    $this->revert();
   }
 
   function set_dirty() {

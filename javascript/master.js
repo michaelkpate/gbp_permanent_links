@@ -12,7 +12,7 @@ function toggle_view(visible) {
 
 function create_new_rule() {
   ajax_vars.rule = 'new';
-  $("#current-rule").load('{{URL}}', $.extend({ xhr: "rule_form" }, ajax_vars), function () { rule_loaded(); });
+  $("#current-rule").load('{{URL}}', $.extend({ xhr: "edit_rule" }, ajax_vars), function () { rule_loaded(); });
 }
 
 function align_segment_arraw() {
@@ -23,13 +23,8 @@ function align_segment_arraw() {
   });
 }
 
-function cancel_rule() {
+function back_to_rules() {
   $("#rules").load('{{URL}}', $.extend({ xhr: "load_rules" }, ajax_vars), function () { toggle_view('rules'); });
-}
-
-function save_rule() {
-  // TODO
-  cancel_rule();
 }
 
 function rule_loaded(selected) {
@@ -110,9 +105,17 @@ $(document).ready(function () {
 $(document).ajaxComplete(function (request, settings) {
   $("a.remote").unbind('click').click(function () {
     var xhr_method = new RegExp("[\\?&]xhr=([^&#]*)").exec(this.href)[1];
+    var rule = new RegExp("[\\?&]rule=([^&#]*)").exec(this.href)[1];
     switch (xhr_method) {
-      case 'rule_form':
+      case 'edit_rule':
         $("#current-rule").load(this.href, {}, function () { rule_loaded(); });
+      break;
+      case 'delete_rule':
+      case 'revert_rule':
+        if (confirm('Are you sure?')) $("#"+rule).load(this.href);
+      break;
+      case 'save_rule':
+        $("#"+rule).load(this.href);
       break;
       default:
         $.post(this.href, function (data) { eval(data); });
@@ -121,3 +124,4 @@ $(document).ajaxComplete(function (request, settings) {
     return false;
   });
 });
+
