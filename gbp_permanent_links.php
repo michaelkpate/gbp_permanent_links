@@ -240,12 +240,12 @@ class PermanentLinksRulesTabView extends GBPAdminTabView {
   }
 
   function _ajax_load_rules() {
+    echo '<p align="center">'.$this->_create_new_rule().'</p>';
+
     if (count($this->current('rules')) == 0) {
-      echo '<p id="warning">No <strong>'.$this->current('model')->name.'</strong> rules have been created</p>'.
-           '<p align="center">'.$this->_create_new_rule().'</p>';
+      echo '<p id="warning">No <strong>'.$this->current('model')->name.'</strong> rules have been created</p>';
 
     } else {
-
       echo startTable('list');
 
       echo tr(
@@ -266,12 +266,10 @@ class PermanentLinksRulesTabView extends GBPAdminTabView {
         }
 
         echo tr(
-          td($unsaved.$this->link_to_remote($rule->to_s(), 'edit_rule', $attr), 350).
+          td($unsaved.$this->link_to_remote($rule->to_s(), 'edit_rule', $attr), "100%").
           tda(join('&nbsp;&nbsp;', array_reverse($actions)), ' width="150" style="text-align: right;"'),
         ' id="'.$rule->id.'"');
       }
-
-      echo tr(tda($this->_create_new_rule(),' colspan="2" style="text-align: right; border: none;"'));
 
       echo endTable();
     }
