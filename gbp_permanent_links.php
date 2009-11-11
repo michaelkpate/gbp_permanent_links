@@ -29,10 +29,13 @@ There is no plugin documentation. For help please use the "forum thread":http://
 if (!class_exists('GBPPlugin')) return;
 
 class PermanentLinks extends GBPPlugin {
-  function preload () {
-    global $PermanentLinks;
-    $PermanentLinks = $this;
+  function load_preferences() {
+    global $gbp_pl;
+    $gbp_pl = $this;
+    parent::load_preferences();
+  }
 
+  function preload () {
     new PermanentLinksRulesTabView('rules', 'rules', $this);
 
     // Register the default route models and fields
@@ -94,6 +97,12 @@ class PermanentLinks extends GBPPlugin {
 
   function main() {
     require_privs($this->event);
+  }
+
+  function _recognise_url() {
+  }
+
+  function _generate_url($args, $type) {
   }
 }
 
@@ -631,9 +640,9 @@ class PermanentLinksRule {
   }
 
   function update() {
-    global $PermanentLinks;
+    global $gbp_pl;
     $this->is_dirty = false;
-    $PermanentLinks->set_preference($this->id, $this, 'gbp_serialized');
+    $gbp_pl->set_preference($this->id, $this, 'gbp_serialized');
   }
 
   function revert() {
@@ -642,8 +651,8 @@ class PermanentLinksRule {
   }
 
   function delete() {
-    global $PermanentLinks;
-    safe_delete('txp_prefs', "`event` = '{$PermanentLinks->event}' AND `name` LIKE '{$PermanentLinks->plugin_name}_{$this->id}%'");
+    global $gbp_pl;
+    safe_delete('txp_prefs', "`event` = '{$gbp_pl->event}' AND `name` LIKE '{$gbp_pl->plugin_name}_{$this->id}%'");
     $this->revert();
   }
 
@@ -667,20 +676,20 @@ class PermanentLinksRule {
     if (array_key_exists($id, PermanentLinksRuleSession::find_all())) {
       $rule = PermanentLinksRuleSession::find_by_id($id);
     } else {
-      global $PermanentLinks;
-      $rule = $PermanentLinks->pref($id);
+      global $gbp_pl;
+      $rule = $gbp_pl->pref($id);
     }
     return is_a($rule, 'PermanentLinksRule') ? $rule : null;
   }
 
   function find_all($model = null) {
-    global $PermanentLinks;
+    global $gbp_pl;
 
     static $ids;
     if (!isset($ids))
       $ids = safe_column(
-        "REPLACE(name, '{$PermanentLinks->plugin_name}_', '') AS id", 'txp_prefs',
-        "`event` = '{$PermanentLinks->event}' AND `name` REGEXP '^{$PermanentLinks->plugin_name}_rule_.{6}$'"
+        "REPLACE(name, '{$gbp_pl->plugin_name}_', '') AS id", 'txp_prefs',
+        "`event` = '{$gbp_pl->event}' AND `name` REGEXP '^{$gbp_pl->plugin_name}_rule_.{6}$'"
       );
 
     $rules = array();
@@ -794,8 +803,12 @@ class PermanentLinksRuleSegment {
   }
 }
 
-if (@txpinterface == 'admin') {
-  new PermanentLinks('Permanent Links', 'permlinks', 'admin');
+new PermanentLinks('Permanent Links', 'permlinks', 'admin');
+
+if (@txpinterface == 'public') {
+  global $gbp_pl, $prefs;
+  register_callback(array(&$gbp_pl, '_recognise_url'), 'pretext_end');
+  $prefs['custom_url_func'] = array(&$gbp_pl, '_generate_url');
 }
 
 # --- END PLUGIN CODE ---
