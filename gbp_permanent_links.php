@@ -115,7 +115,7 @@ class PermanentLinksRulesTabView extends GBPAdminTabView {
 
         case 'rules':
           $data = PermanentLinksRule::find_all(gps('model'));
-          foreach ($_SESSION['PermanentLinksRules'] as $id => $rule) {
+          foreach (PermanentLinksRuleSession::find_all() as $id => $rule) {
             if ($rule->model() === $this->current('model')) $data[$id] = $rule;
           }
           break;
@@ -124,8 +124,8 @@ class PermanentLinksRulesTabView extends GBPAdminTabView {
           if ($id = gps('rule')) {
             if ($id == 'new') {
               $data = new PermanentLinksRule(gps('model'), current($this->current('fields'))->name);
-            } elseif (array_key_exists($id, $_SESSION['PermanentLinksRules'])) {
-              $data = $_SESSION['PermanentLinksRules'][$id];
+            } elseif (array_key_exists($id, PermanentLinksRuleSession::find_all())) {
+              $data = PermanentLinksRuleSession::find_by_id($id);
             } else {
               $data = PermanentLinksRule::find_by_id($id);
             }
@@ -175,11 +175,10 @@ class PermanentLinksRulesTabView extends GBPAdminTabView {
 
         if (serverSet('REMOTE_ADDR') == '127.0.0.1') {
           echo '<!-- '.print_r($_POST, true).' -->';
-          echo '<!-- '.print_r(@$_SESSION['PermanentLinksRules'], true).' -->';
+          echo '<!-- '.print_r(PermanentLinksRuleSession::find_all(), true).' -->';
         }
 
         $rs = @call_user_func(array(&$this, '_ajax_'.$xhr));
-        $this->store_modified_rules();
         exit($rs);
 
       } else {
@@ -238,18 +237,6 @@ class PermanentLinksRulesTabView extends GBPAdminTabView {
     return $this->url(array('asset' => $asset), true);
   }
 
-  /* SESSION */
-  function store_modified_rules() {
-    if (!isset($_SESSION['PermanentLinksRules']))
-      $_SESSION['PermanentLinksRules'] = array();
-
-    # Store dirty rules in a sessions variable
-    if ($rule = $this->current('rule')) {
-      if ($rule->is_dirty)
-        $_SESSION['PermanentLinksRules'][$rule->id] = $rule;
-    }
-  }
-
   /* AJAX */
   function _ajax_load_models() {
     return '<p align="center">Filter rules by type: <select>'.
@@ -273,7 +260,7 @@ class PermanentLinksRulesTabView extends GBPAdminTabView {
 
       foreach ($this->current('rules') as $rule) {
         $attr = array('rule' => $rule->id);
-        $unsaved = (isset($_SESSION['PermanentLinksRules'][$rule->id])) ? '&bull; ' : '';
+        $unsaved = ($rule->is_dirty) ? '&bull; ' : '';
         echo tr(
           td($unsaved.$this->link_to_remote($rule->to_s(), 'rule_form', $attr), 400).
           td($this->link_to_remote(gTxt('edit'),  'rule_form', $attr), 35)
@@ -382,6 +369,35 @@ class PermanentLinksRulesTabView extends GBPAdminTabView {
 
   function _save_rule() {
     return $this->button_to_function('Save', 'save_rule', 'Save current rule');
+  }
+}
+
+class PermanentLinksRuleSession {
+  const NAME = 'PermanentLinksRules';
+
+  function reset() {
+    $_SESSION[PermanentLinksRuleSession::NAME] = array();
+  }
+
+  function prepare() {
+    if (!isset($_SESSION[PermanentLinksRuleSession::NAME]))
+      PermanentLinksRuleSession::reset();
+  }
+
+  function store($rule) {
+    PermanentLinksRuleSession::prepare();
+    if (is_a($rule, 'PermanentLinksRule'))
+      $_SESSION[PermanentLinksRuleSession::NAME][$rule->id] = $rule;
+  }
+
+  function find_by_id($id) {
+    PermanentLinksRuleSession::prepare();
+    return $_SESSION[PermanentLinksRuleSession::NAME][$id];
+  }
+
+  function find_all() {
+    PermanentLinksRuleSession::prepare();
+    return $_SESSION[PermanentLinksRuleSession::NAME];
   }
 }
 
@@ -505,13 +521,11 @@ class PermanentLinksRule {
       $this->add_segment($segment);
     } while (1);
 
-    // Store a reference back to the class
-    if (!isset($GLOBALS['PermanentLinksRules'])) $GLOBALS['PermanentLinksRules'] = array();
-    $GLOBALS['PermanentLinksRules'][] = &$this;
-    end($GLOBALS['PermanentLinksRules']);
+    // Store a reference to the rule in the session
+    $this->set_dirty();
   }
 
-  function model () {
+  function model() {
     return PermanentLinksModel::find_by_table($this->model);
   }
 
@@ -553,6 +567,11 @@ class PermanentLinksRule {
     $PermanentLinks->set_preference($this->id, $this, 'gbp_serialized');
   }
 
+  function set_dirty() {
+    $this->is_dirty = true; // Todo - set to false if any changes have been reverted
+    PermanentLinksRuleSession::store($this);
+  }
+
   function reorder_segments($segment_keys = array()) {
     if (is_array($segment_keys)) {
       $new_segments = array();
@@ -560,7 +579,7 @@ class PermanentLinksRule {
         $new_segments[$key] = $this->segments[$key];
       }
       $this->segments = $new_segments;
-      $this->is_dirty = true;
+      $this->set_dirty();
     }
   }
 
@@ -676,10 +695,9 @@ class PermanentLinksRuleSegment {
   function update_attributes($attributes = array()) {
     if (is_array($attributes)) {
       foreach ($attributes as $key => $value) {
-        if ($this->$key != $value)
-          $this->rule()->is_dirty = true;
         $this->$key = $value;
       }
+      $this->rule()->set_dirty();
     }
   }
 
