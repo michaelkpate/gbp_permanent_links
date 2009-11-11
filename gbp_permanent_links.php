@@ -115,17 +115,12 @@ class PermanentLinksRulesTabView extends GBPAdminTabView {
 
         case 'rules':
           $data = PermanentLinksRule::find_all(gps('model'));
-          foreach (PermanentLinksRuleSession::find_all() as $id => $rule) {
-            if ($rule->model() === $this->current('model')) $data[$id] = $rule;
-          }
           break;
 
         case 'rule':
           if ($id = gps('rule')) {
             if ($id == 'new') {
               $data = new PermanentLinksRule(gps('model'), current($this->current('fields'))->name);
-            } elseif (array_key_exists($id, PermanentLinksRuleSession::find_all())) {
-              $data = PermanentLinksRuleSession::find_by_id($id);
             } else {
               $data = PermanentLinksRule::find_by_id($id);
             }
@@ -584,8 +579,12 @@ class PermanentLinksRule {
   }
 
   function find_by_id($id) {
-    global $PermanentLinks;
-    $rule = $PermanentLinks->pref($id);
+    if (array_key_exists($id, PermanentLinksRuleSession::find_all())) {
+      $rule = PermanentLinksRuleSession::find_by_id($id);
+    } else {
+      global $PermanentLinks;
+      $rule = $PermanentLinks->pref($id);
+    }
     return is_a($rule, 'PermanentLinksRule') ? $rule : null;
   }
 
@@ -604,6 +603,10 @@ class PermanentLinksRule {
       $rule = PermanentLinksRule::find_by_id($id);
       if ($model == null or $rule->model == $model)
         $rules[$id] = $rule;
+    }
+
+    foreach (PermanentLinksRuleSession::find_all() as $id => $rule) {
+      if ($rule->model == $model) $rules[$id] = $rule;
     }
 
     return $rules;
