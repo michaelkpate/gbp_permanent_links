@@ -28,9 +28,6 @@ There is no plugin documentation. For help please use the "forum thread":http://
 @require_plugin('gbp_admin_library');
 if (!class_exists('GBPPlugin')) return;
 
-$GLOBALS['PermanentLinksModels'] = array();
-$GLOBALS['PermanentLinksRules']  = array();
-
 class PermanentLinks extends GBPPlugin {
   function preload () {
     global $PermanentLinks;
@@ -108,8 +105,8 @@ class PermanentLinksRulesTabView extends GBPAdminTabView {
       switch ($object) {
         case 'model':
           $data = ($table = gps('model')) ?
-            $GLOBALS['PermanentLinksModels'][$table] :
-            $GLOBALS['PermanentLinksModels']['textpattern'];
+            PermanentLinksModel::find_by_table($table) :
+            PermanentLinksModel::find_by_table('textpattern');
           break;
 
         case 'fields':
@@ -256,7 +253,7 @@ class PermanentLinksRulesTabView extends GBPAdminTabView {
   /* AJAX */
   function _ajax_load_models() {
     return '<p align="center">Filter rules by type: <select>'.
-      $this->options_for_select($GLOBALS['PermanentLinksModels']).
+      $this->options_for_select(PermanentLinksModel::find_all()).
       '</select></p>';
   }
 
@@ -406,6 +403,7 @@ class PermanentLinksModel {
     } while (1);
 
     // Store a reference back to the class
+    if (!isset($GLOBALS['PermanentLinksModels'])) $GLOBALS['PermanentLinksModels'] = array();
     $GLOBALS['PermanentLinksModels'][$table] = &$this;
     end($GLOBALS['PermanentLinksModels']);
   }
@@ -413,6 +411,14 @@ class PermanentLinksModel {
   function add_field($field) {
     $field->parent_model = $this->table;
     $this->fields[$field->name] = $field;
+  }
+
+  function find_by_table($table) {
+    return $GLOBALS['PermanentLinksModels'][$table];
+  }
+
+  function find_all() {
+    return $GLOBALS['PermanentLinksModels'];
   }
 }
 
@@ -459,11 +465,11 @@ class PermanentLinksField {
   }
 
   function model() {
-    return $GLOBALS['PermanentLinksModels'][$this->model];
+    return PermanentLinksModel::find_by_table($this->model);
   }
 
   function parent() {
-    return $GLOBALS['PermanentLinksModels'][$this->parent_model];
+    return PermanentLinksModel::find_by_table($this->parent_model);
   }
 
   function formats() {
@@ -500,12 +506,13 @@ class PermanentLinksRule {
     } while (1);
 
     // Store a reference back to the class
+    if (!isset($GLOBALS['PermanentLinksRules'])) $GLOBALS['PermanentLinksRules'] = array();
     $GLOBALS['PermanentLinksRules'][] = &$this;
     end($GLOBALS['PermanentLinksRules']);
   }
 
   function model () {
-    return $GLOBALS['PermanentLinksModels'][$this->model];
+    return PermanentLinksModel::find_by_table($this->model);
   }
 
   function add_segment($segment) {
@@ -612,7 +619,7 @@ class PermanentLinksRuleSegment {
   }
 
   function model() {
-    return $GLOBALS['PermanentLinksModels'][$this->model];
+    return PermanentLinksModel::find_by_table($this->model);
   }
 
   function field() {
