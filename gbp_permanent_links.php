@@ -29,12 +29,17 @@ There is no plugin documentation. For help please use the "forum thread":http://
 if (!class_exists('GBPPlugin')) return;
 
 class PermanentLinks extends GBPPlugin {
+  var $cache;
   function initialize() {
     global $gbp_pl;
     $gbp_pl = $this;
   }
 
   function preload () {
+    $cache = "PermanentLinksCache".@$this->pref('unsaved_storage_engine');
+    if (class_exists($cache)) $this->cache = new $cache();
+    else $this->cache = new PermanentLinksCacheSession();
+
     new PermanentLinksRulesTabView('rules', 'rules', $this);
 
     // Register the default route models and fields
@@ -172,11 +177,6 @@ class PermanentLinksRulesTabView extends GBPAdminTabView {
 
   /* PRELOAD */
   function preload() {
-    if (session_id() == "") {
-      session_name("GBPPermanentLinks");
-      session_start();
-    }
-
     # Process AJAX requests
     if ($xhr = gps('xhr')) {
       if (serverSet('HTTP_X_REQUESTED_WITH') == 'XMLHttpRequest') {
@@ -188,7 +188,7 @@ class PermanentLinksRulesTabView extends GBPAdminTabView {
 
         if (serverSet('REMOTE_ADDR') == '127.0.0.1') {
           echo '<!-- '.print_r($_POST, true).' -->';
-          echo '<!-- '.print_r(PermanentLinksRuleSession::find_all(), true).' -->';
+          echo '<!-- '.print_r($this->parent->cache->find_all(), true).' -->';
         }
 
         $rs = @call_user_func(array(&$this, '_ajax_'.$xhr));
@@ -440,35 +440,36 @@ class PermanentLinksRulesTabView extends GBPAdminTabView {
   }
 }
 
-class PermanentLinksRuleSession {
-  const NAME = 'PermanentLinksRules';
+class PermanentLinksCacheSession {
+  var $key = 'GBP_PL';
+
+  function PermanentLinksCacheSession() {
+    if (session_id() == '') {
+      session_name($this->key);
+      session_start();
+    }
+
+    if (!isset($_SESSION[$this->key])) $this->reset();
+  }
 
   function reset($rule = null) {
     if ($rule)
-      unset($_SESSION[PermanentLinksRuleSession::NAME][$rule->id]);
+      unset($_SESSION[$this->key][$rule->id]);
     else
-      $_SESSION[PermanentLinksRuleSession::NAME] = array();
-  }
-
-  function prepare() {
-    if (!isset($_SESSION[PermanentLinksRuleSession::NAME]))
-      PermanentLinksRuleSession::reset();
+      $_SESSION[$this->key] = array();
   }
 
   function store($rule) {
-    PermanentLinksRuleSession::prepare();
     if (is_a($rule, 'PermanentLinksRule'))
-      $_SESSION[PermanentLinksRuleSession::NAME][$rule->id] = $rule;
+      $_SESSION[$this->key][$rule->id] = $rule;
   }
 
   function find_by_id($id) {
-    PermanentLinksRuleSession::prepare();
-    return $_SESSION[PermanentLinksRuleSession::NAME][$id];
+    return $_SESSION[$this->key][$id];
   }
 
   function find_all() {
-    PermanentLinksRuleSession::prepare();
-    return $_SESSION[PermanentLinksRuleSession::NAME];
+    return $_SESSION[$this->key];
   }
 }
 
@@ -645,8 +646,9 @@ class PermanentLinksRule {
   }
 
   function revert() {
+    global $gbp_pl;
     $this->is_dirty = false;
-    PermanentLinksRuleSession::reset($this);
+    $gbp_pl->cache->reset($this);
   }
 
   function delete() {
@@ -656,8 +658,9 @@ class PermanentLinksRule {
   }
 
   function set_dirty() {
+    global $gbp_pl;
     $this->is_dirty = true; // Todo - set to false if any changes have been reverted
-    PermanentLinksRuleSession::store($this);
+    $gbp_pl->cache->store($this);
   }
 
   function reorder_segments($segment_keys = array()) {
@@ -672,8 +675,9 @@ class PermanentLinksRule {
   }
 
   function find_by_id($id) {
-    if (array_key_exists($id, PermanentLinksRuleSession::find_all())) {
-      $rule = PermanentLinksRuleSession::find_by_id($id);
+    global $gbp_pl;
+    if (array_key_exists($id, $gbp_pl->cache->find_all())) {
+      $rule = $gbp_pl->cache->find_by_id($id);
     } else {
       global $gbp_pl;
       $rule = $gbp_pl->pref($id);
@@ -698,7 +702,7 @@ class PermanentLinksRule {
         $rules[$id] = $rule;
     }
 
-    foreach (PermanentLinksRuleSession::find_all() as $id => $rule) {
+    foreach ($gbp_pl->cache->find_all() as $id => $rule) {
       if ($rule->model == $model) $rules[$id] = $rule;
     }
 
