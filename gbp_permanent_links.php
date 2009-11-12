@@ -29,10 +29,9 @@ There is no plugin documentation. For help please use the "forum thread":http://
 if (!class_exists('GBPPlugin')) return;
 
 class PermanentLinks extends GBPPlugin {
-  function load_preferences() {
+  function initialize() {
     global $gbp_pl;
     $gbp_pl = $this;
-    parent::load_preferences();
   }
 
   function preload () {
