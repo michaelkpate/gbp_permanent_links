@@ -691,15 +691,19 @@ class PermanentLinksRule {
 
   function update() {
     global $gbp_pl;
-    $this->is_dirty = false;
-    $gbp_pl->set_preference($this->id, $this, 'gbp_serialized');
-    $gbp_pl->cache->reset($this);
+    if ($gbp_pl->cache) {
+      $this->is_dirty = false;
+      $gbp_pl->set_preference($this->id, $this, 'gbp_serialized');
+      $gbp_pl->cache->reset($this);
+    }
   }
 
   function revert() {
     global $gbp_pl;
-    $this->is_dirty = false;
-    $gbp_pl->cache->reset($this);
+    if ($gbp_pl->cache) {
+      $this->is_dirty = false;
+      $gbp_pl->cache->reset($this);
+    }
   }
 
   function delete() {
@@ -710,8 +714,10 @@ class PermanentLinksRule {
 
   function set_dirty() {
     global $gbp_pl;
-    $this->is_dirty = true; // Todo - set to false if any changes have been reverted
-    $gbp_pl->cache->store($this);
+    if ($gbp_pl->cache) {
+      $this->is_dirty = true; // Todo - set to false if any changes have been reverted
+      $gbp_pl->cache->store($this);
+    }
   }
 
   function reorder_segments($segment_keys = array()) {
@@ -727,10 +733,9 @@ class PermanentLinksRule {
 
   function find_by_id($id) {
     global $gbp_pl;
-    if (array_key_exists($id, $gbp_pl->cache->find_all())) {
+    if ($gbp_pl->cache and array_key_exists($id, $gbp_pl->cache->find_all())) {
       $rule = $gbp_pl->cache->find_by_id($id);
     } else {
-      global $gbp_pl;
       $rule = $gbp_pl->pref($id);
     }
     return is_a($rule, 'PermanentLinksRule') ? $rule : null;
@@ -753,8 +758,10 @@ class PermanentLinksRule {
         $rules[$id] = $rule;
     }
 
-    foreach ($gbp_pl->cache->find_all() as $id => $rule) {
-      if ($rule->model == $model) $rules[$id] = $rule;
+    if ($gbp_pl->cache) {
+      foreach ($gbp_pl->cache->find_all() as $id => $rule) {
+        if ($model == null or $rule->model == $model) $rules[$id] = $rule;
+      }
     }
 
     return $rules;
