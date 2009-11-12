@@ -30,17 +30,22 @@ if (!class_exists('GBPPlugin')) return;
 
 class PermanentLinks extends GBPPlugin {
   var $cache;
+  var $preferences = array(
+    'unsaved_rule_storage_engine' => array('value' => 'Session', 'type' => 'gbp_popup', 'options' => array('Session', 'Database')),
+  );
+
   function initialize() {
     global $gbp_pl;
     $gbp_pl = $this;
   }
 
   function preload () {
-    $cache = "PermanentLinksCache".@$this->pref('unsaved_storage_engine');
+    $cache = "PermanentLinksCache".$this->pref('unsaved_rule_storage_engine');
     if (class_exists($cache)) $this->cache = new $cache();
     else $this->cache = new PermanentLinksCacheSession();
 
     new PermanentLinksRulesTabView('rules', 'rules', $this);
+    new GBPPreferenceTabView($this);
 
     // Register the default route models and fields
     // Articles
@@ -473,6 +478,51 @@ class PermanentLinksCacheSession {
   }
 }
 
+class PermanentLinksCacheDatabase extends GBPPreferenceStore {
+  function key($id = null) {
+    global $gbp_pl;
+    $base = "{$gbp_pl->plugin_name}_unsaved_";
+    return $id ? $base.$id : $base;
+  }
+
+  function reset($rule = null) {
+    global $gbp_pl;
+    if ($rule)
+      $this->db_remove($this->key($rule->id), $gbp_pl->event);
+    else
+      $this->db_remove($this->key('rule_%'), $gbp_pl->event);
+  }
+
+  function store($rule) {
+    global $gbp_pl;
+    if (is_a($rule, 'PermanentLinksRule'))
+      $this->db_write($this->key($rule->id), $rule, $gbp_pl->event, 'gbp_serialized');
+  }
+
+  function find_by_id($id) {
+    return $this->db_read($this->key($id), 'gbp_serialized');
+  }
+
+  function find_all() {
+    global $gbp_pl;
+
+    static $ids;
+    if (!isset($ids)) {
+      $key = $this->key();
+      $ids = safe_column(
+        "REPLACE(name, '$key', '') AS id", 'txp_prefs',
+        "`event` = '{$gbp_pl->event}' AND `name` REGEXP '^{$key}rule_.{6}$'"
+      );
+    }
+
+    $out = array();
+    foreach ($ids as $id) {
+      $out[$id] = $this->find_by_id($id);
+    }
+    return $out;
+  }
+}
+
 class PermanentLinksModel {
   var $name;
   var $table;
@@ -643,6 +693,7 @@ class PermanentLinksRule {
     global $gbp_pl;
     $this->is_dirty = false;
     $gbp_pl->set_preference($this->id, $this, 'gbp_serialized');
+    $gbp_pl->cache->reset($this);
   }
 
   function revert() {
