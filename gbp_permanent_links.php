@@ -112,6 +112,14 @@ class PermanentLinks extends GBPPlugin {
   }
 
   function _generate_url($args, $type) {
+    global $pretext;
+
+    foreach ($args as $key => $value) {
+      if (empty($value)) unset($args[$key]);
+    }
+
+    $urls = PermanentLinksRule::generate_urls($args, $type);
+    return (count($urls) > 0) ? $pretext['pfr'] . ltrim(current($urls), '/') : false;
   }
 }
 
@@ -768,6 +776,46 @@ class PermanentLinksRule {
 
     return $rules;
   }
+
+  function generate_urls($args, $type) {
+    switch ($type) {
+      case PERMLINKURL:
+        $models = 'textpattern';
+      break;
+      case PAGELINKURL:
+        $models = array_keys(PermanentLinksModel::find_all());
+      break;
+    }
+
+    $urls = array();
+    foreach (PermanentLinksRule::find_all($models) as $id => $rule) {
+      if ($url = $rule->generate($args)) $urls[] = $url;
+    }
+    return $urls;
+  }
+
+  function generate($args) {
+    $url = '';
+    $feed = '';
+    $page = '';
+
+    $require = false;
+    $i = count($this->segments);
+    foreach (array_reverse($this->segments, true) as $segment) {
+      $require = (!$require) ? !$segment->is_optional : $require;
+      $url = $segment->build_url($url, $args, --$i, !$require);
+      if ($url === false) return false;
+    }
+
+    if (isset($args['rss']))
+      $feed = '/rss';
+    else if (isset($args['atom']))
+      $feed = '/atom';
+    else if (isset($args['pg']))
+      $page = '/'.$args['pg'];
+
+    return $url.$feed.$page;
+  }
 }
 
 class PermanentLinksRuleSegment {
@@ -850,6 +898,64 @@ class PermanentLinksRuleSegment {
       $pattern = ($optional) ? '(?:' . $pattern . ')?' : $pattern;
     }
     return $pattern;
+  }
+
+  function build_url($url, $args, $index, $optional) {
+    $function = $this->model.'_url';
+    $out = (method_exists($this, $function)) ? $this->$function($args) : null;
+
+    if ($out)
+      return $this->separator . $out . $url;
+    else if (!$optional)
+      return false;
+    else
+      return '';
+  }
+
+  function textpattern_url($args) {
+    global $thisarticle, $pretext;
+    $out = null;
+    switch ($this->field) {
+      case 'Title':
+        $out = @$args['url_title'];
+      break;
+      case 'Date':
+        $out = @$args['posted'];
+        if (!isset($out)) $out = @$thisarticle['posted'];
+        if (!isset($out) and !empty($pretext['month'])) {
+          @list($year, $month, $day) = explode('-', $pretext['month']);
+          $out = mktime(0, 0, 0, (int)$month, (int)$day, (int)$year);
+        }
+        if (isset($out)) $out = date("Y/m/d", $out);
+      break;
+      case 'Author':
+        $out = @$args['authorid'];
+        if (!isset($out)) $out = @$thisarticle['authorid'];
+        if (!isset($out)) $out = @$pretext['author'];
+      break;
+      case 'Category':
+        $out = @$args['category1'];
+        if (!isset($out)) $out = @$args['category2'];
+        if (!isset($out)) $out = @$args['c'];
+        if (!isset($out)) $out = @$thisarticle['category1'];
+        if (!isset($out)) $out = @$thisarticle['category2'];
+        if (!isset($out)) $out = @$pretext['c'];
+      break;
+      case 'Section':
+        $out = @$args['section'];
+        if (!isset($out) or $out == 'default') $out = @$args['s'];
+        if (!isset($out) or $out == 'default') $out = @$thisarticle['section'];
+        if ((!isset($out) and $pretext['s'] != 'default') or $out == 'default') $out = @$pretext['s'];
+      break;
+      case 'ID':
+        $out = @$args['thisid'];
+      break;
+      case 'Keywords':
+        $out = @$args['keywords'];
+        if (!isset($out)) $out = @$thisarticle['keywords'];
+      break;
+    }
+    return $out;
   }
 
   function update_attributes($attributes = array()) {
