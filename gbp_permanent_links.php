@@ -751,16 +751,18 @@ class PermanentLinksRule {
         "`event` = '{$gbp_pl->event}' AND `name` REGEXP '^{$gbp_pl->plugin_name}_rule_.{6}$'"
       );
 
+    if ($model != null and !is_array($model))
+      $model = array($model);
+
     $rules = array();
     foreach ($ids as $id) {
       $rule = PermanentLinksRule::find_by_id($id);
-      if ($model == null or $rule->model == $model)
-        $rules[$id] = $rule;
+      if ($model == null or in_array($rule->model, $model)) $rules[$id] = $rule;
     }
 
     if ($gbp_pl->cache) {
       foreach ($gbp_pl->cache->find_all() as $id => $rule) {
-        if ($model == null or $rule->model == $model) $rules[$id] = $rule;
+        if ($model == null or in_array($rule->model, $model)) $rules[$id] = $rule;
       }
     }
 
