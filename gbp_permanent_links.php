@@ -37,15 +37,6 @@ class PermanentLinks extends GBPPlugin {
   function initialize() {
     global $gbp_pl;
     $gbp_pl = $this;
-  }
-
-  function preload () {
-    $cache = "PermanentLinksCache".$this->pref('unsaved_rule_storage_engine');
-    if (class_exists($cache)) $this->cache = new $cache();
-    else $this->cache = new PermanentLinksCacheSession();
-
-    new PermanentLinksRulesTabView('rules', 'rules', $this);
-    new GBPPreferenceTabView($this);
 
     // Register the default route models and fields
     // Articles
@@ -93,6 +84,17 @@ class PermanentLinks extends GBPPlugin {
       new PermanentLinksField('Title',     'string',       'name')
     );
 
+    // TODO: Register custom route models and fields from other plugins
+  }
+
+  function preload () {
+    $cache = "PermanentLinksCache".$this->pref('unsaved_rule_storage_engine');
+    if (class_exists($cache)) $this->cache = new $cache();
+    else $this->cache = new PermanentLinksCacheSession();
+
+    new PermanentLinksRulesTabView('rules', 'rules', $this);
+    new GBPPreferenceTabView($this);
+
     if (serverSet('REMOTE_ADDR') == '127.0.0.1' and count(PermanentLinksRule::find_all()) == 0) {
       $rules = array(
         new PermanentLinksRule('textpattern', 'Author', 'Date', 'Title'),
@@ -100,8 +102,6 @@ class PermanentLinks extends GBPPlugin {
       );
       foreach ($rules as $rule) $rule->create();
     }
-
-    // TODO: Register custom route models and fields from other plugins
   }
 
   function main() {
