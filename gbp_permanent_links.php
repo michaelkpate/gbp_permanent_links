@@ -867,10 +867,10 @@ class PermanentLinksRuleSegment {
           $regex = '\d+';
         break;
         case 'date':
-          $regex = '\d{4}' . $this->separator . '\d{2}' . $this->separator . '\d{2}';
+          $regex = '\d{4}(?:' . $this->separator . '\d{2}(?:' . $this->separator . '\d{2})?)?';
         break;
         case 'csv':
-          $regex = '[^,]+';
+          $regex = '[^,' . $this->separator . '?]+';
         break;
       }
 
