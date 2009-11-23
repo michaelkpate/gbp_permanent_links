@@ -94,14 +94,6 @@ class PermanentLinks extends GBPPlugin {
 
     new PermanentLinksRulesTabView('rules', 'rules', $this);
     new GBPPreferenceTabView($this);
-
-    if (serverSet('REMOTE_ADDR') == '127.0.0.1' and count(PermanentLinksRule::find_all()) == 0) {
-      $rules = array(
-        new PermanentLinksRule('textpattern', 'Author', 'Date', 'Title'),
-        new PermanentLinksRule('textpattern', 'Section', 'Category', 'Title'),
-      );
-      foreach ($rules as $rule) $rule->create();
-    }
   }
 
   function main() {
@@ -201,11 +193,6 @@ class PermanentLinksRulesTabView extends GBPAdminTabView {
         foreach ($_POST as $key => $value) {
           if ($value == 'null')
             unset($_POST[$key]);
-        }
-
-        if (serverSet('REMOTE_ADDR') == '127.0.0.1') {
-          echo '<!-- '.print_r($_POST, true).' -->';
-          echo '<!-- '.print_r($this->parent->cache->find_all(), true).' -->';
         }
 
         $rs = @call_user_func(array(&$this, '_ajax_'.$xhr));
