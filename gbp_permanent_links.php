@@ -109,6 +109,10 @@ class PermanentLinks extends GBPPlugin {
   }
 
   function _recognise_url() {
+    global $pretext;
+
+    $rules = PermanentLinksRule::recognise_url(ltrim($pretext['req'], '/'));
+    if ($rule = current($rules)) $pretext = array_merge($pretext, $rule['pretext']);
   }
 
   function _generate_url($args, $type) {
@@ -816,6 +820,73 @@ class PermanentLinksRule {
 
     return $url.$feed.$page;
   }
+
+  function recognise_url($url) {
+    $rules = array();
+    foreach (PermanentLinksRule::find_all() as $id => $rule) {
+      $pretext = $rule->recognise($url);
+      if ($pretext) {
+        $function = $rule->model.'_post_recognise';
+        if (method_exists($rule, $function)) $rule->$function($pretext);
+        $rules[$id] = array($rule, 'pretext' => $pretext);
+      }
+    }
+    return $rules;
+  }
+
+  function recognise($url) {
+    preg_match($this->recognition_pattern(), $url, $matches);
+
+    $pretext = array();
+    if ($unmatched = preg_replace('/^'.preg_quote($matches[0], '/').'\//', '', $url)) {
+      $pretext['status'] = 200;
+      switch ($unmatched) {
+        case 'rss':
+        case 'atom':
+          $pretext['feed'] = $unmatched;
+        break;
+        default:
+          if (is_numeric($unmatched)) $pretext['pg'] = $unmatched;
+        break;
+      }
+    }
+
+    if (count($matches) <= 1) {
+      return (count($pretext) > 1) ? $pretext : null;
+    }
+
+    $pretext['status'] = 200;
+    $i = count($this->segments);
+    foreach (array_reverse($this->segments, true) as $segment) {
+      $pretext = array_merge($pretext, (array)$segment->build_pretext(@$matches[$i--]));
+    }
+    return $pretext;
+  }
+
+  function textpattern_post_recognise(&$pretext) {
+    # Ensure if_individual_article works correctly
+    if (@$pretext['id']) {
+      global $is_article_list;
+      $is_article_list = false;
+    }
+
+    # Set the section from the matched article ID
+    if (!isset($pretext['s'])) {
+      if ($id = @$pretext['id']) {
+        if ($rs = safe_row('Section', 'textpattern', "id = '{$id}' limit 1"))
+          $pretext['s'] = $rs['Section'];
+      } else
+        $pretext['s'] = 'default';
+    }
+
+    # Set the page and css templates from the matched section
+    if ($s = @$pretext['s']) {
+      if ($rs = safe_row('css, page', 'txp_section', "name = '{$s}' limit 1")) {
+        $pretext['page'] = $rs['page'];
+        $pretext['css'] = $rs['css'];
+      }
+    }
+  }
 }
 
 class PermanentLinksRuleSegment {
@@ -956,6 +1027,43 @@ class PermanentLinksRuleSegment {
       break;
     }
     return $out;
+  }
+
+  function build_pretext($arg) {
+    $function = $this->model.'_pretext';
+    return (method_exists($this, $function)) ? $this->$function($arg) : null;
+  }
+
+  function textpattern_pretext($arg) {
+    switch ($this->field) {
+      case 'Title':
+        if ($rs = safe_row('ID', 'textpattern', "`url_title` like '$arg' and `Status` >= 4 limit 1"))
+          return array('id' => $rs['ID']);
+      break;
+      case 'Date':
+        @list($year, $month, $day) = explode($this->separator, $arg);
+        return array('month' =>
+          ((isset($year))  ? $year.'-'  : '____-').
+          ((isset($month)) ? $month.'-' : '__-').
+          ((isset($day))   ? $day       : '__')
+        );
+      break;
+      case 'Author':
+        return array('author' => $arg);
+      break;
+      case 'Category':
+        return array('c' => $arg);
+      break;
+      case 'Section':
+        return array('s' => $arg);
+      break;
+      case 'ID':
+        return array('id' => $arg);
+      break;
+      case 'Keywords':
+        return array('gbp_pl_textpattern_keywords' => $arg);
+      break;
+    }
   }
 
   function update_attributes($attributes = array()) {
