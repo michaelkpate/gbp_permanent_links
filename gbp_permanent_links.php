@@ -628,6 +628,84 @@ class GBPPermanentLinksField {
   function options_from_db() {
     return safe_column($this->key, $this->model, $this->when);
   }
+
+  function url($args, $segment) {
+    global $thisarticle, $pretext;
+    $out = null;
+    switch ($this->name) {
+      case 'Title':
+        $out = @$args['url_title'];
+      break;
+      case 'Date':
+        $out = @$args['posted'];
+        if (!isset($out)) $out = @$thisarticle['posted'];
+        if (!isset($out) and !empty($pretext['month'])) {
+          @list($year, $month, $day) = explode('-', $pretext['month']);
+          $out = mktime(0, 0, 0, (int)$month, (int)$day, (int)$year);
+        }
+        if (isset($out)) $out = date("Y/m/d", $out);
+      break;
+      case 'Author':
+        $out = @$args['authorid'];
+        if (!isset($out)) $out = @$thisarticle['authorid'];
+        if (!isset($out)) $out = @$pretext['author'];
+      break;
+      case 'Category':
+        $out = @$args['category1'];
+        if (!isset($out)) $out = @$args['category2'];
+        if (!isset($out)) $out = @$args['c'];
+        if (!isset($out)) $out = @$thisarticle['category1'];
+        if (!isset($out)) $out = @$thisarticle['category2'];
+        if (!isset($out)) $out = @$pretext['c'];
+      break;
+      case 'Section':
+        $out = @$args['section'];
+        if (!isset($out) or $out == 'default') $out = @$args['s'];
+        if (!isset($out) or $out == 'default') $out = @$thisarticle['section'];
+        if ((!isset($out) and $pretext['s'] != 'default') or $out == 'default') $out = @$pretext['s'];
+      break;
+      case 'ID':
+        $out = @$args['thisid'];
+      break;
+      case 'Keywords':
+        $out = @$args['keywords'];
+        if (!isset($out)) $out = @$thisarticle['keywords'];
+      break;
+    }
+    return $out;
+  }
+
+  function pretext($arg, $segment) {
+    switch ($this->name) {
+      case 'Title':
+        if ($rs = safe_row('ID', 'textpattern', "`url_title` like '$arg' and `Status` >= 4 limit 1"))
+          return array('id' => $rs['ID']);
+      break;
+      case 'Date':
+        @list($year, $month, $day) = explode($this->separator, $arg);
+        return array('month' =>
+          ((isset($year))  ? $year.'-'  : '____-').
+          ((isset($month)) ? $month.'-' : '__-').
+          ((isset($day))   ? $day       : '__')
+        );
+      break;
+      case 'Author':
+        return array('author' => $arg);
+      break;
+      case 'Category':
+        return array('c' => $arg);
+      break;
+      case 'Section':
+        return array('s' => $arg);
+      break;
+      case 'ID':
+        return array('id' => $arg);
+      break;
+      case 'Keywords':
+        return array('gbp_pl_textpattern_keywords' => $arg);
+      break;
+    }
+  }
 }
 
 class GBPPermanentLinksRule {
@@ -973,8 +1051,7 @@ class GBPPermanentLinksRuleSegment {
   }
 
   function build_url($url, $args, $index, $optional) {
-    $function = $this->model.'_url';
-    $out = (method_exists($this, $function)) ? $this->$function($args) : null;
+    $out = (method_exists($this->field(), 'url')) ? $this->field()->url($args, $this) : null;
 
     if ($out)
       return $this->separator . $out . $url;
@@ -984,87 +1061,8 @@ class GBPPermanentLinksRuleSegment {
       return '';
   }
 
-  function textpattern_url($args) {
-    global $thisarticle, $pretext;
-    $out = null;
-    switch ($this->field) {
-      case 'Title':
-        $out = @$args['url_title'];
-      break;
-      case 'Date':
-        $out = @$args['posted'];
-        if (!isset($out)) $out = @$thisarticle['posted'];
-        if (!isset($out) and !empty($pretext['month'])) {
-          @list($year, $month, $day) = explode('-', $pretext['month']);
-          $out = mktime(0, 0, 0, (int)$month, (int)$day, (int)$year);
-        }
-        if (isset($out)) $out = date("Y/m/d", $out);
-      break;
-      case 'Author':
-        $out = @$args['authorid'];
-        if (!isset($out)) $out = @$thisarticle['authorid'];
-        if (!isset($out)) $out = @$pretext['author'];
-      break;
-      case 'Category':
-        $out = @$args['category1'];
-        if (!isset($out)) $out = @$args['category2'];
-        if (!isset($out)) $out = @$args['c'];
-        if (!isset($out)) $out = @$thisarticle['category1'];
-        if (!isset($out)) $out = @$thisarticle['category2'];
-        if (!isset($out)) $out = @$pretext['c'];
-      break;
-      case 'Section':
-        $out = @$args['section'];
-        if (!isset($out) or $out == 'default') $out = @$args['s'];
-        if (!isset($out) or $out == 'default') $out = @$thisarticle['section'];
-        if ((!isset($out) and $pretext['s'] != 'default') or $out == 'default') $out = @$pretext['s'];
-      break;
-      case 'ID':
-        $out = @$args['thisid'];
-      break;
-      case 'Keywords':
-        $out = @$args['keywords'];
-        if (!isset($out)) $out = @$thisarticle['keywords'];
-      break;
-    }
-    return $out;
-  }
-
   function build_pretext($arg) {
-    $function = $this->model.'_pretext';
-    return (method_exists($this, $function)) ? $this->$function($arg) : null;
-  }
-
-  function textpattern_pretext($arg) {
-    switch ($this->field) {
-      case 'Title':
-        if ($rs = safe_row('ID', 'textpattern', "`url_title` like '$arg' and `Status` >= 4 limit 1"))
-          return array('id' => $rs['ID']);
-      break;
-      case 'Date':
-        @list($year, $month, $day) = explode($this->separator, $arg);
-        return array('month' =>
-          ((isset($year))  ? $year.'-'  : '____-').
-          ((isset($month)) ? $month.'-' : '__-').
-          ((isset($day))   ? $day       : '__')
-        );
-      break;
-      case 'Author':
-        return array('author' => $arg);
-      break;
-      case 'Category':
-        return array('c' => $arg);
-      break;
-      case 'Section':
-        return array('s' => $arg);
-      break;
-      case 'ID':
-        return array('id' => $arg);
-      break;
-      case 'Keywords':
-        return array('gbp_pl_textpattern_keywords' => $arg);
-      break;
-    }
+    return (method_exists($this->field(), 'pretext')) ? $this->field()->pretext($arg, $this) : null;
   }
 
   function update_attributes($attributes = array()) {
