@@ -108,6 +108,10 @@ class GBPPermanentLinks extends GBPPlugin {
 
     $rules = GBPPermanentLinksRule::recognise_url(ltrim($pretext['req'], '/'));
     if ($rule = current($rules)) $pretext = array_merge($pretext, $rule['pretext']);
+
+    # Ensure if_individual_article works correctly
+    global $is_article_list;
+    $is_article_list = empty($pretext['id']);
   }
 
   function _generate_url($args, $type) {
@@ -938,6 +942,7 @@ class GBPPermanentLinksRule {
     }
 
     $pretext['status'] = 200;
+    $pretext['id'] = '';
     $i = count($this->segments);
     foreach (array_reverse($this->segments, true) as $segment) {
       $pretext = array_merge($pretext, (array)$segment->build_pretext(@$matches[$i--]));
@@ -946,12 +951,6 @@ class GBPPermanentLinksRule {
   }
 
   function textpattern_post_recognise(&$pretext) {
-    # Ensure if_individual_article works correctly
-    if (@$pretext['id']) {
-      global $is_article_list;
-      $is_article_list = false;
-    }
-
     # Set the section from the matched article ID
     if (!isset($pretext['s'])) {
       if ($id = @$pretext['id']) {
