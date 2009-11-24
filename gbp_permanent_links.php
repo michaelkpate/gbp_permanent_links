@@ -84,6 +84,9 @@ class GBPPermanentLinks extends GBPPlugin {
       new GBPPermanentLinksField('Title',     'string',       'name')
     );
 
+    new GBPPermanentLinksField('Regexp',    'global',       'regexp');
+    new GBPPermanentLinksField('Text',      'global',       'text');
+
     // TODO: Register custom route models and fields from other plugins
   }
 
@@ -135,7 +138,7 @@ class GBPPermanentLinksRulesTabView extends GBPAdminTabView {
           break;
 
         case 'fields':
-          $data = $this->current('model')->fields;
+          $data = array_merge($this->current('model')->fields, $GLOBALS['GBPPermanentLinksFields']);
           break;
 
         case 'rules':
@@ -589,6 +592,15 @@ class GBPPermanentLinksField {
         $this->when  = array_key_exists('when', $association) ? $association['when'] : '1 = 1';
 
         break;
+      case 'global':
+        $this->kind = $args[2];
+
+        // Store a reference back to the class
+        if (!isset($GLOBALS['GBPPermanentLinksFields'])) $GLOBALS['GBPPermanentLinksFields'] = array();
+        $GLOBALS['GBPPermanentLinksFields'][$name] = &$this;
+        end($GLOBALS['GBPPermanentLinksFields']);
+
+        break;
       default:
         $column = @$args[2];
         $this->add_column(($column === null) ? $name : $column);
@@ -908,7 +920,9 @@ class GBPPermanentLinksRuleSegment {
   }
 
   function field() {
-    return $this->model()->fields[$this->field];
+    $field = @$this->model()->fields[$this->field];
+    if (!isset($field)) $field = $GLOBALS['GBPPermanentLinksFields'][$this->field];
+    return $field;
   }
 
   function regexp() {
