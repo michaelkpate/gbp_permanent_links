@@ -752,6 +752,7 @@ class GBPPermanentLinksRule {
 
   function remove_segment($segment) {
     unset($this->segments[$segment->id]);
+    $this->set_dirty();
   }
 
   function recognition_pattern() {
