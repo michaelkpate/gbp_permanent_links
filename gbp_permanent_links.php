@@ -28,7 +28,7 @@ There is no plugin documentation. For help please use the "forum thread":http://
 @require_plugin('gbp_admin_library');
 if (!class_exists('GBPPlugin')) return;
 
-class PermanentLinks extends GBPPlugin {
+class GBPPermanentLinks extends GBPPlugin {
   var $cache;
   var $preferences = array(
     'unsaved_rule_storage_engine' => array('value' => 'Session', 'type' => 'gbp_popup', 'options' => array('Session', 'Database')),
@@ -40,59 +40,59 @@ class PermanentLinks extends GBPPlugin {
 
     // Register the default route models and fields
     // Articles
-    new PermanentLinksModel('Article',   'textpattern',
-      new PermanentLinksField('ID',        'integer'),
-      new PermanentLinksField('Date',      'date',         'Posted'),
-      new PermanentLinksField('Author',    'has_one',      array('model' => 'txp_users',    'key' => 'name'), 'AuthorID'),
-      new PermanentLinksField('Category',  'has_many',     array('model' => 'txp_category', 'key' => 'name', 'when' => 'type = "article" AND name != "root"'), 'Category1', 'Category2'),
-      new PermanentLinksField('Section',   'has_one',      array('model' => 'txp_section',  'key' => 'name', 'when' => 'name != "default"'), 'Section'),
-      new PermanentLinksField('Keywords',  'csv'),
-      new PermanentLinksField('Title',     'string',       'url_title')
+    new GBPPermanentLinksModel('Article',   'textpattern',
+      new GBPPermanentLinksField('ID',        'integer'),
+      new GBPPermanentLinksField('Date',      'date',         'Posted'),
+      new GBPPermanentLinksField('Author',    'has_one',      array('model' => 'txp_users',    'key' => 'name'), 'AuthorID'),
+      new GBPPermanentLinksField('Category',  'has_many',     array('model' => 'txp_category', 'key' => 'name', 'when' => 'type = "article" AND name != "root"'), 'Category1', 'Category2'),
+      new GBPPermanentLinksField('Section',   'has_one',      array('model' => 'txp_section',  'key' => 'name', 'when' => 'name != "default"'), 'Section'),
+      new GBPPermanentLinksField('Keywords',  'csv'),
+      new GBPPermanentLinksField('Title',     'string',       'url_title')
     );
     // Images
-    new PermanentLinksModel('Image',     'txp_image',
-      new PermanentLinksField('ID',        'integer',      'id'),
-      new PermanentLinksField('Name',      'string',       'name'),
-      new PermanentLinksField('Category',  'has_one',      array('model' => 'txp_category', 'key' => 'name', 'when' => 'type = "image" AND name != "root"'), 'category'),
-      new PermanentLinksField('Uploader',  'has_one',      array('model' => 'txp_users',    'key' => 'name'), 'author')
+    new GBPPermanentLinksModel('Image',     'txp_image',
+      new GBPPermanentLinksField('ID',        'integer',      'id'),
+      new GBPPermanentLinksField('Name',      'string',       'name'),
+      new GBPPermanentLinksField('Category',  'has_one',      array('model' => 'txp_category', 'key' => 'name', 'when' => 'type = "image" AND name != "root"'), 'category'),
+      new GBPPermanentLinksField('Uploader',  'has_one',      array('model' => 'txp_users',    'key' => 'name'), 'author')
     );
     // Files
-    new PermanentLinksModel('File',      'txp_file',
-      new PermanentLinksField('ID',        'integer',      'id'),
-      new PermanentLinksField('Name',      'string',       'filename'),
-      new PermanentLinksField('Category',  'has_one',      array('model' => 'txp_category', 'key' => 'name', 'when' => 'type = "file" AND name != "root"'), 'category'),
-      new PermanentLinksField('Uploader',  'has_one',      array('model' => 'txp_users',    'key' => 'name'), 'author')
+    new GBPPermanentLinksModel('File',      'txp_file',
+      new GBPPermanentLinksField('ID',        'integer',      'id'),
+      new GBPPermanentLinksField('Name',      'string',       'filename'),
+      new GBPPermanentLinksField('Category',  'has_one',      array('model' => 'txp_category', 'key' => 'name', 'when' => 'type = "file" AND name != "root"'), 'category'),
+      new GBPPermanentLinksField('Uploader',  'has_one',      array('model' => 'txp_users',    'key' => 'name'), 'author')
     );
     // Links
-    new PermanentLinksModel('Link',      'txp_link',
-      new PermanentLinksField('ID',        'integer',      'id'),
-      new PermanentLinksField('Name',      'string',       'linkname'),
-      new PermanentLinksField('Category',  'has_one',      array('model' => 'txp_category', 'key' => 'name', 'when' => 'type = "link" AND name != "root"'), 'category'),
-      new PermanentLinksField('Uploader',  'has_one',      array('model' => 'txp_users',    'key' => 'name'), 'author')
+    new GBPPermanentLinksModel('Link',      'txp_link',
+      new GBPPermanentLinksField('ID',        'integer',      'id'),
+      new GBPPermanentLinksField('Name',      'string',       'linkname'),
+      new GBPPermanentLinksField('Category',  'has_one',      array('model' => 'txp_category', 'key' => 'name', 'when' => 'type = "link" AND name != "root"'), 'category'),
+      new GBPPermanentLinksField('Uploader',  'has_one',      array('model' => 'txp_users',    'key' => 'name'), 'author')
     );
     // Author
-    new PermanentLinksModel('Author',    'txp_users',
-      new PermanentLinksField('Login',     'string',       'name'),
-      new PermanentLinksField('Full name', 'string',       'RealName')
+    new GBPPermanentLinksModel('Author',    'txp_users',
+      new GBPPermanentLinksField('Login',     'string',       'name'),
+      new GBPPermanentLinksField('Full name', 'string',       'RealName')
     );
     // Category
-    new PermanentLinksModel('Category',  'txp_category',
-      new PermanentLinksField('Title',     'string',       'name')
+    new GBPPermanentLinksModel('Category',  'txp_category',
+      new GBPPermanentLinksField('Title',     'string',       'name')
     );
     // Section
-    new PermanentLinksModel('Section',   'txp_section',
-      new PermanentLinksField('Title',     'string',       'name')
+    new GBPPermanentLinksModel('Section',   'txp_section',
+      new GBPPermanentLinksField('Title',     'string',       'name')
     );
 
     // TODO: Register custom route models and fields from other plugins
   }
 
   function preload () {
-    $cache = "PermanentLinksCache".$this->pref('unsaved_rule_storage_engine');
+    $cache = "GBPPermanentLinksCache".$this->pref('unsaved_rule_storage_engine');
     if (class_exists($cache)) $this->cache = new $cache();
-    else $this->cache = new PermanentLinksCacheSession();
+    else $this->cache = new GBPPermanentLinksCacheSession();
 
-    new PermanentLinksRulesTabView('rules', 'rules', $this);
+    new GBPPermanentLinksRulesTabView('rules', 'rules', $this);
     new GBPPreferenceTabView($this);
   }
 
@@ -103,7 +103,7 @@ class PermanentLinks extends GBPPlugin {
   function _recognise_url() {
     global $pretext;
 
-    $rules = PermanentLinksRule::recognise_url(ltrim($pretext['req'], '/'));
+    $rules = GBPPermanentLinksRule::recognise_url(ltrim($pretext['req'], '/'));
     if ($rule = current($rules)) $pretext = array_merge($pretext, $rule['pretext']);
   }
 
@@ -114,12 +114,12 @@ class PermanentLinks extends GBPPlugin {
       if (empty($value)) unset($args[$key]);
     }
 
-    $urls = PermanentLinksRule::generate_urls($args, $type);
+    $urls = GBPPermanentLinksRule::generate_urls($args, $type);
     return (count($urls) > 0) ? $pretext['pfr'] . ltrim(current($urls), '/') : false;
   }
 }
 
-class PermanentLinksRulesTabView extends GBPAdminTabView {
+class GBPPermanentLinksRulesTabView extends GBPAdminTabView {
   function current($object) {
     static $memorised_data = array();
     if (!array_key_exists($object, $memorised_data) or array_key_exists($object, $this->reload)) {
@@ -127,11 +127,11 @@ class PermanentLinksRulesTabView extends GBPAdminTabView {
       switch ($object) {
         case 'model':
           $table = gps('model');
-          if (!$table) $table = $_SESSION['PermanentLinksModel'];
-          $_SESSION['PermanentLinksModel'] = $table;
+          if (!$table) $table = $_SESSION['GBPPermanentLinksModel'];
+          $_SESSION['GBPPermanentLinksModel'] = $table;
 
-          $data = PermanentLinksModel::find_by_table($table);
-          if (!isset($data)) $data = PermanentLinksModel::find_by_table('textpattern');
+          $data = GBPPermanentLinksModel::find_by_table($table);
+          if (!isset($data)) $data = GBPPermanentLinksModel::find_by_table('textpattern');
           break;
 
         case 'fields':
@@ -139,15 +139,15 @@ class PermanentLinksRulesTabView extends GBPAdminTabView {
           break;
 
         case 'rules':
-          $data = PermanentLinksRule::find_all(gps('model'));
+          $data = GBPPermanentLinksRule::find_all(gps('model'));
           break;
 
         case 'rule':
           if ($id = gps('rule')) {
             if ($id == 'new') {
-              $data = new PermanentLinksRule(gps('model'), current($this->current('fields'))->name);
+              $data = new GBPPermanentLinksRule(gps('model'), current($this->current('fields'))->name);
             } else {
-              $data = PermanentLinksRule::find_by_id($id);
+              $data = GBPPermanentLinksRule::find_by_id($id);
             }
           }
           break;
@@ -257,7 +257,7 @@ class PermanentLinksRulesTabView extends GBPAdminTabView {
   /* AJAX */
   function _ajax_load_models() {
     return '<p align="center">Filter rules by type: <select>'.
-      $this->options_for_select(PermanentLinksModel::find_all(), $this->current('model')).
+      $this->options_for_select(GBPPermanentLinksModel::find_all(), $this->current('model')).
       '</select></p>';
   }
 
@@ -362,7 +362,7 @@ class PermanentLinksRulesTabView extends GBPAdminTabView {
     }
 
     if ($field = current($unused_fields)) {
-      $segment = new PermanentLinksRuleSegment($field);
+      $segment = new GBPPermanentLinksRuleSegment($field);
       $this->current('rule')->add_segment($segment);
       echo $this->_rule_segment($segment);
     }
@@ -444,10 +444,10 @@ class PermanentLinksRulesTabView extends GBPAdminTabView {
   }
 }
 
-class PermanentLinksCacheSession {
+class GBPPermanentLinksCacheSession {
   var $key = 'GBP_PL';
 
-  function PermanentLinksCacheSession() {
+  function GBPPermanentLinksCacheSession() {
     if (session_id() == '') {
       session_name($this->key);
       session_start();
@@ -464,7 +464,7 @@ class PermanentLinksCacheSession {
   }
 
   function store($rule) {
-    if (is_a($rule, 'PermanentLinksRule'))
+    if (is_a($rule, 'GBPPermanentLinksRule'))
       $_SESSION[$this->key][$rule->id] = $rule;
   }
 
@@ -477,7 +477,7 @@ class PermanentLinksCacheSession {
   }
 }
 
-class PermanentLinksCacheDatabase extends GBPPreferenceStore {
+class GBPPermanentLinksCacheDatabase extends GBPPreferenceStore {
   function key($id = null) {
     global $gbp_pl;
     $base = "{$gbp_pl->plugin_name}_unsaved_";
@@ -494,7 +494,7 @@ class PermanentLinksCacheDatabase extends GBPPreferenceStore {
 
   function store($rule) {
     global $gbp_pl;
-    if (is_a($rule, 'PermanentLinksRule'))
+    if (is_a($rule, 'GBPPermanentLinksRule'))
       $this->db_write($this->key($rule->id), $rule, $gbp_pl->event, 'gbp_serialized');
   }
 
@@ -522,12 +522,12 @@ class PermanentLinksCacheDatabase extends GBPPreferenceStore {
   }
 }
 
-class PermanentLinksModel {
+class GBPPermanentLinksModel {
   var $name;
   var $table;
   var $fields = array();
 
-  function PermanentLinksModel($name, $table) {
+  function GBPPermanentLinksModel($name, $table) {
     $this->name = $name;
     $this->table = $table;
 
@@ -540,9 +540,9 @@ class PermanentLinksModel {
     } while (1);
 
     // Store a reference back to the class
-    if (!isset($GLOBALS['PermanentLinksModels'])) $GLOBALS['PermanentLinksModels'] = array();
-    $GLOBALS['PermanentLinksModels'][$table] = &$this;
-    end($GLOBALS['PermanentLinksModels']);
+    if (!isset($GLOBALS['GBPPermanentLinksModels'])) $GLOBALS['GBPPermanentLinksModels'] = array();
+    $GLOBALS['GBPPermanentLinksModels'][$table] = &$this;
+    end($GLOBALS['GBPPermanentLinksModels']);
   }
 
   function add_field($field) {
@@ -551,15 +551,15 @@ class PermanentLinksModel {
   }
 
   function find_by_table($table) {
-    return $GLOBALS['PermanentLinksModels'][$table];
+    return $GLOBALS['GBPPermanentLinksModels'][$table];
   }
 
   function find_all() {
-    return $GLOBALS['PermanentLinksModels'];
+    return $GLOBALS['GBPPermanentLinksModels'];
   }
 }
 
-class PermanentLinksField {
+class GBPPermanentLinksField {
   var $name;
   var $kind;
   var $columns = array();
@@ -568,7 +568,7 @@ class PermanentLinksField {
   var $when;
   var $parent_model;
 
-  function PermanentLinksField($name, $kind) {
+  function GBPPermanentLinksField($name, $kind) {
     $this->name = $name;
     $this->kind = $kind;
 
@@ -602,11 +602,11 @@ class PermanentLinksField {
   }
 
   function model() {
-    return PermanentLinksModel::find_by_table($this->model);
+    return GBPPermanentLinksModel::find_by_table($this->model);
   }
 
   function parent() {
-    return PermanentLinksModel::find_by_table($this->parent_model);
+    return GBPPermanentLinksModel::find_by_table($this->parent_model);
   }
 
   function formats() {
@@ -618,14 +618,14 @@ class PermanentLinksField {
   }
 }
 
-class PermanentLinksRule {
+class GBPPermanentLinksRule {
   var $id;
   var $model;
   var $segments = array();
   var $is_dirty = true;
   var $new_record = true;
 
-  function PermanentLinksRule($model) {
+  function GBPPermanentLinksRule($model) {
     $this->id    = 'rule_'.substr(sha1(time() + rand()), 0, 6);
     $this->model = $model;
 
@@ -634,8 +634,8 @@ class PermanentLinksRule {
     do {
       $segment = @$args[$i++];
       if (is_string($segment) && $field = @$this->model()->fields[$segment])
-        $segment = new PermanentLinksRuleSegment($field);
-      else if (!is_a($segment, 'PermanentLinksRuleSegment'))
+        $segment = new GBPPermanentLinksRuleSegment($field);
+      else if (!is_a($segment, 'GBPPermanentLinksRuleSegment'))
         $segment = null;
 
       if ($segment === null) break;
@@ -647,7 +647,7 @@ class PermanentLinksRule {
   }
 
   function model() {
-    return PermanentLinksModel::find_by_table($this->model);
+    return GBPPermanentLinksModel::find_by_table($this->model);
   }
 
   function add_segment($segment) {
@@ -737,7 +737,7 @@ class PermanentLinksRule {
     } else {
       $rule = $gbp_pl->pref($id);
     }
-    return is_a($rule, 'PermanentLinksRule') ? $rule : null;
+    return is_a($rule, 'GBPPermanentLinksRule') ? $rule : null;
   }
 
   function find_all($model = null) {
@@ -755,7 +755,7 @@ class PermanentLinksRule {
 
     $rules = array();
     foreach ($ids as $id) {
-      $rule = PermanentLinksRule::find_by_id($id);
+      $rule = GBPPermanentLinksRule::find_by_id($id);
       if ($model == null or in_array($rule->model, $model)) $rules[$id] = $rule;
     }
 
@@ -774,12 +774,12 @@ class PermanentLinksRule {
         $models = 'textpattern';
       break;
       case PAGELINKURL:
-        $models = array_keys(PermanentLinksModel::find_all());
+        $models = array_keys(GBPPermanentLinksModel::find_all());
       break;
     }
 
     $urls = array();
-    foreach (PermanentLinksRule::find_all($models) as $id => $rule) {
+    foreach (GBPPermanentLinksRule::find_all($models) as $id => $rule) {
       if ($url = $rule->generate($args)) $urls[] = $url;
     }
     return $urls;
@@ -810,7 +810,7 @@ class PermanentLinksRule {
 
   function recognise_url($url) {
     $rules = array();
-    foreach (PermanentLinksRule::find_all() as $id => $rule) {
+    foreach (GBPPermanentLinksRule::find_all() as $id => $rule) {
       $pretext = $rule->recognise($url);
       if ($pretext) {
         $function = $rule->model.'_post_recognise';
@@ -876,7 +876,7 @@ class PermanentLinksRule {
   }
 }
 
-class PermanentLinksRuleSegment {
+class GBPPermanentLinksRuleSegment {
   var $id;
   var $rule_id;
   var $model;
@@ -889,7 +889,7 @@ class PermanentLinksRuleSegment {
   var $column = '';
   var $format = '';
 
-  function PermanentLinksRuleSegment($field, $separator = '/', $is_optional = true, $prefix = null, $suffix = null) {
+  function GBPPermanentLinksRuleSegment($field, $separator = '/', $is_optional = true, $prefix = null, $suffix = null) {
     $this->id          = 'segment_'.substr(sha1(time() + rand()), 0, 6);
     $this->model       = $field->parent_model;
     $this->field       = $field->name;
@@ -900,11 +900,11 @@ class PermanentLinksRuleSegment {
   }
 
   function rule() {
-    return PermanentLinksRule::find_by_id($this->rule_id);
+    return GBPPermanentLinksRule::find_by_id($this->rule_id);
   }
 
   function model() {
-    return PermanentLinksModel::find_by_table($this->model);
+    return GBPPermanentLinksModel::find_by_table($this->model);
   }
 
   function field() {
@@ -1067,7 +1067,7 @@ class PermanentLinksRuleSegment {
   }
 }
 
-new PermanentLinks('Permanent Links', 'permlinks', 'admin');
+new GBPPermanentLinks('Permanent Links', 'permlinks', 'admin');
 
 if (@txpinterface == 'public') {
   global $gbp_pl, $prefs;
