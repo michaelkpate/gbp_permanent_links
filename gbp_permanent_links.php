@@ -114,7 +114,7 @@ class GBPPermanentLinks extends GBPPlugin {
     global $pretext;
 
     foreach ($args as $key => $value) {
-      if (empty($value)) unset($args[$key]);
+      if (is_string($value) and empty($value)) unset($args[$key]);
     }
 
     $urls = GBPPermanentLinksRule::generate_urls($args, $type);
@@ -878,7 +878,14 @@ class GBPPermanentLinksRule {
   function generate($args) {
     $url = '';
     $feed = '';
-    $page = '';
+
+    if (isset($args['pg'])) {
+      global $pretext;
+      $page = $args['pg'] > 0 ? '/'.$args['pg'] : '';
+      return ($pretext['pg'] > 0) ?
+        preg_replace('/\/\d+$/', $page, $pretext['req']) :
+        rtrim($pretext['req'], '/').$page;
+    }
 
     $require = false;
     $i = count($this->segments);
@@ -892,10 +899,8 @@ class GBPPermanentLinksRule {
       $feed = '/rss';
     else if (isset($args['atom']))
       $feed = '/atom';
-    else if (isset($args['pg']))
-      $page = '/'.$args['pg'];
 
-    return $url.$feed.$page;
+    return $url.$feed;
   }
 
   function recognise_url($url) {
