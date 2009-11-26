@@ -47,7 +47,15 @@
 #segment {
   border: 2px solid #FFCB2F;
   background-color: #FFEAB1;
-  padding: 10px;
+  padding: 10px 10px 0;
+}
+
+#segment p {
+  float: left;
+  margin-right: 10px;
+}
+#segment br {
+  clear: both;
 }
 
 #segment-actions {

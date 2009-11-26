@@ -328,16 +328,11 @@ class GBPPermanentLinksRulesTabView extends GBPAdminTabView {
   }
 
   function _ajax_load_segment() {
-    echo '<p>';
-
-    echo 'Field: <select id="segment-field">'. $this->options_for_select($this->current('fields'), $this->current('field')) .'</select>';
+    echo '<p>Field: <select id="segment-field">'. $this->options_for_select($this->current('fields'), $this->current('field')) .'</select></p>';
 
     echo '<span id="segment-field-options">';
-
     $this->_ajax_change_segment_type();
-
     echo '</span>';
-    echo '</p>';
   }
 
   function _ajax_change_segment_type() {
@@ -348,10 +343,12 @@ class GBPPermanentLinksRulesTabView extends GBPAdminTabView {
     }
 
     if (count($this->current('field')->columns) > 1)
-      echo ' Column: <select id="segment-column">'. $this->options_for_select($this->current('field')->columns, $this->current('segment')->column) .'</select> ';
+      echo '<p>Column: <select id="segment-column">'. $this->options_for_select($this->current('field')->columns, $this->current('segment')->column) .'</select></p>';
 
     if (count($this->current('field')->formats()) > 1)
-      echo ' Format: <select id="segment-format">'. $this->options_for_select($this->current('field')->formats(), $this->current('segment')->format) .'</select> ';
+      echo '<p>Format: <select id="segment-format">'. $this->options_for_select($this->current('field')->formats(), $this->current('segment')->format) .'</select></p>';
+
+    echo br;
   }
 
   function _ajax_change_segment_options() {
