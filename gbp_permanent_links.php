@@ -349,10 +349,28 @@ class GBPPermanentLinksRulesTabView extends GBPAdminTabView {
       echo '<p>Format: <select id="segment-format">'. $this->options_for_select($this->current('field')->formats(), $this->current('segment')->format) .'</select></p>';
 
     echo br;
+
+    echo $this->current('field')->html($this->current('segment'));
   }
 
   function _ajax_change_segment_options() {
-    $this->current('segment')->update_attributes(gpsa(array('column', 'format')));
+    foreach (array('column', 'format', 'options') as $key) {
+      if ($value = gps($key) and !empty($value)) {
+        $fields = explode("&", $value);
+        if (count($fields) > 1) {
+          // Expand JS serialized data
+          $options = array();
+          foreach($fields as $field){
+            list($k, $v) = explode("=", $field);
+            $options[urldecode($k)] = (string)urldecode($v);
+          }
+          $this->current('segment')->update_attributes(array($key => $options));
+
+        } else {
+          $this->current('segment')->update_attributes(array($key => $value));
+        }
+      }
+    }
   }
 
   function _ajax_reorder_segments() {
@@ -672,6 +690,9 @@ class GBPPermanentLinksField {
         $out = @$args['keywords'];
         if (!isset($out)) $out = @$thisarticle['keywords'];
       break;
+      case 'Text':
+        $out = @$segment->options['text'];
+      break;
     }
     return $out;
   }
@@ -706,6 +727,17 @@ class GBPPermanentLinksField {
         return array('gbp_pl_textpattern_keywords' => $arg);
       break;
     }
+  }
+
+  function html($segment) {
+    $out = array();
+    switch ($this->name) {
+      case 'Text':
+        $out[] = 'Text: <input type="text" value="'.@$segment->options['text'].'" name="text" />';
+        $out[] = 'Name: <input type="text" value="'.@$segment->options['name'].'" name="name" />';
+      break;
+    }
+    return (count($out) > 0) ? '<form id="segment-options"><p>'.join('</p><p>', $out).'</p></form>'.br : null;
   }
 }
 
@@ -977,9 +1009,10 @@ class GBPPermanentLinksRuleSegment {
   var $is_optional;
   var $prefix;
   var $suffix;
+  var $column;
+  var $format;
   var $conditions = array();
-  var $column = '';
-  var $format = '';
+  var $options = array();
 
   function GBPPermanentLinksRuleSegment($field, $separator = '/', $is_optional = true, $prefix = null, $suffix = null) {
     $this->id          = 'segment_'.substr(sha1(time() + rand()), 0, 6);

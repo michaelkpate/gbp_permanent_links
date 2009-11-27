@@ -61,12 +61,13 @@ function segment_loaded() {
 
 function segment_options_loaded() {
   $("#segment-column").change(function () {
-    ajax_vars.column = this.value;
-    $.post('{{URL}}', $.extend({ xhr: "change_segment_options" }, ajax_vars ));
+    $.post('{{URL}}', $.extend({ xhr: "change_segment_options", column: this.value }, ajax_vars ));
   });
   $("#segment-format").change(function () {
-    ajax_vars.format = this.value;
-    $.post('{{URL}}', $.extend({ xhr: "change_segment_options" }, ajax_vars ));
+    $.post('{{URL}}', $.extend({ xhr: "change_segment_options", format: this.value }, ajax_vars ));
+  });
+  $("#segment-options input").keyup(function () {
+    $.post('{{URL}}', $.extend({ xhr: "change_segment_options", options: $("#segment-options").serialize() }, ajax_vars ));
   });
 }
 
@@ -124,4 +125,3 @@ $(document).ajaxComplete(function (request, settings) {
     return false;
   });
 });
-
