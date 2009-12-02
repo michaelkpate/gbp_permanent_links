@@ -100,6 +100,7 @@ $(document).ready(function () {
       ajax_vars.model = this.value;
       $("#rules").load('{{URL}}', $.extend({ xhr: "load_rules" }, ajax_vars), function () { toggle_view('rules'); });
     }).change();
+    if (!$("#models select option:gt(1)").is("*")) $("#models").hide();
   });
 });
 
