@@ -761,6 +761,10 @@ class GBPPermanentLinksField {
     }
     return (count($out) > 0) ? '<form id="segment-options"><p>'.join('</p><p>', $out).'</p></form>'.br : null;
   }
+
+  function is_global() {
+    return in_array($this->name, array_keys($GLOBALS['GBPPermanentLinksFields']));
+  }
 }
 
 class GBPPermanentLinksRule {
@@ -944,12 +948,17 @@ class GBPPermanentLinksRule {
     }
 
     $require = false;
+    $has_context = false;
     $i = count($this->segments);
     foreach (array_reverse($this->segments, true) as $segment) {
       $require = (!$require) ? !$segment->is_optional : $require;
-      $url = $segment->build_url($url, $args, --$i, !$require);
-      if ($url === false) return false;
+      list($url, $segment_has_context) = $segment->build_url($url, $args, --$i, !$require);
+
+      if ($url == '' && $has_context) return false;
+      else $has_context = (!$has_context) ? $segment_has_context : $has_context;
     }
+
+    if (!$has_context) return false;
 
     if (isset($args['rss']))
       $feed = '/rss';
@@ -1114,11 +1123,9 @@ class GBPPermanentLinksRuleSegment {
     $out = (method_exists($this->field(), 'url')) ? $this->field()->url($args, $this) : null;
 
     if ($out)
-      return $this->separator . $out . $url;
-    else if (!$optional)
-      return false;
+      return array($this->separator.$out.$url, !$this->field()->is_global());
     else
-      return '';
+      return array('', !$optional);
   }
 
   function build_pretext($arg) {
