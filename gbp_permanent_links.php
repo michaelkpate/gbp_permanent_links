@@ -33,6 +33,7 @@ class GBPPermanentLinks extends GBPPlugin {
   var $preferences = array(
     'unsaved_rule_storage_engine' => array('value' => 'Session', 'type' => 'gbp_popup', 'options' => array('Session', 'Database')),
   );
+  var $context = array();
 
   function initialize() {
     global $gbp_pl;
@@ -649,7 +650,7 @@ class GBPPermanentLinksField {
   }
 
   function url($args, $segment) {
-    global $thisarticle, $pretext;
+    global $thisarticle, $pretext, $gbp_pl;
     $out = null;
     switch ($this->name) {
       case 'Title':
@@ -691,13 +692,27 @@ class GBPPermanentLinksField {
         if (!isset($out)) $out = @$thisarticle['keywords'];
       break;
       case 'Text':
-        $out = @$segment->options['text'];
+        $value = @$gbp_pl->context[$this->name][$segment->options['name']];
+        $out = ($value) ? $value : @$segment->options['text'];
+      case 'Regexp':
+        if ($regexp = @$segment->options['regexp']) {
+          // Check to see if regex is valid without outputting error messages.
+          $regexp = '('.$regexp.')';
+          ob_start();
+          preg_match($regexp, $regexp, $regexp_matches);
+          $is_valid_regexp = !(ob_get_clean());
+          if ($is_valid_regexp) {
+            $value = @$gbp_pl->context[$this->name][$segment->options['name']];
+            $out = ($value) ? $value : $regexp_matches[0];
+          }
+        }
       break;
     }
     return $out;
   }
 
   function pretext($arg, $segment) {
+    global $gbp_pl;
     switch ($this->name) {
       case 'Title':
         if ($rs = safe_row('ID', 'textpattern', "`url_title` like '$arg' and `Status` >= 4 limit 1"))
@@ -726,6 +741,9 @@ class GBPPermanentLinksField {
       case 'Keywords':
         return array('gbp_pl_textpattern_keywords' => $arg);
       break;
+      default:
+        $gbp_pl->context[$this->name][$segment->options['name']] = $arg;
+      break;
     }
   }
 
@@ -735,6 +753,10 @@ class GBPPermanentLinksField {
       case 'Text':
         $out[] = 'Text: <input type="text" value="'.@$segment->options['text'].'" name="text" />';
         $out[] = 'Name: <input type="text" value="'.@$segment->options['name'].'" name="name" />';
+      break;
+      case 'Regexp':
+        $out[] = 'Regexp: <input type="text" value="'.@$segment->options['regexp'].'" name="regexp" />';
+        $out[] = 'Name:   <input type="text" value="'.@$segment->options['name'].'" name="name" />';
       break;
     }
     return (count($out) > 0) ? '<form id="segment-options"><p>'.join('</p><p>', $out).'</p></form>'.br : null;
@@ -1056,6 +1078,9 @@ class GBPPermanentLinksRuleSegment {
         break;
         case 'csv':
           $regex = '[^,' . $this->separator . '?]+';
+        break;
+        default:
+          $regex = @$this->options[$field->kind];
         break;
       }
 
