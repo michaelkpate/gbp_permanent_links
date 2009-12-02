@@ -762,6 +762,10 @@ class GBPPermanentLinksField {
     return (count($out) > 0) ? '<form id="segment-options"><p>'.join('</p><p>', $out).'</p></form>'.br : null;
   }
 
+  function regexp() {
+    // Override for custom segment types
+  }
+
   function is_global() {
     return in_array($this->name, array_keys($GLOBALS['GBPPermanentLinksFields']));
   }
@@ -1071,26 +1075,29 @@ class GBPPermanentLinksRuleSegment {
 
   function regexp() {
     if ($field = $this->field()) {
-      switch ($field->kind) {
-        case 'has_one':
-        case 'has_many':
-          $regex = join('|', $field->options_from_db());
-        break;
-        case 'string':
-          $regex = '[^' . $this->separator . '?]+';
-        break;
-        case 'integer':
-          $regex = '\d+';
-        break;
-        case 'date':
-          $regex = '\d{4}(?:' . $this->separator . '\d{2}(?:' . $this->separator . '\d{2})?)?';
-        break;
-        case 'csv':
-          $regex = '[^,' . $this->separator . '?]+';
-        break;
-        default:
-          $regex = @$this->options[$field->kind];
-        break;
+      $regex = $this->field()->regexp();
+      if (!isset($regex)) {
+        switch ($field->kind) {
+          case 'has_one':
+          case 'has_many':
+            $regex = join('|', $field->options_from_db());
+          break;
+          case 'string':
+            $regex = '[^' . $this->separator . '?]+';
+          break;
+          case 'integer':
+            $regex = '\d+';
+          break;
+          case 'date':
+            $regex = '\d{4}(?:' . $this->separator . '\d{2}(?:' . $this->separator . '\d{2})?)?';
+          break;
+          case 'csv':
+            $regex = '[^,' . $this->separator . '?]+';
+          break;
+          default:
+            $regex = @$this->options[$field->kind];
+          break;
+        }
       }
 
       if (isset($regex)) {
