@@ -1004,9 +1004,9 @@ class GBPPermanentLinksRule {
 
     $pretext['status'] = 200;
     $pretext['id'] = '';
-    $i = count($this->segments);
-    foreach (array_reverse($this->segments, true) as $segment) {
-      $pretext = array_merge($pretext, (array)$segment->build_pretext(@$matches[$i--]));
+    foreach (array_reverse($this->segments, true) as $key => $segment) {
+      // Todo: pass build_pretext any submatches - eg. within regexp segments
+      $pretext = array_merge($pretext, (array)$segment->build_pretext(@$matches[$key]));
     }
     return $pretext;
   }
@@ -1094,7 +1094,7 @@ class GBPPermanentLinksRuleSegment {
       }
 
       if (isset($regex)) {
-        $regex = '(' . $regex . ')';
+        $regex = '(?<'.$this->id.'>' . $regex . ')';
         // Add the prefix and suffix regex as not captured groups
         $regex = $this->prefix ? '(?:' . preg_quote($this->prefix) . ')' . $regex : $regex;
         $regex = $this->suffix ? $regex . '(?:' . preg_quote($this->suffix) . ')' : $regex;
