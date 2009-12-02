@@ -114,7 +114,10 @@ $(document).ajaxComplete(function (request, settings) {
       break;
       case 'delete_rule':
       case 'revert_rule':
-        if (confirm('Are you sure?')) $("#"+rule).load(this.href);
+        if (!confirm('Are you sure?')) return false;
+        $("#"+rule).load(this.href, {}, function () {
+          if (!$("#rules td").is("*")) $("#models select").change();
+        });
       break;
       case 'save_rule':
         $("#"+rule).load(this.href);
