@@ -1,13 +1,10 @@
 <?php
 
-$plugin['url'] = '$HeadURL$';
-$plugin['date'] = '$LastChangedDate$';
-$plugin['revision'] = '$LastChangedRevision$';
 $plugin['name'] = 'gbp_permanent_links';
-$plugin['version'] = '0.11'.(preg_match('/: (\d+) \$$/', $plugin['revision'], $revision) ? '.'.$revision[1] : '');
+$plugin['version'] = '2.0.0 a1';
 $plugin['author'] = 'Graeme Porteous';
-$plugin['author_uri'] = 'http://rgbp.co.uk/projects/textpattern/gbp_permanent_links/';
-$plugin['description'] = 'Custom permanent links rules';
+$plugin['author_uri'] = 'http://graemeporteous.co.uk/projects/textpattern/gbp_permanent_links/';
+$plugin['description'] = 'Custom permanent links';
 $plugin['type'] = '1';
 
 @include_once('../zem_tpl.php');
