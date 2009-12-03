@@ -216,10 +216,10 @@ class GBPPermanentLinksRulesTabView extends GBPAdminTabView {
     if ($asset = @$this->assets[gps('asset')]) {
       header('Content-type: '. $asset['type']);
       header('Content-Disposition: attachment; filename='. gps('asset'));
-      if ($asset['embed'])
+      if (@$asset['embed'])
         $asset['data'] = implode('', file(dirname(__FILE__).'/'.$asset['embed']));
       else
-        $asset['data'] = base64_decode($asset['data']);
+        $asset['data'] = gzinflate(base64_decode($asset['data']));
       exit(str_replace('{{URL}}', $this->url(), $asset['data']));
     }
 
