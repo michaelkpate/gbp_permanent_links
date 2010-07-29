@@ -1944,7 +1944,7 @@ if (@txpinterface == 'public') {
 		extract(lAtts(array(
 			'rule' => '',
 		),$atts));
-		return $gbp_pl->_textpattern_end(parse($thing), $rule);
+		return $gbp_pl->_textpattern_end_callback(parse($thing), $rule);
 	}
 
 	function gbp_disable_permlinks ($atts, $thing = '') {
