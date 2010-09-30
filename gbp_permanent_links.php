@@ -875,7 +875,7 @@ class PermanentLinks extends GBPPlugin
 		if ($this->pref('omit_trailing_slash'))
 			$uri = rtrim($uri, '/');
 
-		if (!$uri_empty && in_array(txpath.'/publish/rss.php', get_included_files()) || in_array(txpath.'/publish/atom.php', get_included_files())) {
+		if (!$uri_empty && in_array(txpath.'/publish/rss.php', get_included_files()) || in_array(txpath.'/publish/atom.php', get_included_files()) || txpinterface == 'admin') {
 			$host = rtrim(str_replace(rtrim(doStrip(@$pretext['subpath']), '/'), '', hu), '/');
 			$uri = $host . $uri;
 		}
