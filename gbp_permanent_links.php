@@ -322,13 +322,10 @@ class PermanentLinks extends GBPPlugin
 								}
 							break;
 							case 'title':
-								if ($rs = safe_row('ID, Posted', 'textpattern', "(`url_title` like '$uri_c' or `url_title` like '$mt_uri_c') $context_str and `Status` >= 4 limit 1")) {
-									$this->debug('Article id: '.$rs['ID']);
+								if ($rs = safe_row('url_title', 'textpattern', "(`url_title` like '$uri_c' or `url_title` like '$mt_uri_c') $context_str and `Status` >= 4 limit 1")) {
+									$this->debug('URL Title: '.$rs['url_title']);
 									$mt_redirect = ($uri_c != $mt_uri_c);
-									$pretext_replacement['id'] = $rs['ID'];
-									$pretext_replacement['Posted'] = $rs['Posted'];
-									$pretext['numPages'] = 1;
-									$pretext['is_article_list'] = false;
+									$pretext_replacement['url_title'] = $rs['url_title'];
 									$match = true;
 								}
 							break;
@@ -427,8 +424,8 @@ class PermanentLinks extends GBPPlugin
 							// a successful match for a given permlink rule occurs.
 							$this->debug('Checking if "'.$uri_c.'" is of type "title_page_feed"');
 
-							if ($type != 'title' && $ID = safe_field('ID', 'textpattern', "`url_title` like '$uri_c' $context_str and `Status` >= 4 limit 1")) {
-								$pretext_replacement['id'] = $ID;
+							if ($type != 'title' && $url_title = safe_field('url_title', 'textpattern', "`url_title` like '$uri_c' $context_str and `Status` >= 4 limit 1")) {
+								$pretext_replacement['url_title'] = $url_title;
 								$pretext['numPages'] = 1;
 								$pretext['is_article_list'] = false;
 								$cleaver_partial_match = true;
@@ -461,6 +458,26 @@ class PermanentLinks extends GBPPlugin
 						break;
 					}
 				} // foreach permlink component end
+
+				if (!isset($pretext_replacement['id'])) {
+					if (isset($pretext_replacement['url_title'])) {
+						if (isset($pretext_replacement['year'])) {
+							$date_val = $pretext_replacement['year'];
+							if (isset($pretext_replacement['month'])) {
+								$date_val .= '-' . $pretext_replacement['month'];
+								if (isset($pretext_replacement['day'])) {
+									$date_val .= '-' . $pretext_replacement['day'];
+								}
+							}
+						}
+						if ($rs = safe_row('ID, Posted', 'textpattern', "`url_title` like '$pretext_replacement[url_title]' $context_str and `Posted` like '$date_val%' and `Status` >= 4 order by `ID` desc limit 1")) {
+							$pretext_replacement['id'] = $rs['ID'];
+							$pretext_replacement['Posted'] = $rs['Posted'];
+							$pretext['numPages'] = 1;
+							$pretext['is_article_list'] = false;
+						}
+					}
+				}
 
 				if ($match || $partial_match || $cleaver_partial_match) {
 					// Extract the settings for this permlink
