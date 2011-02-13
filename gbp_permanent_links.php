@@ -470,7 +470,7 @@ class PermanentLinks extends GBPPlugin
 								}
 							}
 						}
-						if ($rs = safe_row('ID, Posted', 'textpattern', "`url_title` like '$pretext_replacement[url_title]' $context_str and `Posted` like '$date_val%' and `Status` >= 4 order by `ID` desc limit 1")) {
+						if ($rs = safe_row('ID, Posted', 'textpattern', "`url_title` like '$pretext_replacement[url_title]' $context_str and `Posted` like '$date_val%' and `Status` >= 4 order by `Posted` desc limit 1")) {
 							$pretext_replacement['id'] = $rs['ID'];
 							$pretext_replacement['Posted'] = $rs['Posted'];
 							$pretext['numPages'] = 1;
