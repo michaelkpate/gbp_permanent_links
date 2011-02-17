@@ -83,6 +83,10 @@ class PermanentLinks extends GBPPlugin
 		foreach ($rs as $id) {
 			$pl = $this->get_permlink($id);
 
+			// Don't try and load permalink rules from the new version
+			if (!isset($pl['components']))
+				continue;
+
 			if (count($exclude) > 0)
 				foreach ($pl['components'] as $pl_c) {
 					if (is_array($exclude) && in_array($pl_c['type'], $exclude))
