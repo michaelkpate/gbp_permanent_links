@@ -193,7 +193,7 @@ class PermanentLinks extends GBPPlugin
 				foreach($pl_components as $pl_c)
 					// Are we expecting a date component? If so the number of pl and uri components won't match
 					if ($pl_c['type'] == 'date')
-					 	$date = true;
+						$date = true;
 					// Do we have either a title, page or a feed component?
 					else if (in_array($pl_c['type'], array('title', 'page', 'feed')))
 						$title_page_feed = true;
@@ -557,7 +557,7 @@ class PermanentLinks extends GBPPlugin
 					$pretext_replacement[$des_feed] = 1;
 
 				if (@$pretext_replacement['id'] && @$pretext_replacement['Posted']) {
-				 	if ($np = getNextPrev($pretext_replacement['id'], $pretext_replacement['Posted'], @$pretext_replacement['s']))
+					if ($np = getNextPrev($pretext_replacement['id'], $pretext_replacement['Posted'], @$pretext_replacement['s']))
 						$pretext_replacement = array_merge($pretext_replacement, $np);
 				}
 				unset($pretext_replacement['Posted']);
