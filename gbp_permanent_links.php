@@ -1,27 +1,3 @@
-<?php
-
-$plugin['name'] = 'gbp_permanent_links';
-$plugin['version'] = '0.14';
-$plugin['author'] = 'Graeme Porteous';
-$plugin['author_uri'] = 'http://rgbp.co.uk/projects/textpattern/gbp_permanent_links/';
-$plugin['description'] = 'Custom permanent links rules';
-$plugin['type'] = '1';
-
-@include_once('../zem_tpl.php');
-
-if (0) {
-?>
-<!-- HELP SECTION
-# --- BEGIN PLUGIN HELP ---
-h1. gbp_permanent_links.
-
-There is no plugin documentation. For help please use the "forum thread":http://forum.textpattern.com/viewtopic.php?id=18918.
-# --- END PLUGIN HELP ---
--->
-<?php
-}
-# --- BEGIN PLUGIN CODE ---
-
 // Constants
 @define('gbp_save', 'save');
 @define('gbp_post', 'post');
@@ -2008,7 +1984,3 @@ if (@txpinterface == 'public') {
 		return $gbp_pl->toggle_permlink_mode('parse', $thing);
 	}
 }
-
-# --- END PLUGIN CODE ---
-
-?>
